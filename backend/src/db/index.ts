@@ -5,6 +5,7 @@ import * as usersSchema from './schema/users';
 import * as masterSchema from './schema/master';
 import * as vendorsSchema from './schema/vendors';
 import * as assetsSchema from './schema/assets';
+import * as employeesSchema from './schema/employees';
 
 dotenv.config();
 
@@ -18,5 +19,6 @@ export const db = drizzle(pool, {
     ...masterSchema,
     ...vendorsSchema,
     ...assetsSchema,
+    ...employeesSchema,
   },
 });

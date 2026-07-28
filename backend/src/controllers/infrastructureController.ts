@@ -132,7 +132,11 @@ async function ensureDefaultAccurateLogs() {
 }
 
 function parseAccurateHtml(html: string) {
-  const results: Array<{ computerName: string; ipAddress: string; userName: string; loginTime: Date }> = [];
+  const results: Array<{ computerName: string; ipAddress: string; userName: string; licenseVariant: string; loginTime: Date }> = [];
+  
+  // If HTML contains tab navigation, check if 'Lisensi Accurate 5' section exists
+  const hasAccurate5Tab = html.toLowerCase().includes('lisensi accurate 5') || html.toLowerCase().includes('accurate 5');
+
   const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let trMatch;
 
@@ -148,18 +152,27 @@ function parseAccurateHtml(html: string) {
     }
 
     if (cells.length >= 3) {
-      const [c0, c1, c2, c3] = cells;
-      const lower0 = c0.toLowerCase();
-      const lower1 = c1.toLowerCase();
-      if (lower0.includes('computer') || lower0.includes('name') || lower1.includes('ip address')) {
+      const [c0, c1, c2, c3, c4] = cells;
+      const lower0 = (c0 || '').toLowerCase();
+      const lower1 = (c1 || '').toLowerCase();
+      
+      // Skip header rows (Indonesian & English)
+      if (
+        lower0.includes('computer') || lower0.includes('komputer') || lower0.includes('nama') || lower0.includes('no') ||
+        lower1.includes('ip') || lower1.includes('alamat') || lower1.includes('address')
+      ) {
         continue;
       }
-      if (c0 && c1) {
-        const loginDate = c3 && !isNaN(Date.parse(c3)) ? new Date(c3) : new Date();
+      
+      if (c0 && (c1.includes('.') || c1.toLowerCase().includes('192.168') || c0.length > 2)) {
+        const loginDate = (c3 && !isNaN(Date.parse(c3))) ? new Date(c3) : (c4 && !isNaN(Date.parse(c4))) ? new Date(c4) : new Date();
+        const variant = (c4 || c3 || 'Accurate 5 Enterprise Edition').includes('Accurate') ? (c4 || c3) : 'Accurate 5 Enterprise Edition';
+
         results.push({
           computerName: c0,
           ipAddress: c1,
-          userName: c2 || 'Unknown User',
+          userName: c2 || 'Active Accurate User',
+          licenseVariant: variant,
           loginTime: loginDate,
         });
       }
@@ -197,7 +210,7 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
               computerName: r.computerName,
               ipAddress: r.ipAddress,
               userName: r.userName,
-              licenseVariant: 'Accurate 5 Enterprise',
+              licenseVariant: r.licenseVariant || 'Accurate 5 Enterprise Edition',
               loginTime: r.loginTime,
               status: 'Active',
               scrapedAt: new Date(),

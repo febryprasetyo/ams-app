@@ -12,10 +12,11 @@ import {
   X,
   Loader2,
   AlertCircle,
-  CheckCircle2,
   Mail,
   Phone,
   UserCheck,
+  Building2,
+  ShieldAlert
 } from 'lucide-react';
 
 interface Vendor {
@@ -73,13 +74,13 @@ export default function VendorsPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (vendor: Vendor) => {
-    setEditingVendor(vendor);
-    setFormName(vendor.name);
-    setFormContactName(vendor.contactName || '');
-    setFormEmail(vendor.email || '');
-    setFormPhone(vendor.phone || '');
-    setFormAddress(vendor.address || '');
+  const openEditModal = (v: Vendor) => {
+    setEditingVendor(v);
+    setFormName(v.name);
+    setFormContactName(v.contactName || '');
+    setFormEmail(v.email || '');
+    setFormPhone(v.phone || '');
+    setFormAddress(v.address || '');
     setModalError(null);
     setIsModalOpen(true);
   };
@@ -101,18 +102,22 @@ export default function VendorsPage() {
     setSubmitting(true);
 
     try {
-      const payload = {
-        name: formName,
-        contactName: formContactName || null,
-        email: formEmail || null,
-        phone: formPhone || null,
-        address: formAddress || null,
-      };
-
       if (editingVendor) {
-        await api.put(`/master/vendors/${editingVendor.id}`, payload);
+        await api.put(`/master/vendors/${editingVendor.id}`, {
+          name: formName,
+          contactName: formContactName || null,
+          email: formEmail || null,
+          phone: formPhone || null,
+          address: formAddress || null,
+        });
       } else {
-        await api.post('/master/vendors', payload);
+        await api.post('/master/vendors', {
+          name: formName,
+          contactName: formContactName || null,
+          email: formEmail || null,
+          phone: formPhone || null,
+          address: formAddress || null,
+        });
       }
       closeModal();
       fetchVendors();
@@ -143,135 +148,161 @@ export default function VendorsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Top Header & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold font-mono text-[#F8FAFC] flex items-center gap-3">
-              <Store className="w-7 h-7 text-[#22C55E]" />
-              <span>Vendor Master</span>
-            </h2>
-            <p className="text-sm text-slate-400 mt-1">
-              Manage hardware suppliers, software licensing partners, and IT service providers
-            </p>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+              <Store className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span>IT Suppliers & Vendors</span>
+                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  {vendors.length} Vendors
+                </span>
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Hardware procurement, software licensing providers & maintenance contractors
+              </p>
+            </div>
           </div>
 
           <button
             onClick={openCreateModal}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 font-semibold rounded-xl transition-all shadow-md shadow-[#22C55E]/10 cursor-pointer text-sm"
+            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl shadow-xl shadow-emerald-500/20 transition-all cursor-pointer text-xs flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add Vendor</span>
+            <Plus className="w-4 h-4 text-slate-950" />
+            <span>Add Supplier</span>
           </button>
         </div>
 
-        {/* Filter / Search Bar */}
-        <div className="bg-[#1E293B] border border-[#334155] p-4 rounded-2xl flex items-center justify-between gap-4">
+        {/* Bento Stat Header Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-emerald-400 flex items-center justify-center font-mono">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Total Partners</p>
+              <p className="text-xl font-bold font-mono text-white mt-0.5">{vendors.length}</p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-blue-400 flex items-center justify-center font-mono">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Account Reps</p>
+              <p className="text-xl font-bold font-mono text-white mt-0.5">
+                {vendors.filter((v) => v.contactName).length} Active
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 flex items-center justify-center font-mono">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">SLA Rating</p>
+              <p className="text-xs font-mono font-semibold text-emerald-400 mt-1">Tier-1 Approved</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search vendor by name, contact, or email..."
-              className="w-full pl-10 pr-4 py-2 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E] transition-colors"
+              placeholder="Search vendor name, contact person, email..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
             />
           </div>
-
-          <div className="text-xs font-mono text-slate-400">
-            Total: <span className="text-[#22C55E] font-bold">{filtered.length}</span> vendors
-          </div>
+          <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+            Showing <strong className="text-white">{filtered.length}</strong> of {vendors.length}
+          </span>
         </div>
 
-        {/* Global Error Banner */}
+        {/* Error Alert Display */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-3">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Data Table */}
-        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl overflow-hidden shadow-xl">
+        {/* Glass Table */}
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl">
           {loading ? (
-            <div className="p-12 flex items-center justify-center text-slate-400 gap-3 font-mono">
-              <Loader2 className="w-6 h-6 animate-spin text-[#22C55E]" />
-              <span>Loading vendors...</span>
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+              <span>Fetching vendor catalog...</span>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 font-sans">
-              <p className="text-base">No vendors found.</p>
-              <p className="text-xs text-slate-500 mt-1">Try refining your search query or add a new vendor.</p>
+            <div className="p-12 text-center">
+              <Store className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-300 font-semibold text-sm">No vendors found</p>
+              <p className="text-xs text-slate-500 mt-1">Try adjusting search parameters or add a new supplier.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#0F172A] border-b border-[#334155] text-xs font-mono text-slate-400 uppercase tracking-wider">
-                    <th className="py-3.5 px-4">ID</th>
-                    <th className="py-3.5 px-4">Vendor Name</th>
-                    <th className="py-3.5 px-4">Contact Person</th>
-                    <th className="py-3.5 px-4">Email</th>
-                    <th className="py-3.5 px-4">Phone</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                  <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-mono uppercase tracking-wider">
+                    <th className="py-3.5 px-5 font-semibold">ID</th>
+                    <th className="py-3.5 px-5 font-semibold">Vendor Company</th>
+                    <th className="py-3.5 px-5 font-semibold">Contact Person</th>
+                    <th className="py-3.5 px-5 font-semibold">Email & Phone</th>
+                    <th className="py-3.5 px-5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#334155] text-sm">
-                  {filtered.map((vendor) => (
-                    <tr key={vendor.id} className="hover:bg-[#020617]/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-400 text-xs">#{vendor.id}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-200">{vendor.name}</td>
-                      <td className="py-3.5 px-4 text-slate-300">
-                        {vendor.contactName ? (
-                          <span className="flex items-center gap-1.5 text-xs">
-                            <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                            {vendor.contactName}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-600 font-mono">-</span>
-                        )}
+                <tbody className="divide-y divide-slate-800/60">
+                  {filtered.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-900/60 transition-colors group">
+                      <td className="py-4 px-5 font-mono text-slate-400">#{v.id}</td>
+                      <td className="py-4 px-5 font-bold text-slate-100 group-hover:text-emerald-400 transition-colors">
+                        {v.name}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300 font-mono text-xs">
-                        {vendor.email ? (
-                          <span className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" />
-                            {vendor.email}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">-</span>
-                        )}
+                      <td className="py-4 px-5 text-slate-300 font-medium">
+                        {v.contactName || <span className="text-slate-600 italic">Not specified</span>}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300 font-mono text-xs">
-                        {vendor.phone ? (
-                          <span className="flex items-center gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />
-                            {vendor.phone}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">-</span>
-                        )}
+                      <td className="py-4 px-5">
+                        <div className="space-y-1 font-mono text-[11px]">
+                          {v.email && (
+                            <div className="flex items-center gap-1.5 text-slate-300">
+                              <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>{v.email}</span>
+                            </div>
+                          )}
+                          {v.phone && (
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                              <span>{v.phone}</span>
+                            </div>
+                          )}
+                          {!v.email && !v.phone && <span className="text-slate-600 italic">No contact details</span>}
+                        </div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Active
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => openEditModal(vendor)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(vendor.id)}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="py-4 px-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(v)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer"
+                            title="Edit Vendor"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(v.id)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+                            title="Delete Vendor"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -280,121 +311,127 @@ export default function VendorsPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Modal Dialog */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
-              <div className="flex items-center justify-between pb-4 border-b border-[#334155]">
-                <h3 className="text-lg font-bold font-mono text-[#F8FAFC]">
-                  {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
-                </h3>
-                <button
-                  onClick={closeModal}
-                  className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {/* Modal Dialog */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-700/80 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Store className="w-5 h-5 text-emerald-400" />
+                <span>{editingVendor ? 'Edit Supplier' : 'Add New Supplier'}</span>
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  Vendor / Company Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="e.g. PT Bhinneka Mentari Dimensi"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                />
               </div>
 
-              {modalError && (
-                <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{modalError}</span>
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  Contact Person (PIC)
+                </label>
+                <input
+                  type="text"
+                  value={formContactName}
+                  onChange={(e) => setFormContactName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                />
+              </div>
 
-              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 mb-1">
-                    Vendor Company Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g. PT Synnex Metrodata Indonesia"
-                    className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Contact Person
-                    </label>
-                    <input
-                      type="text"
-                      value={formContactName}
-                      onChange={(e) => setFormContactName(e.target.value)}
-                      placeholder="e.g. John Doe"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="e.g. +62 21 555 1234"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono text-slate-300 mb-1">
-                    Email Address
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Email
                   </label>
                   <input
                     type="email"
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="e.g. sales@vendor.com"
-                    className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
+                    placeholder="sales@vendor.com"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 mb-1">
-                    Office Address
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Phone
                   </label>
-                  <textarea
-                    rows={2}
-                    value={formAddress}
-                    onChange={(e) => setFormAddress(e.target.value)}
-                    placeholder="e.g. APL Tower 38th Floor, Grogol, Jakarta Barat"
-                    className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="+62 21 555-0192"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                   />
                 </div>
+              </div>
 
-                <div className="pt-4 flex items-center justify-end gap-3 border-t border-[#334155]">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    <span>{editingVendor ? 'Save Changes' : 'Create Vendor'}</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={formAddress}
+                  onChange={(e) => setFormAddress(e.target.value)}
+                  placeholder="Office address..."
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold rounded-xl text-xs border border-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editingVendor ? 'Update Supplier' : 'Save Supplier'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

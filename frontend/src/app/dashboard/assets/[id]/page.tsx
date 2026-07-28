@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
+import QRCode from 'qrcode';
 import {
   HardDrive,
   ArrowLeft,
@@ -119,6 +120,9 @@ export default function AssetDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'transfers' | 'maintenance' | 'audit'>('transfers');
 
+  // Real Scannable QR Code Data URL
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+
   // Print Asset Tag Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
@@ -166,11 +170,28 @@ export default function AssetDetailPage() {
     fetchAssetData();
   }, [fetchAssetData]);
 
-  // Dedicated Thermal Sticker Print Handler
-  const handlePrintSticker = () => {
-    if (!asset) return;
+  // Generate Real Scannable QR Code Data URL when asset loads
+  useEffect(() => {
+    if (asset) {
+      const qrPayload = `${window.location.origin}/dashboard/assets/${asset.id}`;
+      QRCode.toDataURL(qrPayload, {
+        width: 300,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff',
+        },
+      })
+        .then((url) => setQrCodeDataUrl(url))
+        .catch((err) => console.error('Failed to generate QR code', err));
+    }
+  }, [asset]);
 
-    const printWindow = window.open('', '_blank', 'width=650,height=480');
+  // Dedicated Thermal Sticker Print Handler with Scannable QR Code Image
+  const handlePrintSticker = () => {
+    if (!asset || !qrCodeDataUrl) return;
+
+    const printWindow = window.open('', '_blank', 'width=650,height=520');
     if (!printWindow) {
       alert('Please allow popups in your browser to print the asset tag sticker.');
       return;
@@ -180,7 +201,7 @@ export default function AssetDetailPage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Asset Tag Sticker - ${asset.assetCode}</title>
+          <title>Asset Tag QR Sticker - ${asset.assetCode}</title>
           <style>
             @page {
               size: 80mm 50mm;
@@ -203,9 +224,9 @@ export default function AssetDetailPage() {
             .tag-card {
               width: 78mm;
               height: 48mm;
-              border: 2px solid #000000;
+              border: 2.5px solid #000000;
               border-radius: 6px;
-              padding: 6px 10px;
+              padding: 6px 8px;
               display: flex;
               flex-direction: column;
               justify-content: space-between;
@@ -223,28 +244,34 @@ export default function AssetDetailPage() {
               text-transform: uppercase;
             }
             .body-content {
-              text-align: center;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
               margin: 4px 0;
             }
-            .barcode-lines {
-              font-size: 22px;
-              font-weight: bold;
-              letter-spacing: 1px;
-              margin: 2px 0;
-              line-height: 1;
+            .qr-img {
+              width: 26mm;
+              height: 26mm;
+              border: 1px solid #000000;
+              padding: 2px;
+              background: #ffffff;
+            }
+            .asset-info {
+              flex: 1;
+              text-align: left;
             }
             .asset-code {
-              font-size: 16px;
+              font-size: 15px;
               font-weight: 900;
-              letter-spacing: 2px;
-              margin: 2px 0;
+              letter-spacing: 1px;
+              margin-bottom: 2px;
             }
             .asset-name {
-              font-size: 10px;
+              font-size: 9.5px;
               font-weight: bold;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+              line-height: 1.2;
+              word-break: break-word;
             }
             .footer-meta {
               font-size: 8px;
@@ -252,6 +279,7 @@ export default function AssetDetailPage() {
               padding-top: 3px;
               display: flex;
               justify-content: space-between;
+              font-weight: bold;
             }
             .warning {
               font-size: 7px;
@@ -264,20 +292,25 @@ export default function AssetDetailPage() {
         <body>
           <div class="tag-card">
             <div class="header">
-              <span>ERP CAHAYA AMS</span>
-              <span>IT ASSET</span>
+              <span>ERP CAHAYA ITSM</span>
+              <span>PROPERTY TAG</span>
             </div>
+
             <div class="body-content">
-              <div class="barcode-lines">||| ||| | ||||| ||| |||</div>
-              <div class="asset-code">${asset.assetCode}</div>
-              <div class="asset-name">${asset.name}</div>
+              <img src="${qrCodeDataUrl}" class="qr-img" alt="Scannable QR Code" />
+              <div class="asset-info">
+                <div class="asset-code">${asset.assetCode}</div>
+                <div class="asset-name">${asset.name}</div>
+                <div style="font-size: 8.5px; margin-top: 3px; color: #333;">CAT: ${asset.categoryName || 'IT EQUIPMENT'}</div>
+              </div>
             </div>
+
             <div>
               <div class="footer-meta">
                 <span>S/N: ${asset.serialNumber || 'N/A'}</span>
                 <span>LOC: ${asset.locationName || 'HEAD OFFICE'}</span>
               </div>
-              <div class="warning">PROPERTY OF COMPANY - DO NOT REMOVE</div>
+              <div class="warning">SCAN QR FOR DEVICE SPECS • DO NOT REMOVE</div>
             </div>
           </div>
           <script>
@@ -428,7 +461,7 @@ export default function AssetDetailPage() {
               className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
             >
               <Printer className="w-4 h-4 text-red-600" />
-              <span>Print Asset Tag</span>
+              <span>Print Asset Tag QR</span>
             </button>
 
             <button
@@ -505,7 +538,7 @@ export default function AssetDetailPage() {
             )}
           </div>
 
-          {/* Card 2: Asset Barcode Badge Preview */}
+          {/* Card 2: Asset Real Scannable QR Code Badge Preview */}
           <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-red-50/20 border border-slate-200 flex flex-col justify-between items-center text-center">
             <div className="w-full border-b border-slate-200 pb-3 flex items-center justify-between">
               <span className="text-xs font-bold font-mono text-slate-900 uppercase">AMS Property Tag</span>
@@ -513,9 +546,17 @@ export default function AssetDetailPage() {
             </div>
 
             <div className="my-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-center w-full max-w-[220px]">
-              <div className="w-14 h-14 bg-red-50 text-red-600 rounded-xl mx-auto flex items-center justify-center mb-2 border border-red-200">
-                <QrCode className="w-8 h-8" />
-              </div>
+              {qrCodeDataUrl ? (
+                <img
+                  src={qrCodeDataUrl}
+                  alt="Asset QR Code"
+                  className="w-28 h-28 mx-auto mb-2 border border-slate-200 rounded-xl p-1 bg-white shadow-2xs"
+                />
+              ) : (
+                <div className="w-28 h-28 bg-slate-100 text-slate-400 rounded-xl mx-auto flex items-center justify-center mb-2">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                </div>
+              )}
               <p className="font-mono font-extrabold text-sm text-slate-900 tracking-wider">{asset.assetCode}</p>
               <p className="text-[9px] font-mono text-slate-500 mt-0.5 truncate">{asset.name}</p>
             </div>
@@ -525,7 +566,7 @@ export default function AssetDetailPage() {
               className="w-full py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md shadow-red-600/20"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Sticker Label</span>
+              <span>Print QR Sticker</span>
             </button>
           </div>
         </div>
@@ -762,14 +803,14 @@ export default function AssetDetailPage() {
         </div>
       </div>
 
-      {/* --- Printable Asset Tag Modal --- */}
+      {/* --- Printable Asset Tag QR Modal --- */}
       {isPrintModalOpen && asset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Printer className="w-4 h-4 text-red-600" />
-                <span>Print IT Asset Property Tag Sticker</span>
+                <span>Print IT Asset Property Tag (QR Sticker)</span>
               </h3>
               <button onClick={() => setIsPrintModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
                 <X className="w-4 h-4" />
@@ -777,25 +818,32 @@ export default function AssetDetailPage() {
             </div>
 
             {/* Sticker Preview Box */}
-            <div className="my-4 p-5 bg-white border-2 border-slate-900 rounded-2xl shadow-md text-center space-y-3 font-mono">
+            <div className="my-4 p-5 bg-white border-2 border-slate-900 rounded-2xl shadow-md space-y-3 font-mono">
               <div className="flex items-center justify-between text-[10px] font-extrabold uppercase border-b border-slate-900 pb-1 text-slate-900">
                 <span>ERP CAHAYA ITSM</span>
                 <span>PROPERTY TAG</span>
               </div>
 
-              <div className="py-2">
-                <div className="text-2xl font-black text-slate-900 tracking-widest leading-none">
-                  ||| ||| | ||||| ||| |||
+              <div className="flex items-center justify-between gap-4 py-1">
+                {qrCodeDataUrl ? (
+                  <img src={qrCodeDataUrl} alt="QR Code" className="w-24 h-24 border border-slate-900 p-1 bg-white shrink-0" />
+                ) : (
+                  <div className="w-24 h-24 bg-slate-100 border border-slate-900 flex items-center justify-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                )}
+                <div className="flex-1 text-left">
+                  <p className="font-mono font-black text-base text-red-600 tracking-wider">{asset.assetCode}</p>
+                  <p className="text-xs font-bold text-slate-900 leading-tight line-clamp-2 mt-0.5">{asset.name}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase">CAT: {asset.categoryName || 'IT ASSET'}</p>
                 </div>
-                <p className="font-mono font-black text-lg text-red-600 tracking-wider mt-1">{asset.assetCode}</p>
-                <p className="text-xs font-bold text-slate-800 truncate">{asset.name}</p>
               </div>
 
               <div className="text-[10px] border-t border-slate-900 pt-1.5 flex justify-between font-bold text-slate-700">
                 <span>S/N: {asset.serialNumber || 'N/A'}</span>
                 <span>LOC: {asset.locationName || 'HO-JKT'}</span>
               </div>
-              <div className="text-[9px] text-slate-500 italic">DO NOT REMOVE - INTERNAL ASSET TRACKER</div>
+              <div className="text-[9px] text-slate-500 italic text-center">SCAN QR FOR DEVICE SPECS • DO NOT REMOVE</div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -815,7 +863,7 @@ export default function AssetDetailPage() {
                 className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-red-600/20"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Tag Label (Sticker)</span>
+                <span>Print QR Sticker Label</span>
               </button>
             </div>
           </div>

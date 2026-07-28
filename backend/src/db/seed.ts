@@ -6,13 +6,41 @@ import { employees } from './schema/employees';
 import { assetCategories, assets } from './schema/assets';
 import { ticketCategories, slaPolicies, itTickets, ticketComments } from './schema/tickets';
 import { softwareLicenses, licenseAllocations } from './schema/licenses';
+import { accurateLicenseLogs, servers, dbBackups } from './schema/infrastructure';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 
-async function seed() {
-  console.log('🌱 Starting Database Seed Procedure with Single-Device (1 License = 1 Device) Software Licenses...');
+const SEED_ACCURATE_LICENSE_LIST = [
+  { no: 1, licenseKey: "GWIJU-QPTIH-7LI8F-I86460", date: "2026-06-05", ip: "192.168.10.70", version: "5.0.20.1868", host: "GUDANG", status: "ACTIVE" },
+  { no: 2, licenseKey: "JZ1U2-YWQE1-13LUK-SCEWN", date: "2026-06-05", ip: "192.168.10.54", version: "5.0.20.1868", host: "Produksi 1", status: "ACTIVE" },
+  { no: 3, licenseKey: "EZOFE-18LCU-C1CDS-GYXZR", date: "2026-06-05", ip: "192.168.10.237", version: "5.0.20.1868", host: "lilis", status: "ACTIVE" },
+  { no: 4, licenseKey: "KRVJ4-HEAKB-CVH7D-PHVSB", date: "2026-06-05", ip: "192.168.10.39", version: "5.0.20.1868", host: "AGRE", status: "ACTIVE" },
+  { no: 5, licenseKey: "L8GWS-3ITC0-T6DNX-WMD3X", date: "2026-06-05", ip: "192.168.10.45", version: "5.0.20.1868", host: "andi", status: "ACTIVE" },
+  { no: 6, licenseKey: "RUCAO-R69X7-QG2WO-A89FO", date: "2026-06-05", ip: "192.168.10.36", version: "5.0.20.1868", host: "NIDA", status: "ACTIVE" },
+  { no: 7, licenseKey: "RYNZ7-31EPT-WB9Z8-D3ARC", date: "2026-06-11", ip: "192.168.10.10", version: "5.0.20.1868", host: "CMC", status: "ACTIVE" },
+  { no: 8, licenseKey: "S79FI-BMP15-CMHEK-UC21Y", date: null, ip: null, version: null, host: "Seat #8 (Idle)", status: "RELEASED" },
+  { no: 9, licenseKey: "T5YSS-QC3FF-F8GDY-HJURR", date: null, ip: null, version: null, host: "Seat #9 (Idle)", status: "RELEASED" },
+  { no: 10, licenseKey: "TLJR0-D0J7Z-2ZUFT-6QMK7", date: null, ip: null, version: null, host: "Seat #10 (Idle)", status: "RELEASED" },
+  { no: 11, licenseKey: "UFTIC-W6GDG-1YVT1-QVP43", date: null, ip: null, version: null, host: "Seat #11 (Idle)", status: "RELEASED" },
+  { no: 12, licenseKey: "UPPX0-DX6IX-FCGY9-9HXJV", date: null, ip: null, version: null, host: "Seat #12 (Idle)", status: "RELEASED" },
+  { no: 13, licenseKey: "X8HGH-4W806-ME88X-TWCI2", date: null, ip: null, version: null, host: "Seat #13 (Idle)", status: "RELEASED" },
+  { no: 14, licenseKey: "RZMB-0TY11-N4B41-6VE2U", date: "2026-06-04", ip: "192.168.10.5", version: "5.0.20.1868", host: "TIA", status: "ACTIVE" },
+  { no: 15, licenseKey: "R5Z4-L792N-DJCV8-LC3MO", date: "2026-06-04", ip: "192.168.40.3", version: "5.0.20.1868", host: "MARIYAM", status: "ACTIVE" },
+  { no: 16, licenseKey: "491NJ-JL7OH-8BCK4-WN2AW", date: "2026-06-04", ip: "192.168.40.3", version: "5.0.20.1868", host: "Bu ELISA", status: "ACTIVE" },
+  { no: 17, licenseKey: "7PDNH-322N9-3WDHJ-YFG1L", date: "2026-06-04", ip: "192.168.10.160", version: "5.0.20.1868", host: "Server", status: "ACTIVE" },
+  { no: 18, licenseKey: "APFR9-YY05X-1A8PV-V4NS4", date: "2026-06-05", ip: "192.168.10.94", version: "5.0.20.1868", host: "AFNI", status: "ACTIVE" },
+  { no: 19, licenseKey: "1EBCAK-D0Q4H-RPZH1-QEE4G", date: "2026-06-05", ip: "192.168.10.114", version: "5.0.20.1868", host: "AYU", status: "ACTIVE" },
+  { no: 20, licenseKey: "VS98P-CAGEW-B3AZT-IPS5Z", date: "2026-06-04", ip: "192.168.10.35", version: "5.0.20.1868", host: "RISKI-AR", status: "ACTIVE" },
+  { no: 21, licenseKey: "4R356N-G76EP-PENH8-BYA07", date: "2026-06-04", ip: "192.168.10.17", version: "5.0.20.1868", host: "DL", status: "ACTIVE" },
+  { no: 22, licenseKey: "3KDOWE-PE9Q5-IQPFU-NKTV9", date: "2026-04-23", ip: "192.168.1.123", version: "5.0.20.1868", host: "Feli", status: "ACTIVE" },
+  { no: 23, licenseKey: "29QF7-O2HJR-W6S06-11327", date: "2026-04-23", ip: "192.168.1.122", version: "5.0.20.1868", host: "Nisa", status: "ACTIVE" },
+  { no: 24, licenseKey: "00A9Q-EPR68-UL37R-OH8Z3", date: "2026-04-23", ip: "192.168.1.121", version: "5.0.20.1868", host: "temp riski", status: "ACTIVE" }
+];
 
-  // 0. Ensure custom tables exist in PostgreSQL
+async function seed() {
+  console.log('🌱 Starting Database Seed Procedure with Accurate 5 Scraper (matching licenseList.json format)...');
+
+  // 0. Ensure custom tables & columns exist in PostgreSQL
   await db.execute(`
     CREATE TABLE IF NOT EXISTS asset_assignment_history (
       id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -60,8 +88,42 @@ async function seed() {
       allocated_at timestamp DEFAULT now() NOT NULL,
       notes text
     );
+
+    CREATE TABLE IF NOT EXISTS accurate_license_logs (
+      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      seat_no integer,
+      license_key varchar(100),
+      date varchar(50),
+      ip_address varchar(45),
+      version varchar(50),
+      host varchar(100),
+      status varchar(30) DEFAULT 'ACTIVE',
+      scraped_at timestamp DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS servers (
+      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      hostname varchar(50),
+      name varchar(150),
+      ip_address varchar(45),
+      os varchar(100),
+      storage_spec varchar(255),
+      status varchar(30) DEFAULT 'Online',
+      notes text,
+      created_at timestamp DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS db_backups (
+      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      server_id bigint REFERENCES servers(id),
+      db_name varchar(100),
+      size_mb numeric,
+      status varchar(30) DEFAULT 'Success',
+      backup_path varchar(255),
+      completed_at timestamp DEFAULT now()
+    );
   `);
-  console.log('  ✓ Verified software_licenses & license_allocations tables in database');
+  console.log('  ✓ Verified accurate_license_logs, servers, and db_backups tables in database');
 
   await db.execute(`
     ALTER TABLE ticket_comments DROP CONSTRAINT IF EXISTS ticket_comments_ticket_id_tickets_id_fk;
@@ -69,8 +131,13 @@ async function seed() {
     ALTER TABLE it_tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
     ALTER TABLE ticket_comments ADD COLUMN IF NOT EXISTS is_internal boolean DEFAULT false NOT NULL;
     ALTER TABLE software_licenses ADD COLUMN IF NOT EXISTS vendor_id bigint REFERENCES vendors(id);
+    ALTER TABLE accurate_license_logs ADD COLUMN IF NOT EXISTS seat_no integer;
+    ALTER TABLE accurate_license_logs ADD COLUMN IF NOT EXISTS license_key varchar(100);
+    ALTER TABLE accurate_license_logs ADD COLUMN IF NOT EXISTS date varchar(50);
+    ALTER TABLE accurate_license_logs ADD COLUMN IF NOT EXISTS version varchar(50);
+    ALTER TABLE accurate_license_logs ADD COLUMN IF NOT EXISTS host varchar(100);
   `);
-  console.log('  ✓ Verified it_tickets & comments table columns in database');
+  console.log('  ✓ Verified table columns in database');
 
   // 1. Seed Roles
   const defaultRoles = [
@@ -150,231 +217,53 @@ async function seed() {
     }
   }
 
-  const allVendors = await db.select().from(vendors);
-  const vendorSchneider = allVendors.find((v) => v.name.includes('Schneider')) || allVendors[0];
-  const vendorMicrosoft = allVendors.find((v) => v.name.includes('Microsoft')) || allVendors[0];
-
-  // Fetch created departments and locations for FK referencing
-  const allDepts = await db.select().from(departments);
-  const allLocs = await db.select().from(locations);
-  const itDept = allDepts.find((d) => d.code === 'IT') || allDepts[0];
-  const finDept = allDepts.find((d) => d.code === 'FIN') || allDepts[0];
-  const hrDept = allDepts.find((d) => d.code === 'HR') || allDepts[0];
-  const opsDept = allDepts.find((d) => d.code === 'OPS') || allDepts[0];
-  const jktLoc = allLocs.find((l) => l.code === 'JKT-HO') || allLocs[0];
-  const subLoc = allLocs.find((l) => l.code === 'SUB-BO') || allLocs[0];
-
-  // 5. Seed Dummy Employees
-  const dummyEmployeesData = [
-    { employeeCode: 'EMP-001', fullName: 'Budi Santoso', email: 'budi.santoso@company.com', phone: '+628123456781', departmentId: itDept.id, locationId: jktLoc.id, position: 'Senior Software Engineer', status: 'Active' },
-    { employeeCode: 'EMP-002', fullName: 'Ahmad Hidayat', email: 'ahmad.hidayat@company.com', phone: '+628123456782', departmentId: opsDept.id, locationId: jktLoc.id, position: 'Operations Manager', status: 'Active' },
-    { employeeCode: 'EMP-003', fullName: 'Siti Rahma', email: 'siti.rahma@company.com', phone: '+628123456783', departmentId: finDept.id, locationId: subLoc.id, position: 'Financial Analyst', status: 'Active' },
-    { employeeCode: 'EMP-004', fullName: 'Dewi Lestari', email: 'dewi.lestari@company.com', phone: '+628123456784', departmentId: hrDept.id, locationId: jktLoc.id, position: 'HR Specialist', status: 'Active' },
-    { employeeCode: 'EMP-005', fullName: 'Eko Prasetyo', email: 'eko.prasetyo@company.com', phone: '+628123456785', departmentId: itDept.id, locationId: jktLoc.id, position: 'System Architect', status: 'Active' },
+  // 5. Seed Servers Topology
+  const dummyServers = [
+    {
+      serverCode: 'SVR-2026-0001',
+      name: 'Dell PowerEdge R760 (Accurate 5 & ERP Core Host)',
+      ipAddress: '192.168.10.23',
+      os: 'Ubuntu Server 24.04 LTS (Kernel 6.8)',
+      specs: '2x Intel Xeon Gold 6430 / 256GB RAM DDR5 / 4x 1.92TB NVMe Enterprise RAID-10',
+      status: 'Online',
+      notes: 'Host for PostgreSQL ams_db and Accurate 5 Firebird Database Engine',
+    },
+    {
+      serverCode: 'SVR-2026-0002',
+      name: 'Accurate 5 License Manager Web Server (Port 6688)',
+      ipAddress: '192.168.10.160',
+      os: 'Windows Server 2022 Standard',
+      specs: 'Intel Xeon E-2336 / 32GB RAM / 1TB SSD',
+      status: 'Online',
+      notes: 'Runs Accurate 5 License Manager Web Console on http://192.168.10.160:6688/',
+    },
   ];
 
-  for (const empData of dummyEmployeesData) {
-    const existing = await db.select().from(employees).where(eq(employees.employeeCode, empData.employeeCode));
+  for (const srvData of dummyServers) {
+    const existing = await db.select().from(servers).where(eq(servers.serverCode, srvData.serverCode));
     if (existing.length === 0) {
-      await db.insert(employees).values(empData);
-      console.log(`  ✓ Inserted employee: ${empData.fullName} (${empData.employeeCode})`);
+      await db.insert(servers).values(srvData);
+      console.log(`  ✓ Inserted server: ${srvData.name} (${srvData.ipAddress})`);
     }
   }
 
-  const allEmps = await db.select().from(employees);
-  const empBudi = allEmps.find((e) => e.employeeCode === 'EMP-001') || allEmps[0];
-  const empAhmad = allEmps.find((e) => e.employeeCode === 'EMP-002') || allEmps[0];
-  const empSiti = allEmps.find((e) => e.employeeCode === 'EMP-003') || allEmps[0];
+  // 6. Seed Accurate 5 License List (24 Seats matching licenseList.json format)
+  await db.delete(accurateLicenseLogs);
+  await db.insert(accurateLicenseLogs).values(
+    SEED_ACCURATE_LICENSE_LIST.map((item) => ({
+      seatNo: item.no,
+      licenseKey: item.licenseKey,
+      date: item.date,
+      ip: item.ip,
+      version: item.version,
+      host: item.host,
+      status: item.status,
+      scrapedAt: new Date(),
+    }))
+  );
+  console.log(`  ✓ Seeded 24 Accurate 5 License Seats matching licenseList.json format`);
 
-  // 6. Seed Asset Categories
-  const defaultAssetCategories = [
-    { name: 'Laptop', codePrefix: 'LPT' },
-    { name: 'Desktop PC', codePrefix: 'PC' },
-    { name: 'Monitor', codePrefix: 'MON' },
-    { name: 'Printer', codePrefix: 'PRN' },
-    { name: 'Server Physical/VM', codePrefix: 'SVR' },
-    { name: 'Network Device', codePrefix: 'NET' },
-  ];
-
-  for (const cat of defaultAssetCategories) {
-    const existing = await db.select().from(assetCategories).where(eq(assetCategories.name, cat.name));
-    if (existing.length === 0) {
-      await db.insert(assetCategories).values(cat);
-      console.log(`  ✓ Inserted asset category: ${cat.name}`);
-    }
-  }
-
-  const allCats = await db.select().from(assetCategories);
-  const catLaptop = allCats.find((c) => c.codePrefix === 'LPT') || allCats[0];
-  const catPC = allCats.find((c) => c.codePrefix === 'PC') || allCats[0];
-  const catMonitor = allCats.find((c) => c.codePrefix === 'MON') || allCats[0];
-
-  // 7. Seed Dummy IT Assets
-  const dummyAssetsData = [
-    {
-      assetCode: 'LPT-2026-0001',
-      name: 'MacBook Pro 16" M3 Max (36GB RAM / 1TB SSD)',
-      categoryId: catLaptop.id,
-      locationId: jktLoc.id,
-      assignedToEmployeeId: empBudi.id,
-      serialNumber: 'C02G1234MD6R',
-      status: 'Assigned',
-      condition: 'Good',
-      notes: 'High-performance engineering laptop for Senior Software Engineer',
-    },
-    {
-      assetCode: 'LPT-2026-0002',
-      name: 'Dell XPS 15 9530 (i7-13700H / 32GB RAM / RTX 4060)',
-      categoryId: catLaptop.id,
-      locationId: subLoc.id,
-      assignedToEmployeeId: empSiti.id,
-      serialNumber: 'DL-XPS-998811',
-      status: 'Assigned',
-      condition: 'Good',
-      notes: 'Financial workstation assigned to Branch Office Analyst',
-    },
-    {
-      assetCode: 'PC-2026-0001',
-      name: 'Custom AI Workstation (i9-14900K / 64GB DDR5 / RTX 4090)',
-      categoryId: catPC.id,
-      locationId: jktLoc.id,
-      assignedToEmployeeId: null,
-      serialNumber: 'WS-2026-RTX4090',
-      status: 'Available',
-      condition: 'Good',
-      notes: 'AI Model training workstation returned to IT pool after project completion',
-    },
-  ];
-
-  for (const astData of dummyAssetsData) {
-    const existing = await db.select().from(assets).where(eq(assets.assetCode, astData.assetCode));
-    if (existing.length === 0) {
-      await db.insert(assets).values(astData);
-      console.log(`  ✓ Inserted asset: ${astData.name} (${astData.assetCode})`);
-    }
-  }
-
-  const allAssets = await db.select().from(assets);
-  const astMacbook = allAssets.find((a) => a.assetCode === 'LPT-2026-0001') || allAssets[0];
-  const astDellXps = allAssets.find((a) => a.assetCode === 'LPT-2026-0002') || allAssets[0];
-  const astAiWorkstation = allAssets.find((a) => a.assetCode === 'PC-2026-0001') || allAssets[0];
-
-  // Clear existing allocations and licenses to re-seed strictly 1 license = 1 device
-  await db.delete(licenseAllocations);
-  await db.delete(softwareLicenses);
-  console.log('  ✓ Reset software_licenses & allocations for 1 License = 1 Device rule enforcement');
-
-  // 8. Seed Software Licenses STRICTLY 1 License = 1 Device (totalSeats: 1)
-  const singleDeviceLicenses = [
-    {
-      name: 'AVEVA System Platform 2023 R2 (CD License #1)',
-      licenseKey: 'AVEVA-CD-2023R2-SN-001',
-      licenseType: 'CD / Dongle',
-      vendorId: vendorSchneider.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2025-01-15'),
-      expirationDate: new Date('2028-01-15'),
-      cost: '30000000',
-      status: 'Active',
-      notes: 'CD Media & USB Hardware Dongle #1 dedicated to MacBook Pro M3 Max',
-      targetAsset: astMacbook,
-      targetEmp: empBudi,
-    },
-    {
-      name: 'AVEVA System Platform 2023 R2 (CD License #2)',
-      licenseKey: 'AVEVA-CD-2023R2-SN-002',
-      licenseType: 'CD / Dongle',
-      vendorId: vendorSchneider.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2025-01-15'),
-      expirationDate: new Date('2028-01-15'),
-      cost: '30000000',
-      status: 'Active',
-      notes: 'CD Media & USB Hardware Dongle #2 dedicated to Custom AI Workstation',
-      targetAsset: astAiWorkstation,
-      targetEmp: null,
-    },
-    {
-      name: 'Schneider EcoStruxure Machine Expert v2.1 (Dongle Key #1)',
-      licenseKey: 'SCH-EMEX-V21-USB-001',
-      licenseType: 'CD / Dongle',
-      vendorId: vendorSchneider.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2025-03-10'),
-      expirationDate: new Date('2027-03-10'),
-      cost: '28000000',
-      status: 'Active',
-      notes: 'PLC Machine Expert Software Dongle Key dedicated to Dell XPS 15 Laptop',
-      targetAsset: astDellXps,
-      targetEmp: empSiti,
-    },
-    {
-      name: 'Windows 10 Pro OEM Digital License (Laptop LPT-2026-0001)',
-      licenseKey: 'OEM-WIN10PRO-DL-9901-MAC',
-      licenseType: 'OEM Bundled',
-      vendorId: vendorMicrosoft.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2024-06-01'),
-      expirationDate: null, // Perpetual OEM
-      cost: '2500000',
-      status: 'Active',
-      notes: 'OEM Digital Activation Key pre-bundled with MacBook Pro Bootcamp / VM',
-      targetAsset: astMacbook,
-      targetEmp: empBudi,
-    },
-    {
-      name: 'Windows 10 Pro OEM Digital License (Laptop LPT-2026-0002)',
-      licenseKey: 'OEM-WIN10PRO-DL-9902-XPS',
-      licenseType: 'OEM Bundled',
-      vendorId: vendorMicrosoft.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2024-06-01'),
-      expirationDate: null, // Perpetual OEM
-      cost: '2500000',
-      status: 'Active',
-      notes: 'OEM Digital Key factory-embedded in Dell XPS 15 Laptop motherboard',
-      targetAsset: astDellXps,
-      targetEmp: empSiti,
-    },
-    {
-      name: 'Microsoft Office 365 Home & Business (Laptop Bundling LPT-2026-0002)',
-      licenseKey: 'M365-OEM-BUNDLE-DL-002',
-      licenseType: 'OEM Bundled',
-      vendorId: vendorMicrosoft.id,
-      totalSeats: 1,
-      usedSeats: 1,
-      purchaseDate: new Date('2025-02-01'),
-      expirationDate: new Date('2027-02-01'),
-      cost: '3500000',
-      status: 'Active',
-      notes: 'Microsoft Account subscription bundled directly with Dell XPS Laptop purchase',
-      targetAsset: astDellXps,
-      targetEmp: empSiti,
-    },
-  ];
-
-  for (const item of singleDeviceLicenses) {
-    const { targetAsset, targetEmp, ...lData } = item;
-    const [licObj] = await db.insert(softwareLicenses).values(lData as any).returning();
-    console.log(`  ✓ Created single-device license: ${lData.name} (1 License = 1 Device)`);
-
-    if (targetAsset) {
-      await db.insert(licenseAllocations).values({
-        licenseId: licObj.id,
-        employeeId: targetEmp ? targetEmp.id : null,
-        assetId: targetAsset.id,
-        notes: `Exclusive 1-to-1 single device license allocated to ${targetAsset.name} (${targetAsset.assetCode})`,
-      });
-      console.log(`    ↳ Seat allocated exclusively to device ${targetAsset.assetCode}`);
-    }
-  }
-
-  console.log('✅ Database Seed Procedure Completed Successfully with 1 License = 1 Device Rule!');
+  console.log('✅ Database Seed Procedure Completed Successfully!');
   process.exit(0);
 }
 

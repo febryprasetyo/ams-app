@@ -812,7 +812,7 @@ export default function AssetDetailPage() {
                 <Printer className="w-4 h-4 text-red-600" />
                 <span>Print IT Asset Property Tag (QR Sticker)</span>
               </h3>
-              <button onClick={() => setIsPrintModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
+              <button onClick={() => setIsPrintModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>

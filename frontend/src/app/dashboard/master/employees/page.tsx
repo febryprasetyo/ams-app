@@ -190,17 +190,17 @@ export default function EmployeesPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+            <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-lg shadow-red-600/20">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Employee Directory</span>
-                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
                   {employees.length} Staff
                 </span>
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Staff registry for asset assignment, ticket reporting, and M365 account mapping
               </p>
             </div>
@@ -208,48 +208,48 @@ export default function EmployeesPage() {
 
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl shadow-xl shadow-emerald-500/20 transition-all cursor-pointer text-xs flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+            className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl shadow-xl shadow-red-600/20 transition-all cursor-pointer text-xs flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
           >
-            <Plus className="w-4 h-4 text-slate-950" />
+            <Plus className="w-4 h-4 text-white" />
             <span>Add Employee</span>
           </button>
         </div>
 
         {/* Bento Stat Header Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-emerald-400 flex items-center justify-center font-mono">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white">
+            <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center font-mono">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Active Staff</p>
-              <p className="text-xl font-bold font-mono text-white mt-0.5">
+              <p className="text-xl font-bold font-mono text-slate-900 mt-0.5">
                 {employees.filter((e) => (e.status || '').toLowerCase() === 'active').length}
               </p>
             </div>
           </div>
-          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-blue-400 flex items-center justify-center font-mono">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center font-mono">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
               <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Assigned Departments</p>
-              <p className="text-xl font-bold font-mono text-white mt-0.5">{departments.length}</p>
+              <p className="text-xl font-bold font-mono text-slate-900 mt-0.5">{departments.length}</p>
             </div>
           </div>
-          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-purple-400 flex items-center justify-center font-mono">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center font-mono">
               <MapPin className="w-5 h-5" />
             </div>
             <div>
               <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Locations</p>
-              <p className="text-xl font-bold font-mono text-white mt-0.5">{locations.length}</p>
+              <p className="text-xl font-bold font-mono text-slate-900 mt-0.5">{locations.length}</p>
             </div>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-4">
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-4 bg-white">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -257,40 +257,40 @@ export default function EmployeesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search employee name, NIK code, email, department..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all font-mono"
             />
           </div>
-          <span className="text-xs text-slate-400 font-mono hidden sm:inline">
-            Showing <strong className="text-white">{filtered.length}</strong> of {employees.length}
+          <span className="text-xs text-slate-500 font-mono hidden sm:inline">
+            Showing <strong className="text-slate-900">{filtered.length}</strong> of {employees.length}
           </span>
         </div>
 
         {/* Error Alert Display */}
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-3">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-3">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Glass Table */}
-        <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl">
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-sm bg-white">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
+              <Loader2 className="w-6 h-6 animate-spin text-red-600" />
               <span>Fetching employee directory...</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-300 font-semibold text-sm">No employees found</p>
+              <Users className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+              <p className="text-slate-700 font-semibold text-sm">No employees found</p>
               <p className="text-xs text-slate-500 mt-1">Try adjusting your search criteria or register a new staff member.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-mono uppercase tracking-wider">
+                  <tr className="bg-slate-50/80 text-slate-500 border-b border-slate-200 font-mono uppercase tracking-wider">
                     <th className="py-3.5 px-5 font-semibold">NIK Code</th>
                     <th className="py-3.5 px-5 font-semibold">Full Name & Position</th>
                     <th className="py-3.5 px-5 font-semibold">Corporate Email</th>
@@ -299,41 +299,41 @@ export default function EmployeesPage() {
                     <th className="py-3.5 px-5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-100">
                   {filtered.map((emp) => {
                     const isActive = (emp.status || '').toLowerCase() === 'active';
                     return (
-                      <tr key={emp.id} className="hover:bg-slate-900/60 transition-colors group">
+                      <tr key={emp.id} className="hover:bg-red-50/30 transition-colors group">
                         <td className="py-4 px-5 font-mono">
-                          <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                          <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 font-bold">
                             {emp.employeeCode}
                           </span>
                         </td>
                         <td className="py-4 px-5">
-                          <p className="font-bold text-slate-100 group-hover:text-white transition-colors">{emp.fullName}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{emp.position || 'Staff'}</p>
+                          <p className="font-bold text-slate-900 group-hover:text-red-600 transition-colors">{emp.fullName}</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{emp.position || 'Staff'}</p>
                         </td>
-                        <td className="py-4 px-5 font-mono text-[11px] text-slate-300">
+                        <td className="py-4 px-5 font-mono text-[11px] text-slate-700">
                           <div className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span>{emp.email}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-5 text-slate-300">
+                        <td className="py-4 px-5 text-slate-700">
                           <div className="space-y-0.5">
-                            <p className="font-semibold text-slate-200">{emp.departmentName || '—'}</p>
-                            <p className="text-[11px] text-slate-400 font-mono">{emp.locationName || 'Unassigned'}</p>
+                            <p className="font-semibold text-slate-800">{emp.departmentName || '—'}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">{emp.locationName || 'Unassigned'}</p>
                           </div>
                         </td>
                         <td className="py-4 px-5">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
                               isActive
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                ? 'bg-red-50 text-red-700 border border-red-200'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-red-600' : 'bg-slate-400'}`} />
                             {emp.status}
                           </span>
                         </td>
@@ -341,14 +341,14 @@ export default function EmployeesPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEditModal(emp)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer"
+                              className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                               title="Edit Employee"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(emp.id)}
-                              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+                              className="p-2 rounded-xl text-slate-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                               title="Deactivate / Delete"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -367,23 +367,23 @@ export default function EmployeesPage() {
 
       {/* Modal Dialog */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl relative border border-slate-700/80 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-red-600" />
                 <span>{editingEmp ? 'Edit Employee Profile' : 'Register New Employee'}</span>
               </h3>
               <button
                 onClick={closeModal}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {modalError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{modalError}</span>
               </div>
@@ -392,7 +392,7 @@ export default function EmployeesPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Employee Code (NIK)
                   </label>
                   <input
@@ -401,11 +401,11 @@ export default function EmployeesPage() {
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value.toUpperCase())}
                     placeholder="EMP-001"
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Full Name
                   </label>
                   <input
@@ -414,14 +414,14 @@ export default function EmployeesPage() {
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="Budi Santoso"
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Corporate Email
                   </label>
                   <input
@@ -430,11 +430,11 @@ export default function EmployeesPage() {
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
                     placeholder="budi@company.com"
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Phone Number
                   </label>
                   <input
@@ -442,20 +442,20 @@ export default function EmployeesPage() {
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
                     placeholder="+62 812 3456 7890"
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Department
                   </label>
                   <select
                     value={formDeptId}
                     onChange={(e) => setFormDeptId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   >
                     <option value="">Select Department...</option>
                     {departments.map((d) => (
@@ -466,13 +466,13 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Office Location
                   </label>
                   <select
                     value={formLocId}
                     onChange={(e) => setFormLocId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   >
                     <option value="">Select Location...</option>
                     {locations.map((l) => (
@@ -486,7 +486,7 @@ export default function EmployeesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Position Title
                   </label>
                   <input
@@ -494,17 +494,17 @@ export default function EmployeesPage() {
                     value={formPosition}
                     onChange={(e) => setFormPosition(e.target.value)}
                     placeholder="Senior Software Engineer"
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-2 font-semibold">
                     Account Status
                   </label>
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -513,22 +513,22 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold rounded-xl text-xs border border-slate-800 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
                       <span>Saving...</span>
                     </>
                   ) : (

@@ -10,6 +10,7 @@ import {
 } from '../controllers/assetController';
 import {
   assignAsset,
+  unassignAsset,
   logMaintenance,
   disposeAsset,
   getAssetHistory,
@@ -37,6 +38,7 @@ router.delete('/:id', adminOnly, deleteAsset);
 
 // --- Asset Lifecycle, Maintenance & History ---
 router.post('/:id/assign', lifecycleRoles, assignAsset);
+router.post('/:id/unassign', lifecycleRoles, unassignAsset);
 router.post('/:id/maintenance', lifecycleRoles, logMaintenance);
 router.post('/:id/dispose', lifecycleRoles, disposeAsset);
 router.get('/:id/history', lifecycleRoles, getAssetHistory);

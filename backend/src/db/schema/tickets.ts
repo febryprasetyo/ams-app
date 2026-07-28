@@ -5,6 +5,7 @@ import { employees } from './employees';
 
 export const ticketCategories = pgTable('ticket_categories', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  code: varchar('code', { length: 20 }),
   name: varchar('name', { length: 100 }).notNull().unique(),
   description: varchar('description', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

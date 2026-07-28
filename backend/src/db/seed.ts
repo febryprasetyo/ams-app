@@ -2,15 +2,15 @@ import { db } from './index';
 import { roles, users } from './schema/users';
 import { departments, locations } from './schema/master';
 import { employees } from './schema/employees';
-import { assetCategories, assets, assetAssignmentHistory } from './schema/assets';
-import { ticketCategories, slaPolicies } from './schema/tickets';
+import { assetCategories, assets } from './schema/assets';
+import { ticketCategories, slaPolicies, itTickets, ticketComments } from './schema/tickets';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 
 async function seed() {
-  console.log('🌱 Starting Database Seed Procedure with Dummy Assets & Transfer Tracking...');
+  console.log('🌱 Starting Database Seed Procedure with Dummy Assets, Transfers, and Tickets...');
 
-  // 0. Ensure asset_assignment_history table exists in PostgreSQL
+  // 0. Ensure asset_assignment_history, ticket_comments, and missing columns exist in PostgreSQL
   await db.execute(`
     CREATE TABLE IF NOT EXISTS asset_assignment_history (
       id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -21,11 +21,31 @@ async function seed() {
       returned_at timestamp,
       condition_on_assign varchar(50) DEFAULT 'Good' NOT NULL,
       condition_on_return varchar(50),
-      handover_notes text,
-      return_notes text
+      handoverNotes text,
+      returnNotes text
     );
   `);
   console.log('  ✓ Verified asset_assignment_history table in database');
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS ticket_comments (
+      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      ticket_id bigint NOT NULL REFERENCES it_tickets(id) ON DELETE CASCADE,
+      user_id bigint NOT NULL REFERENCES users(id),
+      comment_text text NOT NULL,
+      is_internal boolean DEFAULT false NOT NULL,
+      created_at timestamp DEFAULT now() NOT NULL
+    );
+  `);
+  console.log('  ✓ Verified ticket_comments table in database');
+
+  await db.execute(`
+    ALTER TABLE ticket_comments DROP CONSTRAINT IF EXISTS ticket_comments_ticket_id_tickets_id_fk;
+    ALTER TABLE it_tickets ADD COLUMN IF NOT EXISTS type varchar(20) DEFAULT 'Incident' NOT NULL;
+    ALTER TABLE it_tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
+    ALTER TABLE ticket_comments ADD COLUMN IF NOT EXISTS is_internal boolean DEFAULT false NOT NULL;
+  `);
+  console.log('  ✓ Verified it_tickets table columns in database');
 
   // 1. Seed Roles
   const defaultRoles = [
@@ -45,7 +65,6 @@ async function seed() {
   }
 
   // 2. Seed SuperAdmin User
-  const adminRole = await db.select().from(roles).where(eq(roles.code, 'super_admin')).limit(1);
   const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@company.com'));
   let superAdminUser = existingAdmin[0];
   if (!superAdminUser) {
@@ -122,8 +141,6 @@ async function seed() {
   const empBudi = allEmps.find((e) => e.employeeCode === 'EMP-001') || allEmps[0];
   const empAhmad = allEmps.find((e) => e.employeeCode === 'EMP-002') || allEmps[0];
   const empSiti = allEmps.find((e) => e.employeeCode === 'EMP-003') || allEmps[0];
-  const empDewi = allEmps.find((e) => e.employeeCode === 'EMP-004') || allEmps[0];
-  const empEko = allEmps.find((e) => e.employeeCode === 'EMP-005') || allEmps[0];
 
   // 6. Seed Asset Categories
   const defaultAssetCategories = [
@@ -149,7 +166,7 @@ async function seed() {
   const catMonitor = allCats.find((c) => c.codePrefix === 'MON') || allCats[0];
   const catServer = allCats.find((c) => c.codePrefix === 'SVR') || allCats[0];
 
-  // 7. Seed Dummy IT Assets & Device Tracking Transfers
+  // 7. Seed Dummy IT Assets
   const dummyAssetsData = [
     {
       assetCode: 'LPT-2026-0001',
@@ -217,108 +234,34 @@ async function seed() {
       assetObj = inserted;
       console.log(`  ✓ Inserted asset: ${astData.name} (${astData.assetCode})`);
     }
+  }
 
-    // Insert Device Tracking History for MacBook Pro (LPT-2026-0001)
-    if (astData.assetCode === 'LPT-2026-0001') {
-      const existingHistory = await db
-        .select()
-        .from(assetAssignmentHistory)
-        .where(eq(assetAssignmentHistory.assetId, assetObj.id));
+  const allAssets = await db.select().from(assets);
+  const astMacbook = allAssets.find((a) => a.assetCode === 'LPT-2026-0001') || allAssets[0];
+  const astServer = allAssets.find((a) => a.assetCode === 'SVR-2026-0001') || allAssets[0];
 
-      if (existingHistory.length === 0) {
-        // Historical Transfer 1: Used by Ahmad Hidayat (OPS Dept) then returned
-        await db.insert(assetAssignmentHistory).values({
-          assetId: assetObj.id,
-          employeeId: empAhmad.id,
-          assignedByUserId: superAdminUser.id,
-          assignedAt: new Date('2025-01-15T09:00:00Z'),
-          returnedAt: new Date('2025-08-20T17:00:00Z'),
-          conditionOnAssign: 'New / Sealed',
-          conditionOnReturn: 'Good (Minor sticker residue on lid)',
-          handoverNotes: 'Initial device provision for Operations Manager onboarding',
-          returnNotes: 'Returned to IT upon department role reallocation',
-        });
+  // 8. Seed Ticket Categories
+  const defaultTicketCategories = [
+    { code: 'HW', name: 'Hardware Problem', description: 'Physical laptop, PC, display, or peripheral failures' },
+    { code: 'SW', name: 'Software & Application', description: 'OS crashes, Accurate 5 ERP issues, license activation' },
+    { code: 'NET', name: 'Network & Access', description: 'VPN, Wi-Fi, firewall, or active directory credentials' },
+    { code: 'REQ', name: 'Service Request', description: 'Equipment provision, monitor request, software installation' },
+  ];
 
-        // Historical Transfer 2: Reassigned to Budi Santoso (Current Active Owner)
-        await db.insert(assetAssignmentHistory).values({
-          assetId: assetObj.id,
-          employeeId: empBudi.id,
-          assignedByUserId: superAdminUser.id,
-          assignedAt: new Date('2025-08-25T10:00:00Z'),
-          returnedAt: null,
-          conditionOnAssign: 'Good',
-          conditionOnReturn: null,
-          handoverNotes: 'Reassigned to Budi Santoso for Senior Software Engineer workload',
-          returnNotes: null,
-        });
-
-        console.log('  ✓ Seeded Device Transfer Tracking History for LPT-2026-0001 (Ahmad Hidayat -> Budi Santoso)');
-      }
-    }
-
-    // Insert Device Tracking History for Dell XPS (LPT-2026-0002)
-    if (astData.assetCode === 'LPT-2026-0002') {
-      const existingHistory = await db
-        .select()
-        .from(assetAssignmentHistory)
-        .where(eq(assetAssignmentHistory.assetId, assetObj.id));
-
-      if (existingHistory.length === 0) {
-        // Historical Transfer 1: Used by Dewi Lestari (HR) then returned
-        await db.insert(assetAssignmentHistory).values({
-          assetId: assetObj.id,
-          employeeId: empDewi.id,
-          assignedByUserId: superAdminUser.id,
-          assignedAt: new Date('2024-11-01T08:30:00Z'),
-          returnedAt: new Date('2025-05-10T16:00:00Z'),
-          conditionOnAssign: 'New',
-          conditionOnReturn: 'Fair (Spacebar key sticky)',
-          handoverNotes: 'Assigned for HR Payroll & Recruiting tasks',
-          returnNotes: 'Returned for IT keyboard replacement',
-        });
-
-        // Historical Transfer 2: Reassigned to Siti Rahma (Current Active Owner)
-        await db.insert(assetAssignmentHistory).values({
-          assetId: assetObj.id,
-          employeeId: empSiti.id,
-          assignedByUserId: superAdminUser.id,
-          assignedAt: new Date('2025-06-01T09:15:00Z'),
-          returnedAt: null,
-          conditionOnAssign: 'Good (Key replacement completed)',
-          handoverNotes: 'Reassigned for Branch Office Financial Analyst workstation',
-          returnNotes: null,
-        });
-
-        console.log('  ✓ Seeded Device Transfer Tracking History for LPT-2026-0002 (Dewi Lestari -> Siti Rahma)');
-      }
-    }
-
-    // Insert Device Tracking History for Custom PC (PC-2026-0001)
-    if (astData.assetCode === 'PC-2026-0001') {
-      const existingHistory = await db
-        .select()
-        .from(assetAssignmentHistory)
-        .where(eq(assetAssignmentHistory.assetId, assetObj.id));
-
-      if (existingHistory.length === 0) {
-        await db.insert(assetAssignmentHistory).values({
-          assetId: assetObj.id,
-          employeeId: empEko.id,
-          assignedByUserId: superAdminUser.id,
-          assignedAt: new Date('2025-02-01T10:00:00Z'),
-          returnedAt: new Date('2026-07-01T17:00:00Z'),
-          conditionOnAssign: 'New',
-          conditionOnReturn: 'Good',
-          handoverNotes: 'Assigned to System Architect for AI Model training cluster testing',
-          returnNotes: 'Returned to IT available stock after project delivery',
-        });
-
-        console.log('  ✓ Seeded Device Transfer Tracking History for PC-2026-0001 (Eko Prasetyo -> Stock)');
-      }
+  for (const tcat of defaultTicketCategories) {
+    const existing = await db.select().from(ticketCategories).where(eq(ticketCategories.name, tcat.name));
+    if (existing.length === 0) {
+      await db.insert(ticketCategories).values(tcat);
+      console.log(`  ✓ Inserted ticket category: ${tcat.name}`);
     }
   }
 
-  // 8. Seed SLA Policies
+  const allTicketCats = await db.select().from(ticketCategories);
+  const tcatHw = allTicketCats.find((tc) => tc.name === 'Hardware Problem') || allTicketCats[0];
+  const tcatNet = allTicketCats.find((tc) => tc.name === 'Network & Access') || allTicketCats[0];
+  const tcatReq = allTicketCats.find((tc) => tc.name === 'Service Request') || allTicketCats[0];
+
+  // 9. Seed SLA Policies
   const defaultSLA = [
     { priority: 'Low', targetResponseHours: 8, targetResolutionHours: 48 },
     { priority: 'Medium', targetResponseHours: 4, targetResolutionHours: 24 },
@@ -331,6 +274,82 @@ async function seed() {
     if (existing.length === 0) {
       await db.insert(slaPolicies).values(sla as any);
       console.log(`  ✓ Inserted SLA policy: ${sla.priority}`);
+    }
+  }
+
+  // 10. Seed Dummy IT Tickets & Work Log Comments
+  const dummyTicketsData = [
+    {
+      ticketCode: 'INC-2026-0001',
+      type: 'Incident',
+      subject: 'MacBook Pro Display Flickering & Overheating under Load',
+      description: 'The laptop screen randomly flickers green lines during heavy Docker & Chrome execution. Fan runs at maximum speed.',
+      categoryId: tcatHw.id,
+      priority: 'High',
+      status: 'In Progress',
+      reporterId: empBudi.id,
+      assigneeId: superAdminUser.id,
+      assetId: astMacbook?.id || null,
+      dueAt: new Date(Date.now() + 8 * 3600 * 1000), // 8 hours SLA
+    },
+    {
+      ticketCode: 'REQ-2026-0001',
+      type: 'Request',
+      subject: 'Request Additional 27" 4K Monitor for Financial Analysis',
+      description: 'Require secondary 4K display for multi-spreadsheet financial analysis in Surabaya office.',
+      categoryId: tcatReq.id,
+      priority: 'Medium',
+      status: 'Open',
+      reporterId: empSiti.id,
+      assigneeId: null,
+      assetId: null,
+      dueAt: new Date(Date.now() + 24 * 3600 * 1000), // 24 hours SLA
+    },
+    {
+      ticketCode: 'INC-2026-0002',
+      type: 'Incident',
+      subject: 'Accurate 5 Server Connection Timeout in Branch Office',
+      description: 'Surabaya office unable to reach ERP Server Host on 192.168.10.23:5432. Port unreachable.',
+      categoryId: tcatNet.id,
+      priority: 'Critical',
+      status: 'Resolved',
+      reporterId: empAhmad.id,
+      assigneeId: superAdminUser.id,
+      assetId: astServer?.id || null,
+      resolutionNotes: 'Restarted PostgreSQL daemon on Server Host & flushed iptables firewall rules.',
+      resolvedAt: new Date(),
+      dueAt: new Date(Date.now() + 2 * 3600 * 1000), // 2 hours SLA
+    },
+  ];
+
+  for (const tData of dummyTicketsData) {
+    const existing = await db.select().from(itTickets).where(eq(itTickets.ticketCode, tData.ticketCode));
+    let ticketObj = existing[0];
+
+    if (!ticketObj) {
+      const [inserted] = await db.insert(itTickets).values(tData as any).returning();
+      ticketObj = inserted;
+      console.log(`  ✓ Inserted IT ticket: ${tData.ticketCode} - ${tData.subject}`);
+    }
+
+    // Seed comments for INC-2026-0001
+    if (tData.ticketCode === 'INC-2026-0001') {
+      const existingComments = await db.select().from(ticketComments).where(eq(ticketComments.ticketId, ticketObj.id));
+      if (existingComments.length === 0) {
+        await db.insert(ticketComments).values({
+          ticketId: ticketObj.id,
+          userId: superAdminUser.id,
+          commentText: 'Technician assigned. Performing Apple Hardware Diagnostics check.',
+          isInternal: false,
+        });
+        await db.insert(ticketComments).values({
+          ticketId: ticketObj.id,
+          userId: superAdminUser.id,
+          commentText: 'Internal Tech Note: Thermal paste replacement scheduled if GPU stress test fails.',
+          isInternal: true,
+        });
+        console.log('  ✓ Seeded comments for ticket INC-2026-0001');
+      }
     }
   }
 

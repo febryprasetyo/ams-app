@@ -29,7 +29,9 @@ import {
   History,
   Info,
   ChevronRight,
-  Plus
+  Plus,
+  ArrowRightLeft,
+  UserX
 } from 'lucide-react';
 
 interface AssetDetail {
@@ -50,6 +52,23 @@ interface AssetDetail {
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+interface AssignmentHistoryRecord {
+  id: number;
+  assetId: number;
+  employeeId?: number | null;
+  employeeCode?: string | null;
+  employeeName?: string | null;
+  employeePosition?: string | null;
+  departmentName?: string | null;
+  assignedByUsername?: string | null;
+  assignedAt: string;
+  returnedAt?: string | null;
+  conditionOnAssign: string;
+  conditionOnReturn?: string | null;
+  handoverNotes?: string | null;
+  returnNotes?: string | null;
 }
 
 interface MaintenanceRecord {
@@ -84,6 +103,7 @@ interface AuditLogRecord {
 
 interface HistoryData {
   assetId: number;
+  assignmentHistory: AssignmentHistoryRecord[];
   maintenanceHistory: MaintenanceRecord[];
   auditLogs: AuditLogRecord[];
 }
@@ -97,7 +117,7 @@ export default function AssetDetailPage() {
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'maintenance' | 'audit'>('maintenance');
+  const [activeTab, setActiveTab] = useState<'transfers' | 'maintenance' | 'audit'>('transfers');
 
   // Maintenance Log Modal State
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
@@ -125,6 +145,7 @@ export default function AssetDetailPage() {
         api.get<AssetDetail>(`/assets/${assetId}`),
         api.get<HistoryData>(`/assets/${assetId}/history`).catch(() => ({
           assetId: Number(assetId),
+          assignmentHistory: [],
           maintenanceHistory: [],
           auditLogs: [],
         })),
@@ -152,9 +173,9 @@ export default function AssetDetailPage() {
     try {
       await api.post(`/assets/${assetId}/maintenance`, {
         maintenanceType: maintType,
-        title: maintTitle.trim() || `${maintType} Maintenance`,
-        description: maintDescription.trim() || null,
-        cost: Number(maintCost) || 0,
+        title: maintTitle || `${maintType} - ${asset?.name}`,
+        description: maintDescription || null,
+        cost: typeof maintCost === 'number' ? maintCost : 0,
         status: maintStatus,
       });
       setIsMaintenanceModalOpen(false);
@@ -170,7 +191,7 @@ export default function AssetDetailPage() {
   };
 
   // Handle Dispose Submit
-  const handleDisposeAsset = async (e: React.FormEvent) => {
+  const handleDispose = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assetId) return;
     setDisposeError(null);
@@ -178,7 +199,7 @@ export default function AssetDetailPage() {
 
     try {
       await api.post(`/assets/${assetId}/dispose`, {
-        reason: disposeReason.trim() || 'Decommissioned',
+        reason: disposeReason,
       });
       setIsDisposeModalOpen(false);
       setDisposeReason('');
@@ -190,55 +211,12 @@ export default function AssetDetailPage() {
     }
   };
 
-  // Status Badge Component
-  const renderStatusBadge = (status?: AssetDetail['status']) => {
-    switch (status) {
-      case 'Available':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-mono font-bold border border-emerald-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Available
-          </span>
-        );
-      case 'Assigned':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-mono font-bold border border-blue-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            Assigned
-          </span>
-        );
-      case 'Maintenance':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-mono font-bold border border-amber-200 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-            Maintenance
-          </span>
-        );
-      case 'Disposed':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-mono font-bold border border-slate-300">
-            <span className="w-2 h-2 rounded-full bg-slate-400" />
-            Disposed
-          </span>
-        );
-      case 'Lost':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-mono font-bold border border-red-200">
-            <span className="w-2 h-2 rounded-full bg-red-600" />
-            Lost
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
+        <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
           <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-          <span>Loading asset detail specifications...</span>
+          <span>Loading asset details and tracking logs...</span>
         </div>
       </DashboardLayout>
     );
@@ -247,500 +225,468 @@ export default function AssetDetailPage() {
   if (error || !asset) {
     return (
       <DashboardLayout>
-        <div className="space-y-4 max-w-xl mx-auto py-12 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">Asset Not Found</h2>
-          <p className="text-xs text-slate-500">{error || 'The requested asset record does not exist.'}</p>
+        <div className="p-8 max-w-lg mx-auto text-center space-y-4">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+          <h2 className="text-xl font-bold text-slate-900">Asset Record Not Found</h2>
+          <p className="text-xs text-slate-500">{error || 'The requested asset does not exist or has been removed.'}</p>
           <Link
             href="/dashboard/assets"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-xl text-xs"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Return to IT Inventory</span>
+            <span>Return to Asset List</span>
           </Link>
         </div>
       </DashboardLayout>
     );
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Available':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Assigned':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Maintenance':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Disposed':
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
+  const getConditionBadge = (cond: string) => {
+    switch (cond) {
+      case 'Good':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Fair':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Poor':
+      case 'Damaged':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Navigation Breadcrumb & Header Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-          <div className="flex items-center gap-3">
+        {/* Back Link & Title */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
             <Link
               href="/dashboard/assets"
-              className="p-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs cursor-pointer"
-              title="Back to Inventory"
+              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-red-600 mb-2 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Asset Catalog</span>
             </Link>
-
-            <div>
-              <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span>IT Inventory</span>
-                <ChevronRight className="w-3 h-3 text-slate-300" />
-                <span className="text-red-600 font-bold">{asset.assetCode}</span>
-              </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3 mt-0.5">
-                <span>{asset.name}</span>
-                {renderStatusBadge(asset.status)}
-              </h1>
+            <div className="flex items-center gap-3">
+              <span className="text-xl font-extrabold font-mono text-red-600 px-3 py-1 bg-red-50 border border-red-200 rounded-xl">
+                {asset.assetCode}
+              </span>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{asset.name}</h1>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMaintenanceModalOpen(true)}
-              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2.5 bg-white border border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Wrench className="w-4 h-4" />
-              <span>Log Service</span>
+              <Wrench className="w-4 h-4 text-amber-600" />
+              <span>Log Maintenance</span>
             </button>
 
             {asset.status !== 'Disposed' && (
               <button
                 onClick={() => setIsDisposeModalOpen(true)}
-                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-300 transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2.5 bg-white border border-slate-200 hover:border-rose-300 text-slate-700 hover:text-rose-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
               >
-                <Archive className="w-4 h-4 text-slate-500" />
-                <span>Decommission</span>
+                <Archive className="w-4 h-4 text-rose-600" />
+                <span>Dispose Asset</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column (2 Cols): Specifications & Audit/Maintenance History */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Asset Specifications Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-red-600" />
-                  <span>Technical Specifications & Metadata</span>
-                </h2>
-                <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
-                  ID: #{asset.id}
+        {/* Top Info Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Asset Technical Specs */}
+          <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 md:col-span-2">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <HardDrive className="w-4 h-4 text-red-600" />
+                <span>Technical Specifications</span>
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(asset.status)}`}>
+                  {asset.status}
+                </span>
+                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getConditionBadge(asset.condition)}`}>
+                  Condition: {asset.condition}
                 </span>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-                {/* Asset Code */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Asset Code</span>
-                  <span className="font-mono font-extrabold text-red-600 text-sm mt-0.5 block">{asset.assetCode}</span>
-                </div>
-
-                {/* Category */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Category</span>
-                  <span className="font-bold text-slate-800 text-xs mt-0.5 block">{asset.categoryName || 'N/A'}</span>
-                </div>
-
-                {/* Serial Number */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Serial Number</span>
-                  <span className="font-mono font-medium text-slate-700 text-xs mt-0.5 block">
-                    {asset.serialNumber || 'No Serial Recorded'}
-                  </span>
-                </div>
-
-                {/* Condition */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Physical Condition</span>
-                  <span className="font-bold text-slate-800 text-xs mt-0.5 block">{asset.condition}</span>
-                </div>
-
-                {/* Primary Location */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Primary Location</span>
-                  <span className="font-medium text-slate-800 text-xs mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-500" />
-                    {asset.locationName || 'Unassigned Location'}
-                  </span>
-                </div>
-
-                {/* Created Date */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold block">Registered Date</span>
-                  <span className="font-mono text-slate-600 text-xs mt-0.5 block">
-                    {asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : 'N/A'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Technical Notes / Description */}
-              {asset.notes && (
-                <div className="pt-2">
-                  <span className="text-[11px] font-mono uppercase text-slate-400 font-semibold block mb-1.5">
-                    Notes & Configuration Details
-                  </span>
-                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                    {asset.notes}
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Audit Trail & Maintenance History Timeline Component */}
-            <div className="glass-panel p-6 rounded-3xl bg-white border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <History className="w-4 h-4 text-red-600" />
-                  <span>Asset Lifecycle Timeline</span>
-                </h2>
-
-                {/* Tabs */}
-                <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-                  <button
-                    onClick={() => setActiveTab('maintenance')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'maintenance'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Maintenance Logs ({history?.maintenanceHistory?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('audit')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'audit'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Audit Trail ({history?.auditLogs?.length || 0})
-                  </button>
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Asset Tag Code</span>
+                <span className="font-bold text-slate-900 text-sm">{asset.assetCode}</span>
               </div>
-
-              {/* Maintenance Tab */}
-              {activeTab === 'maintenance' && (
-                <div>
-                  {!history?.maintenanceHistory || history.maintenanceHistory.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <Wrench className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs text-slate-600 font-semibold">No maintenance logs recorded</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Log repairs, hardware upgrades, or routine inspections.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                      {history.maintenanceHistory.map((m) => (
-                        <div key={m.id} className="relative group">
-                          {/* Circle Node */}
-                          <div className="absolute -left-6 top-1.5 w-5 h-5 rounded-full bg-amber-100 text-amber-700 border-2 border-white flex items-center justify-center shadow-2xs">
-                            <Wrench className="w-2.5 h-2.5" />
-                          </div>
-
-                          <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200 space-y-2 hover:bg-slate-50 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-900 text-xs">{m.title}</span>
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">
-                                {m.maintenanceType}
-                              </span>
-                            </div>
-
-                            {m.description && (
-                              <p className="text-xs text-slate-600 leading-relaxed">{m.description}</p>
-                            )}
-
-                            <div className="flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-100">
-                              <span className="flex items-center gap-1 text-slate-700 font-semibold">
-                                <DollarSign className="w-3 h-3 text-emerald-600" />
-                                Cost: IDR {m.cost ? m.cost.toLocaleString() : '0'}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {new Date(m.createdAt).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Audit Trail Tab */}
-              {activeTab === 'audit' && (
-                <div>
-                  {!history?.auditLogs || history.auditLogs.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <ShieldCheck className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs text-slate-600 font-semibold">No system audit logs found</p>
-                    </div>
-                  ) : (
-                    <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                      {history.auditLogs.map((log) => (
-                        <div key={log.id} className="relative group">
-                          {/* Circle Node */}
-                          <div className="absolute -left-6 top-1.5 w-5 h-5 rounded-full bg-red-100 text-red-600 border-2 border-white flex items-center justify-center shadow-2xs">
-                            <Activity className="w-2.5 h-2.5" />
-                          </div>
-
-                          <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 space-y-1 hover:bg-slate-50 transition-colors text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono font-bold text-red-600 uppercase text-[11px]">
-                                ACTION: {log.action}
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-400">
-                                {new Date(log.createdAt).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-slate-700 font-medium">
-                              Performed by: <strong className="text-slate-900">{log.username || 'System Admin'}</strong>
-                            </p>
-                            {log.newValues && (
-                              <div className="mt-1.5 p-2 rounded-xl bg-white border border-slate-100 text-[11px] font-mono text-slate-600 overflow-x-auto">
-                                <pre className="text-[10px]">{JSON.stringify(log.newValues, null, 2)}</pre>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Category</span>
+                <span className="font-bold text-slate-800">{asset.categoryName || 'General IT'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Serial Number</span>
+                <span className="font-bold text-slate-800">{asset.serialNumber || 'SN-UNKNOWN'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Primary Location</span>
+                <span className="font-bold text-slate-800">{asset.locationName || 'Unassigned Facility'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Assigned User</span>
+                <span className="font-bold text-red-600">{asset.assignedEmployeeName || 'Stock / Pool'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase block mb-1">Registered Date</span>
+                <span className="font-bold text-slate-800">{asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : 'N/A'}</span>
+              </div>
             </div>
+
+            {asset.notes && (
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+                <span className="font-mono text-[10px] text-slate-400 uppercase block mb-1 font-bold">Notes & Specifications</span>
+                <p className="text-slate-700 whitespace-pre-wrap">{asset.notes}</p>
+              </div>
+            )}
           </div>
 
-          {/* Right Column (1 Col): Visual Barcode Badge & Current Assignment */}
-          <div className="space-y-6">
-            {/* Barcode / QR Code Visual Badge Preview Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white border border-slate-200 shadow-2xs text-center space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <span className="text-xs font-mono uppercase text-slate-400 font-semibold flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-red-600" />
-                  Asset Tag Preview
-                </span>
-                <span className="text-[10px] font-mono bg-red-50 text-red-600 px-2 py-0.5 rounded font-bold">
-                  VERIFIED TAG
-                </span>
-              </div>
-
-              {/* Visual Badge Card */}
-              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 text-white shadow-xl relative overflow-hidden text-left font-mono border border-slate-800">
-                {/* Red Accent top strip */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-red-700" />
-
-                <div className="flex items-center justify-between pt-1 mb-3">
-                  <span className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
-                    AMS IT PROPERTY
-                  </span>
-                  <span className="text-[9px] text-red-400 font-bold uppercase">SECURE</span>
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-lg font-black text-white tracking-wider leading-none">
-                      {asset.assetCode}
-                    </p>
-                    <p className="text-[11px] text-slate-300 font-sans mt-1 line-clamp-1 font-semibold">
-                      {asset.name}
-                    </p>
-                    {asset.serialNumber && (
-                      <p className="text-[9px] text-slate-400 mt-1 font-mono">
-                        S/N: {asset.serialNumber}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Mock SVG Barcode */}
-                  <div className="w-16 h-16 bg-white p-1.5 rounded-xl flex items-center justify-center shrink-0">
-                    <QrCode className="w-full h-full text-slate-900" />
-                  </div>
-                </div>
-
-                {/* SVG Barcode Lines */}
-                <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col items-center gap-1">
-                  <div className="w-full h-8 flex items-center justify-between gap-0.5">
-                    {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 3, 2, 1, 2].map((w, idx) => (
-                      <div key={idx} className="h-full bg-slate-200" style={{ width: `${w * 2}px` }} />
-                    ))}
-                  </div>
-                  <span className="text-[8px] text-slate-400 tracking-widest mt-0.5">
-                    *{asset.assetCode}*
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => window.print()}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Printer className="w-4 h-4 text-slate-600" />
-                <span>Print Asset Tag Label</span>
-              </button>
+          {/* Card 2: Asset Barcode Badge Preview */}
+          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-red-50/20 border border-slate-200 flex flex-col justify-between items-center text-center">
+            <div className="w-full border-b border-slate-200 pb-3 flex items-center justify-between">
+              <span className="text-xs font-bold font-mono text-slate-900 uppercase">AMS Property Tag</span>
+              <ShieldCheck className="w-4 h-4 text-red-600" />
             </div>
 
-            {/* Current Assignment Info Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white border border-slate-200 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-xs font-mono uppercase text-slate-400 font-semibold flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-blue-600" />
-                  Assignment Status
-                </h3>
+            <div className="my-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-center w-full max-w-[220px]">
+              <div className="w-14 h-14 bg-red-50 text-red-600 rounded-xl mx-auto flex items-center justify-center mb-2 border border-red-200">
+                <QrCode className="w-8 h-8" />
               </div>
+              <p className="font-mono font-extrabold text-sm text-slate-900 tracking-wider">{asset.assetCode}</p>
+              <p className="text-[9px] font-mono text-slate-500 mt-0.5 truncate">{asset.name}</p>
+            </div>
 
-              {asset.assignedEmployeeName ? (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white font-mono font-bold text-sm flex items-center justify-center shadow-md shadow-blue-600/20 shrink-0">
-                      {asset.assignedEmployeeName[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-900 text-sm truncate">
-                        {asset.assignedEmployeeName}
-                      </p>
-                      {asset.assignedEmployeeCode && (
-                        <p className="text-[11px] font-mono text-blue-700 font-medium">
-                          Code: {asset.assignedEmployeeCode}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+            <button
+              onClick={() => window.print()}
+              className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-2 border border-slate-200 transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-600" />
+              <span>Print Asset Tag</span>
+            </button>
+          </div>
+        </div>
 
-                  <div className="text-xs space-y-2 text-slate-600 pt-1">
-                    <div className="flex justify-between py-1 border-b border-slate-100">
-                      <span className="text-slate-400">Deployed Location</span>
-                      <span className="font-semibold text-slate-800">{asset.locationName || 'Standard Office'}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-slate-100">
-                      <span className="text-slate-400">Allocation Date</span>
-                      <span className="font-mono text-slate-700">
-                        {asset.updatedAt ? new Date(asset.updatedAt).toLocaleDateString() : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-slate-50 text-center space-y-2 border border-slate-200">
-                  <UserIcon className="w-8 h-8 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold text-slate-700">Currently Unassigned</p>
-                  <p className="text-[11px] text-slate-400">
-                    This asset is available in central stock for employee assignment.
+        {/* Device Tracking & History Tabs */}
+        <div className="space-y-4">
+          <div className="glass-panel p-2 rounded-2xl bg-white flex items-center gap-2 border border-slate-200">
+            <button
+              onClick={() => setActiveTab('transfers')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'transfers'
+                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              <span>Device Transfer History ({history?.assignmentHistory?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'maintenance'
+                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Wrench className="w-4 h-4" />
+              <span>Maintenance Logs ({history?.maintenanceHistory?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'audit'
+                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Activity className="w-4 h-4" />
+              <span>Audit Trail ({history?.auditLogs?.length || 0})</span>
+            </button>
+          </div>
+
+          {/* TAB 1: Device Transfer Tracking History */}
+          {activeTab === 'transfers' && (
+            <div className="glass-panel p-6 rounded-3xl bg-white space-y-6 border border-slate-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <ArrowRightLeft className="w-4 h-4 text-red-600" />
+                    <span>Device Ownership & User Transfer Tracking</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Complete chronological record of users who have used and returned this device
                   </p>
                 </div>
+              </div>
+
+              {!history?.assignmentHistory || history.assignmentHistory.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  <UserX className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">No transfer history recorded yet</p>
+                  <p className="text-slate-400 mt-0.5">Assign this asset to an employee to initiate device tracking.</p>
+                </div>
+              ) : (
+                <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+                  {history.assignmentHistory.map((item, idx) => {
+                    const isCurrentActive = !item.returnedAt;
+                    return (
+                      <div key={item.id || idx} className="relative group">
+                        {/* Timeline Node Icon */}
+                        <div
+                          className={`absolute -left-[31px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            isCurrentActive
+                              ? 'bg-red-600 border-white text-white shadow-md shadow-red-600/30'
+                              : 'bg-slate-100 border-slate-300 text-slate-500'
+                          }`}
+                        >
+                          <UserIcon className="w-3 h-3" />
+                        </div>
+
+                        {/* Transfer Item Box */}
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-slate-900">
+                                {item.employeeName || 'Unassigned User'}
+                              </span>
+                              {item.employeeCode && (
+                                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
+                                  {item.employeeCode}
+                                </span>
+                              )}
+                              {item.departmentName && (
+                                <span className="text-[11px] text-slate-500 font-medium">({item.departmentName})</span>
+                              )}
+                            </div>
+
+                            <span
+                              className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border w-fit ${
+                                isCurrentActive
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-slate-200 text-slate-600 border-slate-300'
+                              }`}
+                            >
+                              {isCurrentActive ? '● Current Active Owner' : 'Returned / Reallocated'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase block">Assigned Date</span>
+                              <span className="font-semibold text-slate-800">
+                                {new Date(item.assignedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase block">Returned Date</span>
+                              <span className="font-semibold text-slate-800">
+                                {item.returnedAt ? new Date(item.returnedAt).toLocaleDateString() : 'Active Assignment'}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase block">Condition on Assign</span>
+                              <span className="font-semibold text-emerald-700">{item.conditionOnAssign}</span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase block">Condition on Return</span>
+                              <span className="font-semibold text-amber-700">{item.conditionOnReturn || '—'}</span>
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          <div className="space-y-1 text-xs">
+                            {item.handoverNotes && (
+                              <p className="text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200">
+                                <strong className="font-mono text-[10px] text-slate-500 uppercase block">Handover Notes:</strong>
+                                {item.handoverNotes}
+                              </p>
+                            )}
+                            {item.returnNotes && (
+                              <p className="text-slate-600 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
+                                <strong className="font-mono text-[10px] text-amber-700 uppercase block">Return / Transfer Notes:</strong>
+                                {item.returnNotes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-          </div>
+          )}
+
+          {/* TAB 2: Maintenance History */}
+          {activeTab === 'maintenance' && (
+            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Wrench className="w-4 h-4 text-amber-600" />
+                <span>Service & Maintenance Records</span>
+              </h3>
+
+              {!history?.maintenanceHistory || history.maintenanceHistory.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  <Wrench className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">No maintenance records logged</p>
+                  <p className="text-slate-400 mt-0.5">Use the "Log Maintenance" button to record routine repairs.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.maintenanceHistory.map((m) => (
+                    <div key={m.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-amber-700 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded">
+                            {m.maintenanceType}
+                          </span>
+                          <span className="font-bold text-slate-900 text-xs">{m.title}</span>
+                        </div>
+                        {m.description && <p className="text-xs text-slate-600">{m.description}</p>}
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400 pt-1">
+                          <span>By: {m.performedByUsername || 'System Tech'}</span>
+                          <span>Completed: {m.completedAt ? new Date(m.completedAt).toLocaleDateString() : 'In Progress'}</span>
+                        </div>
+                      </div>
+                      <div className="font-mono font-extrabold text-sm text-slate-900 sm:text-right">
+                        Rp {Number(m.cost || 0).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: Audit Trail */}
+          {activeTab === 'audit' && (
+            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <Activity className="w-4 h-4 text-blue-600" />
+                <span>System Audit Logs</span>
+              </h3>
+
+              {!history?.auditLogs || history.auditLogs.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  <Activity className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">No audit logs found</p>
+                </div>
+              ) : (
+                <div className="space-y-2 font-mono text-xs">
+                  {history.auditLogs.map((log) => (
+                    <div key={log.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-red-600 px-2 py-0.5 bg-red-50 border border-red-200 rounded text-[10px]">
+                          {log.action}
+                        </span>
+                        <span className="text-slate-800">{log.username || 'System Admin'}</span>
+                      </div>
+                      <span className="text-slate-400 text-[11px]">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* --- Log Maintenance Modal --- */}
+      {/* Maintenance Modal */}
       {isMaintenanceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
+          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-amber-600" />
-                <h3 className="text-base font-bold text-slate-900">Log Maintenance Record</h3>
-              </div>
-              <button
-                onClick={() => setIsMaintenanceModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-amber-600" />
+                <span>Log Maintenance Service</span>
+              </h3>
+              <button onClick={() => setIsMaintenanceModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {maintError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{maintError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleLogMaintenance} className="space-y-4">
+            <form onSubmit={handleLogMaintenance} className="space-y-3">
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Maintenance Type
-                </label>
+                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Service Type</label>
                 <select
                   value={maintType}
                   onChange={(e) => setMaintType(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
                 >
                   <option value="Routine Service">Routine Service</option>
                   <option value="Hardware Repair">Hardware Repair</option>
-                  <option value="Software/OS Reinstall">Software / OS Reinstall</option>
-                  <option value="Battery Replacement">Battery Replacement</option>
-                  <option value="Component Upgrade">Component Upgrade</option>
+                  <option value="RAM/SSD Upgrade">RAM/SSD Upgrade</option>
+                  <option value="OS Reinstall">OS Reinstall</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Title / Subject
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={maintTitle}
-                  onChange={(e) => setMaintTitle(e.target.value)}
-                  placeholder="e.g. SSD Upgrade to 1TB NVMe"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500"
+                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Description / Findings</label>
+                <textarea
+                  rows={2}
+                  value={maintDescription}
+                  onChange={(e) => setMaintDescription(e.target.value)}
+                  placeholder="Details of repair..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Estimated Repair Cost (IDR)
-                </label>
+                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Cost (IDR)</label>
                 <input
                   type="number"
                   value={maintCost}
-                  onChange={(e) => setMaintCost(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="0"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500"
+                  onChange={(e) => setMaintCost(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Description / Service Details
-                </label>
-                <textarea
-                  rows={3}
-                  value={maintDescription}
-                  onChange={(e) => setMaintDescription(e.target.value)}
-                  placeholder="Details of symptoms, replaced parts, vendor name, warranty status..."
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsMaintenanceModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
+                  className="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={maintSubmitting}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl text-xs"
                 >
-                  {maintSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Logging...</span>
-                    </>
-                  ) : (
-                    <span>Save Log</span>
-                  )}
+                  {maintSubmitting ? 'Saving...' : 'Save Log'}
                 </button>
               </div>
             </form>
@@ -748,66 +694,47 @@ export default function AssetDetailPage() {
         </div>
       )}
 
-      {/* --- Dispose Modal --- */}
+      {/* Dispose Modal */}
       {isDisposeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
+          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Archive className="w-5 h-5 text-slate-600" />
-                <h3 className="text-base font-bold text-slate-900">Decommission & Dispose Asset</h3>
-              </div>
-              <button
-                onClick={() => setIsDisposeModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
+              <h3 className="text-base font-bold text-rose-700 flex items-center gap-2">
+                <Archive className="w-4 h-4 text-rose-600" />
+                <span>Decommission & Dispose Asset</span>
+              </h3>
+              <button onClick={() => setIsDisposeModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {disposeError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{disposeError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleDisposeAsset} className="space-y-4">
+            <form onSubmit={handleDispose} className="space-y-3">
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Decommission Reason
-                </label>
+                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Reason for Disposal</label>
                 <textarea
                   rows={3}
                   required
                   value={disposeReason}
                   onChange={(e) => setDisposeReason(e.target.value)}
-                  placeholder="e.g. End of lifespan, unrepairable hardware failure, recycled..."
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500"
+                  placeholder="e.g. Beyond economical repair, end of life..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsDisposeModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
+                  className="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={disposeSubmitting}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl text-xs"
                 >
-                  {disposeSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <span>Confirm Disposal</span>
-                  )}
+                  {disposeSubmitting ? 'Processing...' : 'Confirm Disposal'}
                 </button>
               </div>
             </form>

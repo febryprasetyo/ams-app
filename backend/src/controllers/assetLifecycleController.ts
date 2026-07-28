@@ -1,13 +1,13 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../db';
-import { assets } from '../db/schema/assets';
+import { assets, assetAssignmentHistory } from '../db/schema/assets';
 import { assetMaintenances } from '../db/schema/tickets';
 import { auditLogs } from '../db/schema/system';
 import { users } from '../db/schema/users';
 import { employees } from '../db/schema/employees';
-import { locations } from '../db/schema/master';
-import { eq, and, desc } from 'drizzle-orm';
+import { departments, locations } from '../db/schema/master';
+import { eq, and, desc, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 // --- Zod Schemas ---
@@ -16,9 +16,11 @@ const assignAssetSchema = z
     assignedToEmployeeId: z.number().optional().nullable(),
     assignedToLocationId: z.number().optional().nullable(),
     notes: z.string().optional().nullable(),
+    handoverNotes: z.string().optional().nullable(),
+    conditionOnAssign: z.string().optional().default('Good'),
   })
   .refine(
-    (data) => data.assignedToEmployeeId != null || data.assignedToLocationId != null,
+    (data) => data.assignedToEmployeeId != null || data.assignedToLocationId != null || data.notes != null,
     {
       message: 'Either assignedToEmployeeId or assignedToLocationId must be provided',
       path: ['assignedToEmployeeId'],
@@ -86,11 +88,35 @@ export async function assignAsset(req: AuthenticatedRequest, res: Response) {
 
     const newLocationId = parsed.assignedToLocationId ?? existingAsset.locationId;
     const newEmployeeId = parsed.assignedToEmployeeId ?? existingAsset.assignedToEmployeeId;
+    const newStatus = newEmployeeId ? 'Assigned' : 'Available';
 
+    // 1. Close open active assignment in history if any
+    await db
+      .update(assetAssignmentHistory)
+      .set({
+        returnedAt: new Date(),
+        conditionOnReturn: existingAsset.condition,
+        returnNotes: parsed.notes || 'Asset reassigned / returned',
+      })
+      .where(and(eq(assetAssignmentHistory.assetId, id), isNull(assetAssignmentHistory.returnedAt)));
+
+    // 2. Insert new assignment history row
+    if (newEmployeeId) {
+      await db.insert(assetAssignmentHistory).values({
+        assetId: id,
+        employeeId: newEmployeeId,
+        assignedByUserId: req.user?.userId || null,
+        assignedAt: new Date(),
+        conditionOnAssign: parsed.conditionOnAssign || existingAsset.condition || 'Good',
+        handoverNotes: parsed.handoverNotes || parsed.notes || 'Handed over device',
+      });
+    }
+
+    // 3. Update main asset record
     const [updatedAsset] = await db
       .update(assets)
       .set({
-        status: 'Assigned',
+        status: newStatus,
         locationId: newLocationId,
         assignedToEmployeeId: newEmployeeId,
         notes: parsed.notes !== undefined ? parsed.notes : existingAsset.notes,
@@ -99,7 +125,7 @@ export async function assignAsset(req: AuthenticatedRequest, res: Response) {
       .where(eq(assets.id, id))
       .returning();
 
-    // Log audit action
+    // 4. Log audit action
     await db.insert(auditLogs).values({
       userId: req.user?.userId || null,
       action: 'ASSIGN',
@@ -150,33 +176,29 @@ export async function logMaintenance(req: AuthenticatedRequest, res: Response) {
 
     const parsed = logMaintenanceSchema.parse(req.body);
 
-    const titleText = parsed.title && parsed.title.trim() !== ''
-      ? parsed.title.trim()
-      : `${parsed.maintenanceType} Maintenance`;
-
-    const performedById = parsed.performedById ?? req.user?.userId ?? null;
-
     const [maintenanceRecord] = await db
       .insert(assetMaintenances)
       .values({
         assetId: id,
         maintenanceType: parsed.maintenanceType,
-        title: titleText,
-        description: parsed.description ?? null,
-        cost: Math.round(parsed.cost),
-        vendorId: parsed.vendorId ?? null,
+        title: parsed.title || `${parsed.maintenanceType} - ${existingAsset.name}`,
+        description: parsed.description || null,
+        cost: parsed.cost || 0,
+        performedById: parsed.performedById || req.user?.userId || null,
+        vendorId: parsed.vendorId || null,
         scheduledAt: parsed.scheduledAt ? new Date(parsed.scheduledAt) : null,
         completedAt: parsed.completedAt ? new Date(parsed.completedAt) : new Date(),
-        status: parsed.status,
-        performedById: performedById,
+        status: parsed.status || 'Completed',
       })
       .returning();
 
-    // Update asset status to Maintenance
+    // Update asset status to Maintenance if in progress, or restore
+    const targetStatus = parsed.status === 'In Progress' ? 'Maintenance' : existingAsset.status;
+
     const [updatedAsset] = await db
       .update(assets)
       .set({
-        status: 'Maintenance',
+        status: targetStatus,
         updatedAt: new Date(),
       })
       .where(eq(assets.id, id))
@@ -190,7 +212,7 @@ export async function logMaintenance(req: AuthenticatedRequest, res: Response) {
       entityId: id,
       oldValues: { status: existingAsset.status },
       newValues: {
-        status: 'Maintenance',
+        status: updatedAsset.status,
         maintenanceId: maintenanceRecord.id,
         maintenanceType: parsed.maintenanceType,
       },
@@ -290,7 +312,32 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
       return res.status(404).json({ error: 'Asset not found' });
     }
 
-    // Fetch maintenance records
+    // 1. Fetch User Transfer Assignment History
+    const assignmentHistory = await db
+      .select({
+        id: assetAssignmentHistory.id,
+        assetId: assetAssignmentHistory.assetId,
+        employeeId: assetAssignmentHistory.employeeId,
+        employeeCode: employees.employeeCode,
+        employeeName: employees.fullName,
+        employeePosition: employees.position,
+        departmentName: departments.name,
+        assignedByUsername: users.username,
+        assignedAt: assetAssignmentHistory.assignedAt,
+        returnedAt: assetAssignmentHistory.returnedAt,
+        conditionOnAssign: assetAssignmentHistory.conditionOnAssign,
+        conditionOnReturn: assetAssignmentHistory.conditionOnReturn,
+        handoverNotes: assetAssignmentHistory.handoverNotes,
+        returnNotes: assetAssignmentHistory.returnNotes,
+      })
+      .from(assetAssignmentHistory)
+      .leftJoin(employees, eq(assetAssignmentHistory.employeeId, employees.id))
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .leftJoin(users, eq(assetAssignmentHistory.assignedByUserId, users.id))
+      .where(eq(assetAssignmentHistory.assetId, id))
+      .orderBy(desc(assetAssignmentHistory.assignedAt));
+
+    // 2. Fetch Maintenance Records
     const maintenanceHistory = await db
       .select({
         id: assetMaintenances.id,
@@ -312,7 +359,7 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
       .where(eq(assetMaintenances.assetId, id))
       .orderBy(desc(assetMaintenances.createdAt));
 
-    // Fetch audit log records
+    // 3. Fetch Audit Log Records
     const logs = await db
       .select({
         id: auditLogs.id,
@@ -334,6 +381,7 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
 
     return res.status(200).json({
       assetId: id,
+      assignmentHistory,
       maintenanceHistory,
       auditLogs: logs,
     });

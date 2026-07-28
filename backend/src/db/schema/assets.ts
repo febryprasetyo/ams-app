@@ -1,6 +1,7 @@
 import { pgTable, bigint, varchar, timestamp, text } from 'drizzle-orm/pg-core';
 import { locations } from './master';
 import { employees } from './employees';
+import { users } from './users';
 
 export const assetCategories = pgTable('asset_categories', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
@@ -11,11 +12,11 @@ export const assetCategories = pgTable('asset_categories', {
 
 export const assets = pgTable('assets', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  assetCode: varchar('asset_code', { length: 50 }).notNull().unique(),
-  name: varchar('name', { length: 150 }).notNull(),
+  assetCode: varchar('asset_tag', { length: 50 }).notNull().unique(),
+  name: varchar('brand', { length: 150 }).notNull(),
   categoryId: bigint('category_id', { mode: 'number' }).references(() => assetCategories.id).notNull(),
   locationId: bigint('location_id', { mode: 'number' }).references(() => locations.id),
-  assignedToEmployeeId: bigint('assigned_to_employee_id', { mode: 'number' }).references(() => employees.id),
+  assignedToEmployeeId: bigint('current_user_id', { mode: 'number' }).references(() => employees.id),
   serialNumber: varchar('serial_number', { length: 100 }),
   status: varchar('status', { length: 30 }).default('Available').notNull(), // Available, Assigned, Maintenance, Disposed, Lost
   condition: varchar('condition', { length: 30 }).default('Good').notNull(), // Good, Fair, Poor, Damaged
@@ -24,3 +25,15 @@ export const assets = pgTable('assets', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const assetAssignmentHistory = pgTable('asset_assignment_history', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id).notNull(),
+  employeeId: bigint('employee_id', { mode: 'number' }).references(() => employees.id),
+  assignedByUserId: bigint('assigned_by_user_id', { mode: 'number' }).references(() => users.id),
+  assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  returnedAt: timestamp('returned_at'),
+  conditionOnAssign: varchar('condition_on_assign', { length: 50 }).default('Good').notNull(),
+  conditionOnReturn: varchar('condition_on_return', { length: 50 }),
+  handoverNotes: text('handover_notes'),
+  returnNotes: text('return_notes'),
+});

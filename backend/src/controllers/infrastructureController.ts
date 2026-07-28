@@ -174,11 +174,12 @@ function parseAccurateHtml(html: string) {
  * Falls back gracefully to stored DB snapshot if unreachable.
  */
 export async function syncAccurateLicenses(req: Request, res: Response) {
+  const targetUrl = process.env.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688/';
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const response = await fetch('http://192.168.10.160:6688/', {
+    const response = await fetch(targetUrl, {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
@@ -207,7 +208,7 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
         return res.status(200).json({
           success: true,
           isLive: true,
-          message: 'Accurate 5 license session data synced successfully',
+          message: `Accurate 5 license session data synced live from ${targetUrl}`,
           data: inserted,
           syncedAt: new Date().toISOString(),
         });
@@ -225,7 +226,7 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
     return res.status(200).json({
       success: true,
       isLive: false,
-      message: 'Using stored snapshot (192.168.10.160:6688 host offline or unreachable in local subnet)',
+      message: `Using stored snapshot (${targetUrl} host offline or unreachable in local subnet)`,
       data: storedLogs,
       syncedAt: storedLogs[0]?.scrapedAt || new Date().toISOString(),
     });

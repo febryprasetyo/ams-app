@@ -27,7 +27,9 @@ export async function login(req: AuthenticatedRequest, res: Response) {
 
     const user = userResult[0];
 
-    if (user.status !== 'active') {
+    // Case-insensitive status check
+    const normalizedStatus = (user.status || '').toLowerCase();
+    if (normalizedStatus !== 'active') {
       return res.status(403).json({ error: 'Account is deactivated' });
     }
 
@@ -55,7 +57,7 @@ export async function login(req: AuthenticatedRequest, res: Response) {
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.errors });
+      return res.status(400).json({ error: 'Validation failed', details: err.issues || err.message });
     }
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }

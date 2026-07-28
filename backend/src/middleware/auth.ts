@@ -28,7 +28,13 @@ export function requireRoles(...allowedRoles: string[]) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.roleName)) {
+    const userRoleNormalized = (req.user.roleName || '').toLowerCase().replace(/_/g, '');
+    const isAllowed = allowedRoles.some((role) => {
+      const allowedRoleNormalized = role.toLowerCase().replace(/_/g, '');
+      return userRoleNormalized === allowedRoleNormalized;
+    });
+
+    if (allowedRoles.length > 0 && !isAllowed) {
       return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
     }
 

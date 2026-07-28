@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { assets, assetCategories } from '../db/schema/assets';
 import { locations } from '../db/schema/master';
+import { employees } from '../db/schema/employees';
 import { eq, ilike, or, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -155,6 +156,9 @@ export async function getAssets(req: Request, res: Response) {
         categoryCodePrefix: assetCategories.codePrefix,
         locationId: assets.locationId,
         locationName: locations.name,
+        assignedToEmployeeId: assets.assignedToEmployeeId,
+        assignedEmployeeName: employees.fullName,
+        assignedEmployeeCode: employees.employeeCode,
         serialNumber: assets.serialNumber,
         status: assets.status,
         condition: assets.condition,
@@ -164,7 +168,8 @@ export async function getAssets(req: Request, res: Response) {
       })
       .from(assets)
       .leftJoin(assetCategories, eq(assets.categoryId, assetCategories.id))
-      .leftJoin(locations, eq(assets.locationId, locations.id));
+      .leftJoin(locations, eq(assets.locationId, locations.id))
+      .leftJoin(employees, eq(assets.assignedToEmployeeId, employees.id));
 
     const result = conditions.length > 0
       ? await query.where(and(...conditions)).orderBy(desc(assets.id))
@@ -193,6 +198,9 @@ export async function getAssetById(req: Request, res: Response) {
         categoryCodePrefix: assetCategories.codePrefix,
         locationId: assets.locationId,
         locationName: locations.name,
+        assignedToEmployeeId: assets.assignedToEmployeeId,
+        assignedEmployeeName: employees.fullName,
+        assignedEmployeeCode: employees.employeeCode,
         serialNumber: assets.serialNumber,
         status: assets.status,
         condition: assets.condition,
@@ -203,6 +211,7 @@ export async function getAssetById(req: Request, res: Response) {
       .from(assets)
       .leftJoin(assetCategories, eq(assets.categoryId, assetCategories.id))
       .leftJoin(locations, eq(assets.locationId, locations.id))
+      .leftJoin(employees, eq(assets.assignedToEmployeeId, employees.id))
       .where(eq(assets.id, id));
 
     if (result.length === 0) {

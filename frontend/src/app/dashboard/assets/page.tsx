@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
   UserCheck,
+  UserX,
   Eye,
   Filter,
   RefreshCw,
@@ -27,7 +28,8 @@ import {
   Tag,
   CheckCircle2,
   Building2,
-  ChevronRight
+  ChevronRight,
+  ArrowRightLeft
 } from 'lucide-react';
 
 export interface AssetCategory {
@@ -109,6 +111,14 @@ export default function AssetsPage() {
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [assignModalError, setAssignModalError] = useState<string | null>(null);
 
+  // Unassign Modal State
+  const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
+  const [unassigningAsset, setUnassigningAsset] = useState<Asset | null>(null);
+  const [unassignReturnNotes, setUnassignReturnNotes] = useState('');
+  const [unassignCondition, setUnassignCondition] = useState<'Good' | 'Fair' | 'Poor' | 'Damaged'>('Good');
+  const [unassignSubmitting, setUnassignSubmitting] = useState(false);
+  const [unassignModalError, setUnassignModalError] = useState<string | null>(null);
+
   // Fetch Auxiliary Master Data (Categories, Locations, Employees)
   const fetchAuxiliaryData = useCallback(async () => {
     try {
@@ -149,20 +159,10 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAuxiliaryData();
-  }, [fetchAuxiliaryData]);
-
-  useEffect(() => {
     fetchAssets();
-  }, [fetchAssets]);
+  }, [fetchAuxiliaryData, fetchAssets]);
 
-  // Stat Calculations
-  const totalCount = assets.length;
-  const assignedCount = assets.filter((a) => a.status === 'Assigned').length;
-  const availableCount = assets.filter((a) => a.status === 'Available').length;
-  const maintenanceCount = assets.filter((a) => a.status === 'Maintenance').length;
-  const disposedCount = assets.filter((a) => a.status === 'Disposed').length;
-
-  // Open Create Asset Modal
+  // Handler: Open Create Modal
   const openCreateModal = () => {
     setEditingAsset(null);
     setFormName('');
@@ -176,7 +176,7 @@ export default function AssetsPage() {
     setIsAssetModalOpen(true);
   };
 
-  // Open Edit Asset Modal
+  // Handler: Open Edit Modal
   const openEditModal = (asset: Asset) => {
     setEditingAsset(asset);
     setFormName(asset.name);
@@ -190,48 +190,7 @@ export default function AssetsPage() {
     setIsAssetModalOpen(true);
   };
 
-  const closeAssetModal = () => {
-    setIsAssetModalOpen(false);
-    setEditingAsset(null);
-    setAssetModalError(null);
-  };
-
-  // Save Asset Form (Create / Edit)
-  const handleSaveAsset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formCategoryId) {
-      setAssetModalError('Please select a category');
-      return;
-    }
-    setAssetModalError(null);
-    setAssetSubmitting(true);
-
-    try {
-      const payload = {
-        name: formName.trim(),
-        categoryId: Number(formCategoryId),
-        locationId: formLocationId ? Number(formLocationId) : null,
-        serialNumber: formSerialNumber.trim() || null,
-        status: formStatus,
-        condition: formCondition,
-        notes: formNotes.trim() || null,
-      };
-
-      if (editingAsset) {
-        await api.put(`/assets/${editingAsset.id}`, payload);
-      } else {
-        await api.post('/assets', payload);
-      }
-      closeAssetModal();
-      fetchAssets();
-    } catch (err: any) {
-      setAssetModalError(err.message || 'Operation failed');
-    } finally {
-      setAssetSubmitting(false);
-    }
-  };
-
-  // Open Quick Assign Modal
+  // Handler: Open Assign Modal
   const openAssignModal = (asset: Asset) => {
     setAssigningAsset(asset);
     setAssignEmployeeId(asset.assignedToEmployeeId || '');
@@ -241,41 +200,104 @@ export default function AssetsPage() {
     setIsAssignModalOpen(true);
   };
 
-  const closeAssignModal = () => {
-    setIsAssignModalOpen(false);
-    setAssigningAsset(null);
-    setAssignModalError(null);
+  // Handler: Open Unassign Modal
+  const openUnassignModal = (asset: Asset) => {
+    setUnassigningAsset(asset);
+    setUnassignReturnNotes('');
+    setUnassignCondition(asset.condition || 'Good');
+    setUnassignModalError(null);
+    setIsUnassignModalOpen(true);
   };
 
-  // Save Assignment
-  const handleSaveAssignment = async (e: React.FormEvent) => {
+  // Submit Create / Edit Asset Form
+  const handleAssetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignEmployeeId && !assignLocationId) {
-      setAssignModalError('Select at least an employee or location to assign');
+    if (!formName.trim() || !formCategoryId) {
+      setAssetModalError('Asset name and category are required.');
       return;
     }
-    setAssignModalError(null);
-    setAssignSubmitting(true);
+
+    setAssetSubmitting(true);
+    setAssetModalError(null);
+
+    const payload = {
+      name: formName.trim(),
+      categoryId: Number(formCategoryId),
+      locationId: formLocationId ? Number(formLocationId) : null,
+      serialNumber: formSerialNumber.trim() || null,
+      status: formStatus,
+      condition: formCondition,
+      notes: formNotes.trim() || null,
+    };
 
     try {
-      if (!assigningAsset) return;
+      if (editingAsset) {
+        await api.put(`/assets/${editingAsset.id}`, payload);
+      } else {
+        await api.post('/assets', payload);
+      }
+      setIsAssetModalOpen(false);
+      fetchAssets();
+    } catch (err: any) {
+      setAssetModalError(err.message || 'Failed to save asset');
+    } fontFinally: {
+      setAssetSubmitting(false);
+    }
+  };
+
+  // Submit Quick Assign Form
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningAsset) return;
+
+    if (!assignEmployeeId && !assignLocationId) {
+      setAssignModalError('Please select an employee or location to assign.');
+      return;
+    }
+
+    setAssignSubmitting(true);
+    setAssignModalError(null);
+
+    try {
       await api.post(`/assets/${assigningAsset.id}/assign`, {
         assignedToEmployeeId: assignEmployeeId ? Number(assignEmployeeId) : null,
         assignedToLocationId: assignLocationId ? Number(assignLocationId) : null,
         notes: assignNotes.trim() || null,
       });
-      closeAssignModal();
+      setIsAssignModalOpen(false);
       fetchAssets();
     } catch (err: any) {
-      setAssignModalError(err.message || 'Assignment failed');
+      setAssignModalError(err.message || 'Failed to assign asset');
     } finally {
       setAssignSubmitting(false);
     }
   };
 
+  // Submit Unassign Form
+  const handleUnassignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unassigningAsset) return;
+
+    setUnassignSubmitting(true);
+    setUnassignModalError(null);
+
+    try {
+      await api.post(`/assets/${unassigningAsset.id}/unassign`, {
+        returnNotes: unassignReturnNotes.trim() || 'Unassigned and returned to available IT stock pool',
+        conditionOnReturn: unassignCondition,
+      });
+      setIsUnassignModalOpen(false);
+      fetchAssets();
+    } catch (err: any) {
+      setUnassignModalError(err.message || 'Failed to unassign asset');
+    } finally {
+      setUnassignSubmitting(false);
+    }
+  };
+
   // Handle Delete Asset
   const handleDeleteAsset = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this IT asset record?')) return;
+    if (!window.confirm('Are you sure you want to delete this asset from inventory?')) return;
     try {
       await api.delete(`/assets/${id}`);
       fetchAssets();
@@ -284,7 +306,7 @@ export default function AssetsPage() {
     }
   };
 
-  // Clear Filters
+  // Clear All Filters
   const handleClearFilters = () => {
     setSearch('');
     setSelectedCategory('');
@@ -294,110 +316,94 @@ export default function AssetsPage() {
 
   const hasActiveFilters = Boolean(search || selectedCategory || selectedLocation || selectedStatus);
 
-  // Status Badge Helper
-  const renderStatusBadge = (status: Asset['status']) => {
+  // Computed Metrics
+  const totalCount = assets.length;
+  const assignedCount = assets.filter((a) => a.status === 'Assigned').length;
+  const availableCount = assets.filter((a) => a.status === 'Available').length;
+  const maintenanceCount = assets.filter((a) => a.status === 'Maintenance').length;
+  const disposedCount = assets.filter((a) => a.status === 'Disposed').length;
+
+  const renderStatusBadge = (status: string) => {
     switch (status) {
       case 'Available':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-mono font-semibold border border-emerald-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Available
           </span>
         );
       case 'Assigned':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-mono font-semibold border border-blue-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
             Assigned
           </span>
         );
       case 'Maintenance':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-mono font-semibold border border-amber-200 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             Maintenance
           </span>
         );
       case 'Disposed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-mono font-semibold border border-slate-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             Disposed
           </span>
         );
-      case 'Lost':
+      default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-xs font-mono font-semibold border border-red-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-            Lost
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+            {status}
           </span>
         );
-      default:
-        return <span className="text-xs font-mono text-slate-500">{status}</span>;
     }
   };
 
-  // Condition Badge Helper
-  const renderConditionBadge = (condition: Asset['condition']) => {
-    switch (condition) {
+  const renderConditionBadge = (cond: string) => {
+    switch (cond) {
       case 'Good':
-        return <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-mono border border-emerald-100">Good</span>;
+        return <span className="text-[11px] font-semibold text-emerald-700 font-mono">Good</span>;
       case 'Fair':
-        return <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-700 text-[11px] font-mono border border-sky-100">Fair</span>;
+        return <span className="text-[11px] font-semibold text-amber-700 font-mono">Fair</span>;
       case 'Poor':
-        return <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-mono border border-amber-100">Poor</span>;
       case 'Damaged':
-        return <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 text-[11px] font-mono border border-rose-100 font-bold">Damaged</span>;
+        return <span className="text-[11px] font-semibold text-rose-700 font-mono">{cond}</span>;
       default:
-        return <span className="text-xs text-slate-500">{condition}</span>;
+        return <span className="text-[11px] text-slate-500 font-mono">{cond}</span>;
     }
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Top Header Banner */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-600/20 shrink-0">
-              <HardDrive className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-                <span>IT Asset Inventory</span>
-                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                  {totalCount} Total
-                </span>
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Hardware tracking, employee assignments, serial barcodes & service history
-              </p>
-            </div>
+      <div className="space-y-6 w-full">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <HardDrive className="w-7 h-7 text-red-600" />
+              <span>IT Asset Inventory & Lifecycle</span>
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Manage enterprise IT equipment, track user assignment history, and log maintenance events
+            </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={fetchAssets}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors shadow-2xs cursor-pointer"
-              title="Refresh Data"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-red-600' : ''}`} />
-            </button>
-
-            <button
-              onClick={openCreateModal}
-              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl shadow-xl shadow-red-600/20 transition-all cursor-pointer text-xs flex items-center gap-2 transform hover:-translate-y-0.5"
-            >
-              <Plus className="w-4 h-4 text-white" />
-              <span>Create Asset</span>
-            </button>
-          </div>
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-bold rounded-xl text-xs shadow-md shadow-red-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Asset</span>
+          </button>
         </div>
 
-        {/* Bento Stat Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Bento Stat Cards Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* Card 1: Total Assets */}
-          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow">
+          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 Total Assets
@@ -413,7 +419,7 @@ export default function AssetsPage() {
           </div>
 
           {/* Card 2: In Use / Assigned */}
-          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow">
+          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 In Use / Assigned
@@ -429,7 +435,7 @@ export default function AssetsPage() {
           </div>
 
           {/* Card 3: Available Stock */}
-          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow">
+          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 Available Stock
@@ -445,7 +451,7 @@ export default function AssetsPage() {
           </div>
 
           {/* Card 4: In Maintenance */}
-          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow">
+          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 In Maintenance
@@ -461,7 +467,7 @@ export default function AssetsPage() {
           </div>
 
           {/* Card 5: Disposed */}
-          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow col-span-2 sm:col-span-1">
+          <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:shadow-md transition-shadow col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
                 Disposed
@@ -559,7 +565,7 @@ export default function AssetsPage() {
         )}
 
         {/* Glass Asset Table */}
-        <div className="glass-panel rounded-2xl overflow-hidden shadow-sm bg-white border border-slate-200">
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-sm bg-white border border-slate-200 w-full">
           {loading ? (
             <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
               <Loader2 className="w-7 h-7 animate-spin text-red-600" />
@@ -584,8 +590,8 @@ export default function AssetsPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto w-full custom-scrollbar">
+              <table className="w-full text-left text-xs border-collapse min-w-[900px]">
                 <thead>
                   <tr className="bg-slate-50/90 text-slate-500 border-b border-slate-200 font-mono uppercase tracking-wider">
                     <th className="py-3.5 px-5 font-semibold">Asset Code</th>
@@ -701,7 +707,7 @@ export default function AssetsPage() {
                             <Eye className="w-4 h-4" />
                           </Link>
 
-                          {/* Quick Assign */}
+                          {/* Quick Assign / Reassign */}
                           <button
                             onClick={() => openAssignModal(asset)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer"
@@ -709,6 +715,17 @@ export default function AssetsPage() {
                           >
                             <UserCheck className="w-4 h-4" />
                           </button>
+
+                          {/* Unassign / Return to Stock */}
+                          {asset.assignedToEmployeeId != null && (
+                            <button
+                              onClick={() => openUnassignModal(asset)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-all cursor-pointer"
+                              title="Unassign & Return to Stock"
+                            >
+                              <UserX className="w-4 h-4 text-amber-600" />
+                            </button>
+                          )}
 
                           {/* Edit */}
                           <button
@@ -748,49 +765,47 @@ export default function AssetsPage() {
                 <span>{editingAsset ? `Edit Asset (${editingAsset.assetCode})` : 'Create New IT Asset'}</span>
               </h3>
               <button
-                onClick={closeAssetModal}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => setIsAssetModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {assetModalError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{assetModalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveAsset} className="space-y-4">
-              {/* Asset Name */}
+            <form onSubmit={handleAssetSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Asset Name *
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
+                  Asset Name / Model *
                 </label>
                 <input
                   type="text"
                   required
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. MacBook Pro M3 Max 16-inch"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+                  placeholder="e.g. MacBook Pro 16 M3 Max, Dell UltraSharp 27"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
                 />
               </div>
 
-              {/* Category & Location Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                    Category *
-                  </label>
+                  <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Category *</label>
                   <select
                     required
                     value={formCategoryId}
                     onChange={(e) => setFormCategoryId(Number(e.target.value))}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                   >
-                    <option value="" disabled>Select Category</option>
+                    <option value="" disabled>
+                      Select Category
+                    </option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name} ({cat.codePrefix})
@@ -800,13 +815,11 @@ export default function AssetsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                    Location
-                  </label>
+                  <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Location</label>
                   <select
                     value={formLocationId}
                     onChange={(e) => setFormLocationId(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                   >
                     <option value="">Unassigned Location</option>
                     {locations.map((loc) => (
@@ -818,29 +831,39 @@ export default function AssetsPage() {
                 </div>
               </div>
 
-              {/* Serial Number & Condition */}
+              <div>
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Serial Number</label>
+                <input
+                  type="text"
+                  value={formSerialNumber}
+                  onChange={(e) => setFormSerialNumber(e.target.value)}
+                  placeholder="e.g. C02G1234MD6R, DL-XPS-998811"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500"
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                    Serial Number
-                  </label>
-                  <input
-                    type="text"
-                    value={formSerialNumber}
-                    onChange={(e) => setFormSerialNumber(e.target.value)}
-                    placeholder="SN-9988776655"
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-xs focus:outline-none focus:border-red-500"
-                  />
+                  <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Status</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-red-500"
+                  >
+                    <option value="Available">Available</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Disposed">Disposed</option>
+                    <option value="Lost">Lost</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                    Condition
-                  </label>
+                  <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Condition</label>
                   <select
                     value={formCondition}
                     onChange={(e) => setFormCondition(e.target.value as any)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-red-500"
                   >
                     <option value="Good">Good</option>
                     <option value="Fair">Fair</option>
@@ -850,60 +873,32 @@ export default function AssetsPage() {
                 </div>
               </div>
 
-              {/* Status */}
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Status
-                </label>
-                <select
-                  value={formStatus}
-                  onChange={(e) => setFormStatus(e.target.value as any)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500"
-                >
-                  <option value="Available">Available</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Disposed">Disposed</option>
-                  <option value="Lost">Lost</option>
-                </select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Notes / Specification Details
-                </label>
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">Technical Notes</label>
                 <textarea
                   rows={3}
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Optional technical specifications, warranty details, or purchase notes..."
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500"
+                  placeholder="Additional specs or remarks..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                 />
               </div>
 
-              {/* Submit / Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={closeAssetModal}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
+                  onClick={() => setIsAssetModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={assetSubmitting}
-                  className="px-5 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 transition-all flex items-center gap-2"
                 >
-                  {assetSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{editingAsset ? 'Update Asset' : 'Save Asset'}</span>
-                  )}
+                  {assetSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  <span>{editingAsset ? 'Update Asset' : 'Save New Asset'}</span>
                 </button>
               </div>
             </form>
@@ -911,45 +906,44 @@ export default function AssetsPage() {
         </div>
       )}
 
-      {/* --- Quick Assignment Modal --- */}
+      {/* --- Quick Assign Asset Modal --- */}
       {isAssignModalOpen && assigningAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
           <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Assign IT Asset</h3>
-                  <p className="text-[11px] font-mono text-red-600 font-bold">{assigningAsset.assetCode} - {assigningAsset.name}</p>
-                </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-blue-600" />
+                  <span>Assign Asset</span>
+                </h3>
+                <p className="text-xs text-red-600 font-mono font-bold mt-0.5">{assigningAsset.assetCode} — {assigningAsset.name}</p>
               </div>
               <button
-                onClick={closeAssignModal}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => setIsAssignModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {assignModalError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{assignModalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveAssignment} className="space-y-4">
-              {/* Employee Selection */}
+            <form onSubmit={handleAssignSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Assign To Employee
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
+                  Target Employee
                 </label>
                 <select
                   value={assignEmployeeId}
                   onChange={(e) => setAssignEmployeeId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                 >
-                  <option value="">Select Employee...</option>
+                  <option value="">Unassigned (None)</option>
                   {employees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
                       {emp.fullName} ({emp.employeeCode})
@@ -958,17 +952,16 @@ export default function AssetsPage() {
                 </select>
               </div>
 
-              {/* Location Override Selection */}
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
-                  Deploy Location
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
+                  Primary Location Facility
                 </label>
                 <select
                   value={assignLocationId}
                   onChange={(e) => setAssignLocationId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                 >
-                  <option value="">Keep / Select Location...</option>
+                  <option value="">Keep Existing Location</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.name} ({loc.code})
@@ -977,42 +970,113 @@ export default function AssetsPage() {
                 </select>
               </div>
 
-              {/* Assignment Notes */}
               <div>
-                <label className="block text-xs font-mono text-slate-700 uppercase tracking-wider mb-1.5 font-semibold">
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
                   Handover Notes
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   value={assignNotes}
                   onChange={(e) => setAssignNotes(e.target.value)}
-                  placeholder="Handover date, accessories included, condition check notes..."
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. Issued for Software Engineering role..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
                 />
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={closeAssignModal}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
+                  onClick={() => setIsAssignModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={assignSubmitting}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-2"
                 >
-                  {assignSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Assigning...</span>
-                    </>
-                  ) : (
-                    <span>Confirm Assignment</span>
-                  )}
+                  {assignSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />}
+                  <span>Confirm Assignment</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- Unassign Asset Modal --- */}
+      {isUnassignModalOpen && unassigningAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-amber-700 flex items-center gap-2">
+                  <UserX className="w-5 h-5 text-amber-600" />
+                  <span>Unassign & Return Device to Stock</span>
+                </h3>
+                <p className="text-xs text-red-600 font-mono font-bold mt-0.5">{unassigningAsset.assetCode} — {unassigningAsset.name}</p>
+              </div>
+              <button
+                onClick={() => setIsUnassignModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {unassignModalError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{unassignModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUnassignSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
+                  Condition on Return
+                </label>
+                <select
+                  value={unassignCondition}
+                  onChange={(e) => setUnassignCondition(e.target.value as any)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-red-500"
+                >
+                  <option value="Good">Good (Clean / No issues)</option>
+                  <option value="Fair">Fair (Minor cosmetic scuffs)</option>
+                  <option value="Poor">Poor (Requires servicing)</option>
+                  <option value="Damaged">Damaged (Broken hardware)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
+                  Return / Reallocation Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={unassignReturnNotes}
+                  onChange={(e) => setUnassignReturnNotes(e.target.value)}
+                  placeholder="e.g. Returned upon resignation / project completion. Checked by IT..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsUnassignModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={unassignSubmitting}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition-all flex items-center gap-2"
+                >
+                  {unassignSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />}
+                  <span>Return to Stock</span>
                 </button>
               </div>
             </form>

@@ -27,6 +27,11 @@ const assignAssetSchema = z
     }
   );
 
+const unassignAssetSchema = z.object({
+  returnNotes: z.string().optional().nullable(),
+  conditionOnReturn: z.string().optional().default('Good'),
+});
+
 const logMaintenanceSchema = z.object({
   maintenanceType: z.string().min(1, 'Maintenance type is required'),
   title: z.string().optional(),
@@ -148,6 +153,77 @@ export async function assignAsset(req: AuthenticatedRequest, res: Response) {
 
     return res.status(200).json({
       message: 'Asset assigned successfully',
+      asset: updatedAsset,
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation failed', details: err.issues });
+    }
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+}
+
+export async function unassignAsset(req: AuthenticatedRequest, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid asset ID' });
+    }
+
+    const [existingAsset] = await db
+      .select()
+      .from(assets)
+      .where(eq(assets.id, id));
+
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+
+    const parsed = unassignAssetSchema.parse(req.body || {});
+
+    // 1. Close open active assignment record in history
+    await db
+      .update(assetAssignmentHistory)
+      .set({
+        returnedAt: new Date(),
+        conditionOnReturn: parsed.conditionOnReturn || existingAsset.condition || 'Good',
+        returnNotes: parsed.returnNotes || 'Unassigned / Returned to available IT stock pool',
+      })
+      .where(and(eq(assetAssignmentHistory.assetId, id), isNull(assetAssignmentHistory.returnedAt)));
+
+    // 2. Reset asset state
+    const [updatedAsset] = await db
+      .update(assets)
+      .set({
+        status: 'Available',
+        assignedToEmployeeId: null,
+        condition: parsed.conditionOnReturn || existingAsset.condition,
+        updatedAt: new Date(),
+      })
+      .where(eq(assets.id, id))
+      .returning();
+
+    // 3. Log audit action
+    await db.insert(auditLogs).values({
+      userId: req.user?.userId || null,
+      action: 'UNASSIGN',
+      entity: 'ASSET',
+      entityId: id,
+      oldValues: {
+        status: existingAsset.status,
+        assignedToEmployeeId: existingAsset.assignedToEmployeeId,
+      },
+      newValues: {
+        status: 'Available',
+        assignedToEmployeeId: null,
+        returnNotes: parsed.returnNotes,
+      },
+      ipAddress: req.ip || null,
+      userAgent: req.get('user-agent') || null,
+    });
+
+    return res.status(200).json({
+      message: 'Asset unassigned successfully and returned to stock',
       asset: updatedAsset,
     });
   } catch (err: any) {

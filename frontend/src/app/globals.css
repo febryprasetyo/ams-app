@@ -2,24 +2,24 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #0F172A;
+  --color-primary: #DC2626;
   --color-on-primary: #FFFFFF;
-  --color-secondary: #1E293B;
-  --color-accent: #10B981;
-  --color-background: #0B0F17;
-  --color-foreground: #F8FAFC;
-  --color-muted: #1E293B;
-  --color-border: #1E293B;
-  --color-destructive: #F43F5E;
+  --color-secondary: #FEE2E2;
+  --color-accent: #EF4444;
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-border: #E2E8F0;
+  --color-destructive: #B91C1C;
 }
 
 * {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #E2E8F0;
 }
 
 body {
-  background-color: #0B0F17;
-  color: #F8FAFC;
+  background-color: #F8FAFC;
+  color: #0F172A;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   letter-spacing: -0.01em;
@@ -29,13 +29,13 @@ code, kbd, samp, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism Cards */
+/* Light Mode Glass/Card Panel */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
 
 .glass-panel-hover {
@@ -43,20 +43,14 @@ code, kbd, samp, pre, .font-mono {
 }
 
 .glass-panel-hover:hover {
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 20px 40px -15px rgba(16, 185, 129, 0.12), 0 0 20px 0 rgba(16, 185, 129, 0.08);
+  border-color: #FCA5A5;
+  box-shadow: 0 20px 30px -10px rgba(220, 38, 38, 0.12);
   transform: translateY(-2px);
 }
 
-/* Gradient text */
-.text-gradient {
-  background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-emerald {
-  background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+/* Gradient Text */
+.text-gradient-red {
+  background: linear-gradient(135deg, #EF4444 0%, #991B1B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -67,12 +61,12 @@ code, kbd, samp, pre, .font-mono {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #F8FAFC;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94A3B8;
 }

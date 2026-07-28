@@ -59,7 +59,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Operations',
     items: [
-      { name: 'IT Helpdesk', href: '/dashboard/tickets', icon: Ticket, badge: 'Phase 3' },
+      { name: 'Service Desk', href: '/dashboard/tickets', icon: Ticket },
       { name: 'Accurate & Servers', href: '/dashboard/infrastructure', icon: Server, badge: 'Phase 5' },
     ],
   },

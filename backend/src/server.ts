@@ -8,6 +8,7 @@ import employeeRoutes from './routes/employeeRoutes';
 import assetRoutes from './routes/assetRoutes';
 import ticketRoutes from './routes/ticketRoutes';
 import licenseRoutes from './routes/licenseRoutes';
+import infrastructureRoutes from './routes/infrastructureRoutes';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/v1/employees', employeeRoutes);
 app.use('/api/v1/assets', assetRoutes);
 app.use('/api/v1/tickets', ticketRoutes);
 app.use('/api/v1/licenses', licenseRoutes);
+app.use('/api/v1/infrastructure', infrastructureRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });

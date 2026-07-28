@@ -12,21 +12,23 @@ import {
   X,
   Loader2,
   AlertCircle,
-  CheckCircle2,
-  XCircle,
+  Mail,
   Building2,
   MapPin,
-  Briefcase,
+  CheckCircle2,
+  XCircle,
+  UserCheck
 } from 'lucide-react';
 
 interface Department {
   id: number;
-  name: string;
   code: string;
+  name: string;
 }
 
 interface Location {
   id: number;
+  code: string;
   name: string;
 }
 
@@ -37,11 +39,12 @@ interface Employee {
   email: string;
   phone?: string | null;
   departmentId?: number | null;
-  departmentName?: string | null;
   locationId?: number | null;
-  locationName?: string | null;
   position?: string | null;
   status: string;
+  departmentName?: string | null;
+  departmentCode?: string | null;
+  locationName?: string | null;
 }
 
 export default function EmployeesPage() {
@@ -56,16 +59,14 @@ export default function EmployeesPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
-  
   const [formCode, setFormCode] = useState('');
-  const [formFullName, setFormFullName] = useState('');
+  const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formDeptId, setFormDeptId] = useState<string>('');
   const [formLocId, setFormLocId] = useState<string>('');
   const [formPosition, setFormPosition] = useState('');
   const [formStatus, setFormStatus] = useState('Active');
-
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -82,7 +83,7 @@ export default function EmployeesPage() {
       setDepartments(deptData);
       setLocations(locData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load employee master data');
+      setError(err.message || 'Failed to load employee records');
     } finally {
       setLoading(false);
     }
@@ -95,7 +96,7 @@ export default function EmployeesPage() {
   const openCreateModal = () => {
     setEditingEmp(null);
     setFormCode('');
-    setFormFullName('');
+    setFormName('');
     setFormEmail('');
     setFormPhone('');
     setFormDeptId('');
@@ -109,7 +110,7 @@ export default function EmployeesPage() {
   const openEditModal = (emp: Employee) => {
     setEditingEmp(emp);
     setFormCode(emp.employeeCode);
-    setFormFullName(emp.fullName);
+    setFormName(emp.fullName);
     setFormEmail(emp.email);
     setFormPhone(emp.phone || '');
     setFormDeptId(emp.departmentId ? String(emp.departmentId) : '');
@@ -124,7 +125,7 @@ export default function EmployeesPage() {
     setIsModalOpen(false);
     setEditingEmp(null);
     setFormCode('');
-    setFormFullName('');
+    setFormName('');
     setFormEmail('');
     setFormPhone('');
     setFormDeptId('');
@@ -139,18 +140,18 @@ export default function EmployeesPage() {
     setModalError(null);
     setSubmitting(true);
 
-    try {
-      const payload = {
-        employeeCode: formCode,
-        fullName: formFullName,
-        email: formEmail,
-        phone: formPhone || null,
-        departmentId: formDeptId ? Number(formDeptId) : null,
-        locationId: formLocId ? Number(formLocId) : null,
-        position: formPosition || null,
-        status: formStatus,
-      };
+    const payload = {
+      employeeCode: formCode,
+      fullName: formName,
+      email: formEmail,
+      phone: formPhone || null,
+      departmentId: formDeptId ? Number(formDeptId) : null,
+      locationId: formLocId ? Number(formLocId) : null,
+      position: formPosition || null,
+      status: formStatus,
+    };
 
+    try {
       if (editingEmp) {
         await api.put(`/employees/${editingEmp.id}`, payload);
       } else {
@@ -166,7 +167,7 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this employee?')) return;
+    if (!window.confirm('Are you sure you want to deactivate or delete this employee record?')) return;
     try {
       await api.delete(`/employees/${id}`);
       fetchData();
@@ -180,337 +181,365 @@ export default function EmployeesPage() {
       e.fullName.toLowerCase().includes(search.toLowerCase()) ||
       e.employeeCode.toLowerCase().includes(search.toLowerCase()) ||
       e.email.toLowerCase().includes(search.toLowerCase()) ||
-      (e.departmentName && e.departmentName.toLowerCase().includes(search.toLowerCase())) ||
-      (e.locationName && e.locationName.toLowerCase().includes(search.toLowerCase()))
+      (e.departmentName && e.departmentName.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Top Header & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold font-mono text-[#F8FAFC] flex items-center gap-3">
-              <Users className="w-7 h-7 text-[#22C55E]" />
-              <span>Employee Directory</span>
-            </h2>
-            <p className="text-sm text-slate-400 mt-1">
-              Manage personnel records, department assignments, and work locations
-            </p>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span>Employee Directory</span>
+                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  {employees.length} Staff
+                </span>
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Staff registry for asset assignment, ticket reporting, and M365 account mapping
+              </p>
+            </div>
           </div>
 
           <button
             onClick={openCreateModal}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 font-semibold rounded-xl transition-all shadow-md shadow-[#22C55E]/10 cursor-pointer text-sm"
+            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl shadow-xl shadow-emerald-500/20 transition-all cursor-pointer text-xs flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-slate-950" />
             <span>Add Employee</span>
           </button>
         </div>
 
-        {/* Filter / Search Bar */}
-        <div className="bg-[#1E293B] border border-[#334155] p-4 rounded-2xl flex items-center justify-between gap-4">
+        {/* Bento Stat Header Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-emerald-400 flex items-center justify-center font-mono">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Active Staff</p>
+              <p className="text-xl font-bold font-mono text-white mt-0.5">
+                {employees.filter((e) => (e.status || '').toLowerCase() === 'active').length}
+              </p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-blue-400 flex items-center justify-center font-mono">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Assigned Departments</p>
+              <p className="text-xl font-bold font-mono text-white mt-0.5">{departments.length}</p>
+            </div>
+          </div>
+          <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-purple-400 flex items-center justify-center font-mono">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Locations</p>
+              <p className="text-xl font-bold font-mono text-white mt-0.5">{locations.length}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="glass-panel p-3.5 rounded-2xl flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by code, name, email, department..."
-              className="w-full pl-10 pr-4 py-2 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E] transition-colors"
+              placeholder="Search employee name, NIK code, email, department..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
             />
           </div>
-
-          <div className="text-xs font-mono text-slate-400">
-            Total: <span className="text-[#22C55E] font-bold">{filtered.length}</span> employees
-          </div>
+          <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+            Showing <strong className="text-white">{filtered.length}</strong> of {employees.length}
+          </span>
         </div>
 
-        {/* Global Error Banner */}
+        {/* Error Alert Display */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-3">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Data Table */}
-        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl overflow-hidden shadow-xl">
+        {/* Glass Table */}
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-2xl">
           {loading ? (
-            <div className="p-12 flex items-center justify-center text-slate-400 gap-3 font-mono">
-              <Loader2 className="w-6 h-6 animate-spin text-[#22C55E]" />
-              <span>Loading employee directory...</span>
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400 font-mono text-xs">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+              <span>Fetching employee directory...</span>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-slate-400 font-sans">
-              <p className="text-base">No employees found.</p>
-              <p className="text-xs text-slate-500 mt-1">Try refining your search query or add a new employee.</p>
+            <div className="p-12 text-center">
+              <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-300 font-semibold text-sm">No employees found</p>
+              <p className="text-xs text-slate-500 mt-1">Try adjusting your search criteria or register a new staff member.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#0F172A] border-b border-[#334155] text-xs font-mono text-slate-400 uppercase tracking-wider">
-                    <th className="py-3.5 px-4">Code</th>
-                    <th className="py-3.5 px-4">Full Name</th>
-                    <th className="py-3.5 px-4">Email / Phone</th>
-                    <th className="py-3.5 px-4">Department</th>
-                    <th className="py-3.5 px-4">Location</th>
-                    <th className="py-3.5 px-4">Position</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                  <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-mono uppercase tracking-wider">
+                    <th className="py-3.5 px-5 font-semibold">NIK Code</th>
+                    <th className="py-3.5 px-5 font-semibold">Full Name & Position</th>
+                    <th className="py-3.5 px-5 font-semibold">Corporate Email</th>
+                    <th className="py-3.5 px-5 font-semibold">Dept & Location</th>
+                    <th className="py-3.5 px-5 font-semibold">Status</th>
+                    <th className="py-3.5 px-5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#334155] text-sm">
-                  {filtered.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-[#020617]/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-semibold text-[#22C55E] text-xs">
-                        {emp.employeeCode}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-200">{emp.fullName}</td>
-                      <td className="py-3.5 px-4 text-xs font-mono text-slate-300">
-                        <div>{emp.email}</div>
-                        {emp.phone && <div className="text-slate-400 text-[11px] mt-0.5">{emp.phone}</div>}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-300">
-                        {emp.departmentName ? (
-                          <span className="flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                            {emp.departmentName}
+                <tbody className="divide-y divide-slate-800/60">
+                  {filtered.map((emp) => {
+                    const isActive = (emp.status || '').toLowerCase() === 'active';
+                    return (
+                      <tr key={emp.id} className="hover:bg-slate-900/60 transition-colors group">
+                        <td className="py-4 px-5 font-mono">
+                          <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                            {emp.employeeCode}
                           </span>
-                        ) : (
-                          <span className="text-slate-600 italic">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-300">
-                        {emp.locationName ? (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            {emp.locationName}
+                        </td>
+                        <td className="py-4 px-5">
+                          <p className="font-bold text-slate-100 group-hover:text-white transition-colors">{emp.fullName}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{emp.position || 'Staff'}</p>
+                        </td>
+                        <td className="py-4 px-5 font-mono text-[11px] text-slate-300">
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span>{emp.email}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-5 text-slate-300">
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-slate-200">{emp.departmentName || '—'}</p>
+                            <p className="text-[11px] text-slate-400 font-mono">{emp.locationName || 'Unassigned'}</p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
+                              isActive
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                            {emp.status}
                           </span>
-                        ) : (
-                          <span className="text-slate-600 italic">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-300">
-                        {emp.position ? (
-                          <span className="flex items-center gap-1">
-                            <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                            {emp.position}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600 italic">-</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {emp.status === 'Active' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                            <XCircle className="w-3 h-3" />
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right space-x-2">
-                        <button
-                          onClick={() => openEditModal(emp)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(emp.id)}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-4 px-5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(emp)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer"
+                              title="Edit Employee"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(emp.id)}
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+                              title="Deactivate / Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Modal Dialog */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#1E293B] border border-[#334155] rounded-2xl w-full max-w-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-4 border-b border-[#334155]">
-                <h3 className="text-lg font-bold font-mono text-[#F8FAFC]">
-                  {editingEmp ? 'Edit Employee Record' : 'Add New Employee'}
-                </h3>
-                <button
-                  onClick={closeModal}
-                  className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {/* Modal Dialog */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="glass-panel w-full max-w-lg rounded-3xl p-6 shadow-2xl relative border border-slate-700/80 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-400" />
+                <span>{editingEmp ? 'Edit Employee Profile' : 'Register New Employee'}</span>
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Employee Code (NIK)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formCode}
+                    onChange={(e) => setFormCode(e.target.value.toUpperCase())}
+                    placeholder="EMP-001"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Budi Santoso"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  />
+                </div>
               </div>
 
-              {modalError && (
-                <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{modalError}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Corporate Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="budi@company.com"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  />
                 </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Employee Code <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formCode}
-                      onChange={(e) => setFormCode(e.target.value)}
-                      placeholder="e.g. EMP-1001"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Full Name <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formFullName}
-                      onChange={(e) => setFormFullName(e.target.value)}
-                      placeholder="e.g. Alice Smith"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="+62 812 3456 7890"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Email Address <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                      placeholder="e.g. alice@company.com"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="e.g. +62 812 3456 7890"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Department
-                    </label>
-                    <select
-                      value={formDeptId}
-                      onChange={(e) => setFormDeptId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    >
-                      <option value="">Select Department...</option>
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} ({d.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Location
-                    </label>
-                    <select
-                      value={formLocId}
-                      onChange={(e) => setFormLocId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    >
-                      <option value="">Select Location...</option>
-                      {locations.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Job Position / Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formPosition}
-                      onChange={(e) => setFormPosition(e.target.value)}
-                      placeholder="e.g. Senior IT Support Engineer"
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono text-slate-300 mb-1">
-                      Employment Status
-                    </label>
-                    <select
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#020617] border border-[#334155] rounded-xl text-slate-200 text-sm focus:outline-none focus:border-[#22C55E]"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex items-center justify-end gap-3 border-t border-[#334155]">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition-colors cursor-pointer"
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Department
+                  </label>
+                  <select
+                    value={formDeptId}
+                    onChange={(e) => setFormDeptId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-slate-950 text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    <span>{editingEmp ? 'Save Changes' : 'Create Employee'}</span>
-                  </button>
+                    <option value="">Select Department...</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </form>
-            </div>
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Office Location
+                  </label>
+                  <select
+                    value={formLocId}
+                    onChange={(e) => setFormLocId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  >
+                    <option value="">Select Location...</option>
+                    {locations.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.name} ({l.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Position Title
+                  </label>
+                  <input
+                    type="text"
+                    value={formPosition}
+                    onChange={(e) => setFormPosition(e.target.value)}
+                    placeholder="Senior Software Engineer"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-2">
+                    Account Status
+                  </label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Resigned">Resigned</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold rounded-xl text-xs border border-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editingEmp ? 'Update Employee' : 'Save Employee'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

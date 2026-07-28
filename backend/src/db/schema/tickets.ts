@@ -1,0 +1,51 @@
+import { pgTable, bigint, varchar, timestamp, text, integer } from 'drizzle-orm/pg-core';
+import { users } from './users';
+import { assets } from './assets';
+import { employees } from './employees';
+
+export const ticketCategories = pgTable('ticket_categories', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  description: varchar('description', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const slaPolicies = pgTable('sla_policies', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  priority: varchar('priority', { length: 20 }).notNull().unique(), // Low, Medium, High, Critical
+  targetResponseHours: integer('target_response_hours').notNull(),
+  targetResolutionHours: integer('target_resolution_hours').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const itTickets = pgTable('it_tickets', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  ticketCode: varchar('ticket_code', { length: 50 }).notNull().unique(),
+  subject: varchar('subject', { length: 200 }).notNull(),
+  description: text('description').notNull(),
+  categoryId: bigint('category_id', { mode: 'number' }).references(() => ticketCategories.id).notNull(),
+  priority: varchar('priority', { length: 20 }).default('Medium').notNull(), // Low, Medium, High, Critical
+  status: varchar('status', { length: 30 }).default('Open').notNull(), // Open, In Progress, Pending, Resolved, Closed
+  reporterId: bigint('reporter_id', { mode: 'number' }).references(() => employees.id).notNull(),
+  assigneeId: bigint('assignee_id', { mode: 'number' }).references(() => users.id),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id),
+  dueAt: timestamp('due_at'),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const assetMaintenances = pgTable('asset_maintenances', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id).notNull(),
+  maintenanceType: varchar('maintenance_type', { length: 30 }).notNull(), // Preventive, Corrective
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  cost: bigint('cost', { mode: 'number' }).default(0).notNull(),
+  vendorId: bigint('vendor_id', { mode: 'number' }),
+  scheduledAt: timestamp('scheduled_at'),
+  completedAt: timestamp('completed_at'),
+  status: varchar('status', { length: 30 }).default('Scheduled').notNull(), // Scheduled, In Progress, Completed, Cancelled
+  performedById: bigint('performed_by_id', { mode: 'number' }).references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

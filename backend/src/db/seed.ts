@@ -11,36 +11,33 @@ async function seed() {
 
   // 1. Seed Roles
   const defaultRoles = [
-    { name: 'SuperAdmin', description: 'Full system access and security administration' },
-    { name: 'ITAdmin', description: 'IT asset, ticket, and infrastructure management' },
-    { name: 'ITStaff', description: 'IT service desk technician and maintenance staff' },
-    { name: 'Employee', description: 'Standard employee user for submitting IT tickets' },
-    { name: 'Management', description: 'Read-only executive dashboard and reporting access' },
+    { code: 'super_admin', name: 'SuperAdmin', description: 'Full system access and security administration' },
+    { code: 'it_admin', name: 'ITAdmin', description: 'IT asset, ticket, and infrastructure management' },
+    { code: 'it_staff', name: 'ITStaff', description: 'IT service desk technician and maintenance staff' },
+    { code: 'employee', name: 'Employee', description: 'Standard employee user for submitting IT tickets' },
+    { code: 'management', name: 'Management', description: 'Read-only executive dashboard and reporting access' },
   ];
 
   for (const role of defaultRoles) {
-    const existing = await db.select().from(roles).where(eq(roles.name, role.name));
+    const existing = await db.select().from(roles).where(eq(roles.code, role.code));
     if (existing.length === 0) {
       await db.insert(roles).values(role);
-      console.log(`  ✓ Inserted role: ${role.name}`);
+      console.log(`  ✓ Inserted role: ${role.name} (${role.code})`);
     }
   }
 
   // 2. Seed SuperAdmin User
-  const adminRole = await db.select().from(roles).where(eq(roles.name, 'SuperAdmin')).limit(1);
-  if (adminRole.length > 0) {
-    const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@company.com'));
-    if (existingAdmin.length === 0) {
-      const passwordHash = await bcrypt.hash('Admin123!', 10);
-      await db.insert(users).values({
-        email: 'admin@company.com',
-        fullName: 'System SuperAdmin',
-        passwordHash,
-        roleId: adminRole[0].id,
-        isActive: true,
-      });
-      console.log('  ✓ Created SuperAdmin User (admin@company.com / Admin123!)');
-    }
+  const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@company.com'));
+  if (existingAdmin.length === 0) {
+    const passwordHash = await bcrypt.hash('Admin123!', 10);
+    await db.insert(users).values({
+      username: 'System SuperAdmin',
+      email: 'admin@company.com',
+      passwordHash,
+      role: 'SuperAdmin',
+      status: 'active',
+    });
+    console.log('  ✓ Created SuperAdmin User (admin@company.com / Admin123!)');
   }
 
   // 3. Seed Departments
@@ -61,12 +58,12 @@ async function seed() {
 
   // 4. Seed Locations
   const defaultLocations = [
-    { name: 'Head Office Jakarta', address: 'Jl. Jend. Sudirman No. 1, Jakarta' },
-    { name: 'Branch Office Surabaya', address: 'Jl. Pemuda No. 45, Surabaya' },
+    { code: 'JKT-HO', name: 'Head Office Jakarta', address: 'Jl. Jend. Sudirman No. 1, Jakarta' },
+    { code: 'SUB-BO', name: 'Branch Office Surabaya', address: 'Jl. Pemuda No. 45, Surabaya' },
   ];
 
   for (const loc of defaultLocations) {
-    const existing = await db.select().from(locations).where(eq(locations.name, loc.name));
+    const existing = await db.select().from(locations).where(eq(locations.code, loc.code));
     if (existing.length === 0) {
       await db.insert(locations).values(loc);
       console.log(`  ✓ Inserted location: ${loc.name}`);

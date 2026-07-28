@@ -9,6 +9,7 @@ export const departments = pgTable('departments', {
 
 export const locations = pgTable('locations', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  code: varchar('code', { length: 20 }).notNull().unique(),
   name: varchar('name', { length: 100 }).notNull(),
   address: varchar('address', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

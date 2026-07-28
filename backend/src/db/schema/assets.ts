@@ -2,14 +2,14 @@ import { pgTable, bigint, varchar, timestamp, text } from 'drizzle-orm/pg-core';
 import { locations } from './master';
 
 export const assetCategories = pgTable('asset_categories', {
-  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
   name: varchar('name', { length: 100 }).notNull().unique(),
-  codePrefix: varchar('code_prefix', { length: 10 }).notNull(),
+  codePrefix: varchar('code', { length: 20 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const assets = pgTable('assets', {
-  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
   assetCode: varchar('asset_code', { length: 50 }).notNull().unique(),
   name: varchar('name', { length: 150 }).notNull(),
   categoryId: bigint('category_id', { mode: 'number' }).references(() => assetCategories.id).notNull(),

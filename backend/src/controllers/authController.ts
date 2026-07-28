@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { db } from '../db';
-import { users, roles } from '../db/schema/users';
+import { users } from '../db/schema/users';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { generateToken } from '../utils/jwt';
@@ -16,19 +16,10 @@ export async function login(req: AuthenticatedRequest, res: Response) {
   try {
     const parsed = loginSchema.parse(req.body);
     
-    const userResult = await db.select({
-      id: users.id,
-      email: users.email,
-      passwordHash: users.passwordHash,
-      fullName: users.fullName,
-      isActive: users.isActive,
-      roleId: users.roleId,
-      roleName: roles.name,
-    })
-    .from(users)
-    .innerJoin(roles, eq(users.roleId, roles.id))
-    .where(eq(users.email, parsed.email))
-    .limit(1);
+    const userResult = await db.select()
+      .from(users)
+      .where(eq(users.email, parsed.email))
+      .limit(1);
 
     if (userResult.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -36,7 +27,7 @@ export async function login(req: AuthenticatedRequest, res: Response) {
 
     const user = userResult[0];
 
-    if (!user.isActive) {
+    if (user.status !== 'active') {
       return res.status(403).json({ error: 'Account is deactivated' });
     }
 
@@ -48,8 +39,8 @@ export async function login(req: AuthenticatedRequest, res: Response) {
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      roleId: user.roleId,
-      roleName: user.roleName,
+      roleId: user.id,
+      roleName: user.role,
     });
 
     return res.status(200).json({
@@ -58,13 +49,13 @@ export async function login(req: AuthenticatedRequest, res: Response) {
       user: {
         id: user.id,
         email: user.email,
-        fullName: user.fullName,
-        roleName: user.roleName,
+        fullName: user.username,
+        roleName: user.role,
       },
     });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.issues });
+      return res.status(400).json({ error: 'Validation failed', details: err.errors });
     }
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }

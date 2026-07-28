@@ -3,7 +3,7 @@ import { departments, locations } from './master';
 
 export const employees = pgTable('employees', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
-  employeeCode: varchar('employee_code', { length: 50 }).notNull().unique(),
+  employeeCode: varchar('employee_number', { length: 50 }).notNull().unique(),
   fullName: varchar('full_name', { length: 150 }).notNull(),
   email: varchar('email', { length: 150 }).notNull().unique(),
   phone: varchar('phone', { length: 50 }),

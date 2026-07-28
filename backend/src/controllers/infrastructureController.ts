@@ -203,56 +203,83 @@ function parseAccurateHtml(html: string) {
  * Matches format of licenseList.json
  */
 export async function syncAccurateLicenses(req: Request, res: Response) {
-  const targetUrl = process.env.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688/';
+  const baseUrl = (process.env.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688').replace(/\/+$/, '');
+  const apiUrl = `${baseUrl}/accurate-license-list.do`;
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   try {
-    const response = await fetch(targetUrl, {
-      signal: controller.signal,
-    });
+    let scrapedRows: Array<{ no: number; licenseKey: string; date: string | null; ip: string | null; version: string | null; host: string; status: string }> = [];
+
+    // 1. Try direct JSON API endpoint first
+    try {
+      const jsonRes = await fetch(apiUrl, { signal: controller.signal });
+      if (jsonRes.ok) {
+        const json = await jsonRes.json() as any;
+        if (json && json.s && Array.isArray(json.d) && json.d.length > 0) {
+          scrapedRows = json.d.map((item: any, idx: number) => ({
+            no: idx + 1,
+            licenseKey: item.licenseCode || `KEY-${idx + 1}`,
+            date: item.registerDateView || null,
+            ip: item.ip || null,
+            version: item.version || null,
+            host: item.host || (item.ip ? 'Computer' : `Seat #${idx + 1} (Idle)`),
+            status: item.ip || item.host ? 'ACTIVE' : 'RELEASED',
+          }));
+        }
+      }
+    } catch (e) {
+      // ignore json error, will try html fallback below
+    }
+
+    // 2. Fallback to HTML scraping root URL if JSON endpoint returned empty
+    if (scrapedRows.length === 0) {
+      const htmlRes = await fetch(baseUrl, { signal: controller.signal });
+      if (htmlRes.ok) {
+        const htmlText = await htmlRes.text();
+        scrapedRows = parseAccurateHtml(htmlText);
+      }
+    }
+
     clearTimeout(timeoutId);
 
-    if (response.ok) {
-      const htmlText = await response.text();
-      const scrapedRows = parseAccurateHtml(htmlText);
-
-      if (scrapedRows.length > 0) {
-        await db.delete(accurateLicenseLogs);
-        const inserted = await db
-          .insert(accurateLicenseLogs)
-          .values(
-            scrapedRows.map((r) => ({
-              seatNo: r.no,
-              licenseKey: r.licenseKey,
-              date: r.date,
-              ip: r.ip,
-              version: r.version,
-              host: r.host,
-              status: r.status,
-              scrapedAt: new Date(),
-            }))
-          )
-          .returning();
-
-        return res.status(200).json({
-          success: true,
-          isLive: true,
-          message: `Accurate 5 license list synced live from ${targetUrl}`,
-          data: inserted.map((r) => ({
-            no: r.seatNo,
+    if (scrapedRows.length > 0) {
+      await db.delete(accurateLicenseLogs);
+      const inserted = await db
+        .insert(accurateLicenseLogs)
+        .values(
+          scrapedRows.map((r) => ({
+            seatNo: r.no,
             licenseKey: r.licenseKey,
             date: r.date,
             ip: r.ip,
             version: r.version,
             host: r.host,
             status: r.status,
-          })),
-          syncedAt: new Date().toISOString(),
-        });
-      }
+            scrapedAt: new Date(),
+          }))
+        )
+        .returning();
+
+      return res.status(200).json({
+        success: true,
+        isLive: true,
+        message: `Accurate 5 license list synced live from ${baseUrl}`,
+        data: inserted.map((r) => ({
+          no: r.seatNo,
+          licenseKey: r.licenseKey,
+          date: r.date,
+          ip: r.ip,
+          version: r.version,
+          host: r.host,
+          status: r.status,
+        })),
+        syncedAt: new Date().toISOString(),
+      });
     }
-    throw new Error('HTTP response not ok or table empty');
+
+    throw new Error('HTTP response empty or invalid');
   } catch (err: any) {
     clearTimeout(timeoutId);
 
@@ -274,7 +301,7 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
     return res.status(200).json({
       success: true,
       isLive: false,
-      message: `Using stored snapshot (${targetUrl} host offline or unreachable in local subnet)`,
+      message: `Using stored snapshot (${baseUrl} host offline or unreachable in local subnet)`,
       data: formattedData,
       syncedAt: storedLogs[0]?.scrapedAt || new Date().toISOString(),
     });

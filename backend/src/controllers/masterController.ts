@@ -14,6 +14,7 @@ const createDepartmentSchema = z.object({
 const updateDepartmentSchema = createDepartmentSchema.partial();
 
 const createLocationSchema = z.object({
+  code: z.string().min(1).max(20).optional(),
   name: z.string().min(1, 'Location name is required').max(100),
   address: z.string().max(255).optional().nullable(),
 });
@@ -115,7 +116,8 @@ export async function getLocations(req: Request, res: Response) {
 export async function createLocation(req: Request, res: Response) {
   try {
     const parsed = createLocationSchema.parse(req.body);
-    const [inserted] = await db.insert(locations).values(parsed).returning();
+    const code = parsed.code || 'LOC-' + Date.now().toString().slice(-6);
+    const [inserted] = await db.insert(locations).values({ ...parsed, code }).returning();
     return res.status(201).json(inserted);
   } catch (err: any) {
     if (err instanceof z.ZodError) {

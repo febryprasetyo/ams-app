@@ -4,11 +4,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export default defineConfig({
+  dialect: 'postgresql',
   schema: './src/db/schema/*',
   out: './drizzle',
-  driver: 'pg',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ams_itsm_db',
+    url: process.env.DATABASE_URL || 'postgres://erpcahaya:erpcahaya123@192.168.10.23:5432/ams_db',
   },
   verbose: true,
   strict: true,

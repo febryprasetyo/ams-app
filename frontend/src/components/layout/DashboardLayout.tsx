@@ -52,7 +52,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'Asset Lifecycle',
     items: [
-      { name: 'IT Inventory', href: '/dashboard/assets', icon: HardDrive, badge: 'Phase 2' },
+      { name: 'IT Inventory', href: '/dashboard/assets', icon: HardDrive },
       { name: 'Software Licenses', href: '/dashboard/licenses', icon: Key, badge: 'Phase 4' },
     ],
   },

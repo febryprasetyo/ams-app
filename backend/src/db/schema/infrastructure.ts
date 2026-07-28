@@ -1,26 +1,27 @@
-import { pgTable, bigint, varchar, timestamp, text, numeric, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, bigint, varchar, timestamp, text, numeric, boolean, integer } from 'drizzle-orm/pg-core';
 import { assets } from './assets';
 import { employees } from './employees';
 import { accurateLicenses } from './licenses';
 
 export const accurateLicenseLogs = pgTable('accurate_license_logs', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  computerName: varchar('computer_name', { length: 100 }),
-  ipAddress: varchar('ip_address', { length: 45 }),
-  userName: varchar('user_name', { length: 100 }),
-  licenseVariant: varchar('license_variant', { length: 100 }).default('Accurate 5 Enterprise'),
-  loginTime: timestamp('login_time'),
-  status: varchar('status', { length: 30 }).default('Active'),
+  seatNo: integer('seat_no'),
+  licenseKey: varchar('license_key', { length: 100 }),
+  date: varchar('date', { length: 50 }),
+  ip: varchar('ip_address', { length: 45 }),
+  version: varchar('version', { length: 50 }),
+  host: varchar('host', { length: 100 }),
+  status: varchar('status', { length: 30 }).default('ACTIVE'),
   scrapedAt: timestamp('scraped_at').defaultNow(),
 });
 
 export const servers = pgTable('servers', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  serverCode: varchar('server_code', { length: 50 }),
+  serverCode: varchar('hostname', { length: 50 }),
   name: varchar('name', { length: 150 }),
   ipAddress: varchar('ip_address', { length: 45 }),
   os: varchar('os', { length: 100 }),
-  specs: varchar('specs', { length: 255 }),
+  specs: varchar('storage_spec', { length: 255 }),
   status: varchar('status', { length: 30 }).default('Online'),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),

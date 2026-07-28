@@ -29,14 +29,15 @@ import {
 } from 'lucide-react';
 
 export interface AccurateLicenseLog {
-  id: number;
-  computerName: string;
-  ipAddress: string;
-  userName: string;
-  licenseVariant: string;
-  loginTime: string | Date;
+  id?: number;
+  no: number;
+  licenseKey: string;
+  date?: string | null;
+  ip?: string | null;
+  version?: string | null;
+  host: string;
   status: string;
-  scrapedAt: string | Date;
+  scrapedAt?: string | Date;
 }
 
 export interface ServerItem {
@@ -163,7 +164,7 @@ export default function InfrastructurePage() {
   };
 
   // Stats Calculations
-  const activeAccurateSessionsCount = accurateLogs.filter((l) => l.status === 'Active' || l.status === 'Online').length;
+  const activeAccurateSessionsCount = accurateLogs.filter((l) => l.status === 'ACTIVE' || l.status === 'Active').length;
   const totalServersCount = servers.length;
   const onlineServersCount = servers.filter((s) => s.status === 'Online').length;
   const successfulBackupsCount = dbBackups.filter((b) => b.status === 'Success').length;
@@ -172,10 +173,10 @@ export default function InfrastructurePage() {
   // Filtered lists
   const filteredAccurate = accurateLogs.filter(
     (l) =>
-      l.computerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.ipAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.licenseVariant.toLowerCase().includes(searchQuery.toLowerCase())
+      (l.host || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.licenseKey || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.ip || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.version || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredServers = servers.filter(
@@ -512,23 +513,24 @@ export default function InfrastructurePage() {
                 </a>
               </div>
 
-              {/* Accurate 5 Users Table */}
+              {/* Accurate 5 Users Table (licenseList.json format) */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="py-3.5 px-5">Computer Name</th>
+                      <th className="py-3.5 px-4 text-center w-12">No</th>
+                      <th className="py-3.5 px-4">Serial / License Key</th>
+                      <th className="py-3.5 px-5">Host / Computer</th>
                       <th className="py-3.5 px-4">IP Address</th>
-                      <th className="py-3.5 px-4">Employee User Name</th>
-                      <th className="py-3.5 px-4">License Variant</th>
-                      <th className="py-3.5 px-4">Login Time</th>
-                      <th className="py-3.5 px-5 text-right">Session Status</th>
+                      <th className="py-3.5 px-4">Accurate Version</th>
+                      <th className="py-3.5 px-4">Active Date</th>
+                      <th className="py-3.5 px-5 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs font-sans">
                     {loading ? (
                       <tr>
-                        <td colSpan={6} className="py-10 text-center text-slate-400">
+                        <td colSpan={7} className="py-10 text-center text-slate-400">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Loader2 className="w-6 h-6 animate-spin text-red-600" />
                             <span className="font-mono text-xs text-slate-500">Scraping License Server...</span>
@@ -537,10 +539,10 @@ export default function InfrastructurePage() {
                       </tr>
                     ) : filteredAccurate.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-10 text-center">
+                        <td colSpan={7} className="py-10 text-center">
                           <div className="max-w-xs mx-auto text-slate-400 space-y-1.5">
                             <Laptop className="w-8 h-8 mx-auto text-slate-300" />
-                            <p className="text-xs font-semibold text-slate-700">No active Accurate 5 sessions found</p>
+                            <p className="text-xs font-semibold text-slate-700">No Accurate 5 licenses found</p>
                             <p className="text-[11px] text-slate-500">
                               {searchQuery ? 'Try clearing your search query.' : 'Click "Sync Accurate 5 License" to perform a fresh scan.'}
                             </p>
@@ -548,45 +550,66 @@ export default function InfrastructurePage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredAccurate.map((row) => (
-                        <tr key={row.id} className="hover:bg-slate-50/70 transition-colors group">
-                          {/* Computer Name */}
-                          <td className="py-3.5 px-5 font-bold font-mono text-slate-900 group-hover:text-red-600 transition-colors flex items-center gap-2">
+                      filteredAccurate.map((row, idx) => (
+                        <tr key={row.licenseKey || idx} className="hover:bg-slate-50/70 transition-colors group">
+                          {/* Seat No */}
+                          <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-500 text-xs">
+                            #{row.no || idx + 1}
+                          </td>
+
+                          {/* License Key */}
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                            <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200/80 tracking-wider">
+                              {row.licenseKey}
+                            </span>
+                          </td>
+
+                          {/* Host / Computer Name */}
+                          <td className="py-3.5 px-5 font-bold font-sans text-slate-800 flex items-center gap-2">
                             <Laptop className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span>{row.computerName}</span>
+                            <span>{row.host || 'Unassigned'}</span>
                           </td>
 
                           {/* IP Address */}
                           <td className="py-3.5 px-4 font-mono text-slate-700">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200/60 font-semibold text-[11px]">
-                              {row.ipAddress}
-                            </span>
+                            {row.ip ? (
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-semibold text-[11px]">
+                                {row.ip}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-[11px]">-</span>
+                            )}
                           </td>
 
-                          {/* User Name */}
-                          <td className="py-3.5 px-4 font-semibold text-slate-800">
-                            {row.userName}
-                          </td>
-
-                          {/* License Variant */}
-                          <td className="py-3.5 px-4">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold bg-red-50 text-red-700 border border-red-200/80">
-                              <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
-                              {row.licenseVariant || 'Accurate 5 Enterprise Edition'}
-                            </span>
-                          </td>
-
-                          {/* Login Time */}
+                          {/* Accurate Version */}
                           <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                            {formatDate(row.loginTime)}
+                            {row.version ? (
+                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
+                                v{row.version}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-[11px]">-</span>
+                            )}
+                          </td>
+
+                          {/* Active Date */}
+                          <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
+                            {row.date ? row.date : <span className="text-slate-400">-</span>}
                           </td>
 
                           {/* Status Badge */}
                           <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                              <span>Online</span>
-                            </span>
+                            {row.status === 'ACTIVE' || row.status === 'Active' ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                <span>ACTIVE</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-slate-100 text-slate-500 border border-slate-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span>RELEASED</span>
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))

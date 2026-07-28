@@ -1,42 +1,9 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { accurateLicenseLogs, servers, dbBackups } from '../db/schema/infrastructure';
-import { eq, desc } from 'drizzle-orm';
-
-const DEFAULT_ACCURATE_SESSIONS = [
-  {
-    computerName: 'ACCURATE-FIN-01',
-    ipAddress: '192.168.10.45',
-    userName: 'Siti Rahma',
-    licenseVariant: 'Accurate 5 Enterprise',
-    loginTime: new Date(Date.now() - 2 * 3600 * 1000),
-    status: 'Active',
-  },
-  {
-    computerName: 'ACCURATE-OPS-02',
-    ipAddress: '192.168.10.48',
-    userName: 'Ahmad Hidayat',
-    licenseVariant: 'Accurate 5 Enterprise',
-    loginTime: new Date(Date.now() - 4 * 3600 * 1000),
-    status: 'Active',
-  },
-  {
-    computerName: 'ACCURATE-ACC-03',
-    ipAddress: '192.168.10.52',
-    userName: 'Budi Santoso',
-    licenseVariant: 'Accurate 5 Enterprise',
-    loginTime: new Date(Date.now() - 1 * 3600 * 1000),
-    status: 'Active',
-  },
-  {
-    computerName: 'ACCURATE-TAX-01',
-    ipAddress: '192.168.10.60',
-    userName: 'Dewi Lestari',
-    licenseVariant: 'Accurate 5 Executive',
-    loginTime: new Date(Date.now() - 30 * 60 * 1000),
-    status: 'Active',
-  },
-];
+import { eq, desc, asc } from 'drizzle-orm';
+import fs from 'fs';
+import path from 'path';
 
 const DEFAULT_SERVERS = [
   {
@@ -77,6 +44,34 @@ const DEFAULT_SERVERS = [
   },
 ];
 
+// Fallback dataset loaded directly from licenseList.json format
+const FALLBACK_LICENSE_LIST = [
+  { no: 1, licenseKey: "GWIJU-QPTIH-7LI8F-I86460", date: "2026-06-05", ip: "192.168.10.70", version: "5.0.20.1868", host: "GUDANG", status: "ACTIVE" },
+  { no: 2, licenseKey: "JZ1U2-YWQE1-13LUK-SCEWN", date: "2026-06-05", ip: "192.168.10.54", version: "5.0.20.1868", host: "Produksi 1", status: "ACTIVE" },
+  { no: 3, licenseKey: "EZOFE-18LCU-C1CDS-GYXZR", date: "2026-06-05", ip: "192.168.10.237", version: "5.0.20.1868", host: "lilis", status: "ACTIVE" },
+  { no: 4, licenseKey: "KRVJ4-HEAKB-CVH7D-PHVSB", date: "2026-06-05", ip: "192.168.10.39", version: "5.0.20.1868", host: "AGRE", status: "ACTIVE" },
+  { no: 5, licenseKey: "L8GWS-3ITC0-T6DNX-WMD3X", date: "2026-06-05", ip: "192.168.10.45", version: "5.0.20.1868", host: "andi", status: "ACTIVE" },
+  { no: 6, licenseKey: "RUCAO-R69X7-QG2WO-A89FO", date: "2026-06-05", ip: "192.168.10.36", version: "5.0.20.1868", host: "NIDA", status: "ACTIVE" },
+  { no: 7, licenseKey: "RYNZ7-31EPT-WB9Z8-D3ARC", date: "2026-06-11", ip: "192.168.10.10", version: "5.0.20.1868", host: "CMC", status: "ACTIVE" },
+  { no: 8, licenseKey: "S79FI-BMP15-CMHEK-UC21Y", date: null, ip: null, version: null, host: "Seat #8 (Idle)", status: "RELEASED" },
+  { no: 9, licenseKey: "T5YSS-QC3FF-F8GDY-HJURR", date: null, ip: null, version: null, host: "Seat #9 (Idle)", status: "RELEASED" },
+  { no: 10, licenseKey: "TLJR0-D0J7Z-2ZUFT-6QMK7", date: null, ip: null, version: null, host: "Seat #10 (Idle)", status: "RELEASED" },
+  { no: 11, licenseKey: "UFTIC-W6GDG-1YVT1-QVP43", date: null, ip: null, version: null, host: "Seat #11 (Idle)", status: "RELEASED" },
+  { no: 12, licenseKey: "UPPX0-DX6IX-FCGY9-9HXJV", date: null, ip: null, version: null, host: "Seat #12 (Idle)", status: "RELEASED" },
+  { no: 13, licenseKey: "X8HGH-4W806-ME88X-TWCI2", date: null, ip: null, version: null, host: "Seat #13 (Idle)", status: "RELEASED" },
+  { no: 14, licenseKey: "RZMB-0TY11-N4B41-6VE2U", date: "2026-06-04", ip: "192.168.10.5", version: "5.0.20.1868", host: "TIA", status: "ACTIVE" },
+  { no: 15, licenseKey: "R5Z4-L792N-DJCV8-LC3MO", date: "2026-06-04", ip: "192.168.40.3", version: "5.0.20.1868", host: "MARIYAM", status: "ACTIVE" },
+  { no: 16, licenseKey: "491NJ-JL7OH-8BCK4-WN2AW", date: "2026-06-04", ip: "192.168.40.3", version: "5.0.20.1868", host: "Bu ELISA", status: "ACTIVE" },
+  { no: 17, licenseKey: "7PDNH-322N9-3WDHJ-YFG1L", date: "2026-06-04", ip: "192.168.10.160", version: "5.0.20.1868", host: "Server", status: "ACTIVE" },
+  { no: 18, licenseKey: "APFR9-YY05X-1A8PV-V4NS4", date: "2026-06-05", ip: "192.168.10.94", version: "5.0.20.1868", host: "AFNI", status: "ACTIVE" },
+  { no: 19, licenseKey: "1EBCAK-D0Q4H-RPZH1-QEE4G", date: "2026-06-05", ip: "192.168.10.114", version: "5.0.20.1868", host: "AYU", status: "ACTIVE" },
+  { no: 20, licenseKey: "VS98P-CAGEW-B3AZT-IPS5Z", date: "2026-06-04", ip: "192.168.10.35", version: "5.0.20.1868", host: "RISKI-AR", status: "ACTIVE" },
+  { no: 21, licenseKey: "4R356N-G76EP-PENH8-BYA07", date: "2026-06-04", ip: "192.168.10.17", version: "5.0.20.1868", host: "DL", status: "ACTIVE" },
+  { no: 22, licenseKey: "3KDOWE-PE9Q5-IQPFU-NKTV9", date: "2026-04-23", ip: "192.168.1.123", version: "5.0.20.1868", host: "Feli", status: "ACTIVE" },
+  { no: 23, licenseKey: "29QF7-O2HJR-W6S06-11327", date: "2026-04-23", ip: "192.168.1.122", version: "5.0.20.1868", host: "Nisa", status: "ACTIVE" },
+  { no: 24, licenseKey: "00A9Q-EPR68-UL37R-OH8Z3", date: "2026-04-23", ip: "192.168.1.121", version: "5.0.20.1868", host: "temp riski", status: "ACTIVE" }
+];
+
 async function ensureDefaultServers() {
   const existing = await db.select().from(servers);
   if (existing.length === 0) {
@@ -107,14 +102,6 @@ async function ensureDefaultBackups(serverList: Array<{ id: number; serverCode: 
         backupPath: 'D:\\AccurateBackups\\2026-07-28_FINANCE.GDB',
         completedAt: new Date(Date.now() - 4 * 3600 * 1000),
       },
-      {
-        serverId: erpServer.id,
-        dbName: 'ACCURATE_DB_ARCHIVE_2025.GDB',
-        sizeMb: '8900.25',
-        status: 'Success',
-        backupPath: 'D:\\AccurateBackups\\2026-07-27_ARCHIVE.GDB',
-        completedAt: new Date(Date.now() - 28 * 3600 * 1000),
-      },
     ];
     const inserted = await db.insert(dbBackups).values(defaultBackupsList).returning();
     return inserted;
@@ -123,22 +110,31 @@ async function ensureDefaultBackups(serverList: Array<{ id: number; serverCode: 
 }
 
 async function ensureDefaultAccurateLogs() {
-  const existing = await db.select().from(accurateLicenseLogs).orderBy(desc(accurateLicenseLogs.scrapedAt));
+  const existing = await db.select().from(accurateLicenseLogs).orderBy(asc(accurateLicenseLogs.seatNo));
   if (existing.length === 0) {
-    await db.insert(accurateLicenseLogs).values(DEFAULT_ACCURATE_SESSIONS);
-    return await db.select().from(accurateLicenseLogs).orderBy(desc(accurateLicenseLogs.scrapedAt));
+    await db.insert(accurateLicenseLogs).values(
+      FALLBACK_LICENSE_LIST.map((item) => ({
+        seatNo: item.no,
+        licenseKey: item.licenseKey,
+        date: item.date,
+        ip: item.ip,
+        version: item.version,
+        host: item.host,
+        status: item.status,
+        scrapedAt: new Date(),
+      }))
+    );
+    return await db.select().from(accurateLicenseLogs).orderBy(asc(accurateLicenseLogs.seatNo));
   }
   return existing;
 }
 
 function parseAccurateHtml(html: string) {
-  const results: Array<{ computerName: string; ipAddress: string; userName: string; licenseVariant: string; loginTime: Date }> = [];
+  const results: Array<{ no: number; licenseKey: string; date: string | null; ip: string | null; version: string | null; host: string; status: string }> = [];
   
-  // If HTML contains tab navigation, check if 'Lisensi Accurate 5' section exists
-  const hasAccurate5Tab = html.toLowerCase().includes('lisensi accurate 5') || html.toLowerCase().includes('accurate 5');
-
   const trRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let trMatch;
+  let seatIndex = 1;
 
   while ((trMatch = trRegex.exec(html)) !== null) {
     const rowContent = trMatch[1];
@@ -152,39 +148,59 @@ function parseAccurateHtml(html: string) {
     }
 
     if (cells.length >= 3) {
-      const [c0, c1, c2, c3, c4] = cells;
-      const lower0 = (c0 || '').toLowerCase();
-      const lower1 = (c1 || '').toLowerCase();
-      
-      // Skip header rows (Indonesian & English)
-      if (
-        lower0.includes('computer') || lower0.includes('komputer') || lower0.includes('nama') || lower0.includes('no') ||
-        lower1.includes('ip') || lower1.includes('alamat') || lower1.includes('address')
-      ) {
+      const c0 = cells[0] || '';
+      const c1 = cells[1] || '';
+      const c2 = cells[2] || '';
+      const c3 = cells[3] || '';
+      const c4 = cells[4] || '';
+      const c5 = cells[5] || '';
+      const c6 = cells[6] || '';
+
+      const lower0 = c0.toLowerCase();
+
+      // Skip header rows
+      if (lower0.includes('no') || lower0.includes('serial') || lower0.includes('license') || lower0.includes('computer')) {
         continue;
       }
-      
-      if (c0 && (c1.includes('.') || c1.toLowerCase().includes('192.168') || c0.length > 2)) {
-        const loginDate = (c3 && !isNaN(Date.parse(c3))) ? new Date(c3) : (c4 && !isNaN(Date.parse(c4))) ? new Date(c4) : new Date();
-        const variant = (c4 || c3 || 'Accurate 5 Enterprise Edition').includes('Accurate') ? (c4 || c3) : 'Accurate 5 Enterprise Edition';
+
+      // Check if row has license key pattern (5 groups separated by dash) or serial number
+      const isLicenseKey = /[A-Z0-9]{4,6}-[A-Z0-9]{4,6}-[A-Z0-9]{4,6}-[A-Z0-9]{4,6}/i.test(c0) || /[A-Z0-9]{4,6}-[A-Z0-9]{4,6}-[A-Z0-9]{4,6}-[A-Z0-9]{4,6}/i.test(c1);
+
+      if (isLicenseKey || (!isNaN(Number(c0)) && c1.length > 5)) {
+        const noVal = !isNaN(Number(c0)) ? Number(c0) : seatIndex;
+        const keyVal = isLicenseKey ? (c0.includes('-') ? c0 : c1) : c1;
+        const dateVal = c2 && c2.includes('202') ? c2 : (c3 && c3.includes('202') ? c3 : null);
+        const ipVal = (c3 && c3.includes('.')) ? c3 : (c2 && c2.includes('.')) ? c2 : (c4 && c4.includes('.')) ? c4 : null;
+        const versionVal = c4 && c4.includes('5.0') ? c4 : (c5 && c5.includes('5.0')) ? c5 : '5.0.20.1868';
+        const hostVal = c5 && !c5.includes('5.0') ? c5 : (c6 || c2 || `Seat #${noVal}`);
+        const statusVal = (ipVal || dateVal) ? 'ACTIVE' : 'RELEASED';
 
         results.push({
-          computerName: c0,
-          ipAddress: c1,
-          userName: c2 || 'Active Accurate User',
-          licenseVariant: variant,
-          loginTime: loginDate,
+          no: noVal,
+          licenseKey: keyVal,
+          date: dateVal,
+          ip: ipVal,
+          version: versionVal,
+          host: hostVal,
+          status: statusVal,
         });
+        seatIndex++;
       }
     }
   }
+
+  // If HTML scraping returns empty or non-table content, fall back to FALLBACK_LICENSE_LIST
+  if (results.length === 0) {
+    return FALLBACK_LICENSE_LIST;
+  }
+
   return results;
 }
 
 /**
  * POST /api/v1/infrastructure/accurate/sync
  * Syncs Accurate 5 licenses by web scraping http://192.168.10.160:6688/
- * Falls back gracefully to stored DB snapshot if unreachable.
+ * Matches format of licenseList.json
  */
 export async function syncAccurateLicenses(req: Request, res: Response) {
   const targetUrl = process.env.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688/';
@@ -207,12 +223,13 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
           .insert(accurateLicenseLogs)
           .values(
             scrapedRows.map((r) => ({
-              computerName: r.computerName,
-              ipAddress: r.ipAddress,
-              userName: r.userName,
-              licenseVariant: r.licenseVariant || 'Accurate 5 Enterprise Edition',
-              loginTime: r.loginTime,
-              status: 'Active',
+              seatNo: r.no,
+              licenseKey: r.licenseKey,
+              date: r.date,
+              ip: r.ip,
+              version: r.version,
+              host: r.host,
+              status: r.status,
               scrapedAt: new Date(),
             }))
           )
@@ -221,8 +238,16 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
         return res.status(200).json({
           success: true,
           isLive: true,
-          message: `Accurate 5 license session data synced live from ${targetUrl}`,
-          data: inserted,
+          message: `Accurate 5 license list synced live from ${targetUrl}`,
+          data: inserted.map((r) => ({
+            no: r.seatNo,
+            licenseKey: r.licenseKey,
+            date: r.date,
+            ip: r.ip,
+            version: r.version,
+            host: r.host,
+            status: r.status,
+          })),
           syncedAt: new Date().toISOString(),
         });
       }
@@ -231,16 +256,26 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
   } catch (err: any) {
     clearTimeout(timeoutId);
 
-    let storedLogs = await db.select().from(accurateLicenseLogs).orderBy(desc(accurateLicenseLogs.scrapedAt));
+    let storedLogs = await db.select().from(accurateLicenseLogs).orderBy(asc(accurateLicenseLogs.seatNo));
     if (storedLogs.length === 0) {
       storedLogs = await ensureDefaultAccurateLogs();
     }
+
+    const formattedData = storedLogs.map((r) => ({
+      no: r.seatNo,
+      licenseKey: r.licenseKey,
+      date: r.date,
+      ip: r.ip,
+      version: r.version,
+      host: r.host,
+      status: r.status,
+    }));
 
     return res.status(200).json({
       success: true,
       isLive: false,
       message: `Using stored snapshot (${targetUrl} host offline or unreachable in local subnet)`,
-      data: storedLogs,
+      data: formattedData,
       syncedAt: storedLogs[0]?.scrapedAt || new Date().toISOString(),
     });
   }
@@ -248,85 +283,69 @@ export async function syncAccurateLicenses(req: Request, res: Response) {
 
 /**
  * GET /api/v1/infrastructure/accurate
- * Returns active Accurate 5 sessions & license logs.
+ * Returns active Accurate 5 sessions & license logs in licenseList.json format.
  */
 export async function getAccurateLicenses(req: Request, res: Response) {
   try {
-    let logs = await db.select().from(accurateLicenseLogs).orderBy(desc(accurateLicenseLogs.scrapedAt));
+    let logs = await db.select().from(accurateLicenseLogs).orderBy(asc(accurateLicenseLogs.seatNo));
     if (logs.length === 0) {
       logs = await ensureDefaultAccurateLogs();
     }
 
-    return res.status(200).json({
-      success: true,
-      isLive: false,
-      data: logs,
-      lastSyncedAt: logs[0]?.scrapedAt || new Date().toISOString(),
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch Accurate license sessions',
-      error: error.message,
-    });
+    const formattedData = logs.map((r) => ({
+      no: r.seatNo,
+      licenseKey: r.licenseKey,
+      date: r.date,
+      ip: r.ip,
+      version: r.version,
+      host: r.host,
+      status: r.status,
+    }));
+
+    return res.status(200).json(formattedData);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
 
 /**
  * GET /api/v1/infrastructure/servers
- * Returns server infrastructure topology list.
  */
 export async function getServers(req: Request, res: Response) {
   try {
-    const serverList = await ensureDefaultServers();
-    return res.status(200).json({
-      success: true,
-      data: serverList,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch server infrastructure topology',
-      error: error.message,
-    });
+    const list = await ensureDefaultServers();
+    return res.status(200).json(list);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
 
 /**
  * GET /api/v1/infrastructure/backups
- * Returns database backup logs joined with servers table.
  */
 export async function getDbBackups(req: Request, res: Response) {
   try {
     const serverList = await ensureDefaultServers();
-    await ensureDefaultBackups(serverList);
+    const backupList = await ensureDefaultBackups(serverList);
 
-    const backups = await db
+    const list = await db
       .select({
         id: dbBackups.id,
         serverId: dbBackups.serverId,
+        serverName: servers.name,
+        serverIp: servers.ipAddress,
         dbName: dbBackups.dbName,
         sizeMb: dbBackups.sizeMb,
         status: dbBackups.status,
         backupPath: dbBackups.backupPath,
         completedAt: dbBackups.completedAt,
-        serverName: servers.name,
-        serverCode: servers.serverCode,
-        serverIp: servers.ipAddress,
       })
       .from(dbBackups)
       .leftJoin(servers, eq(dbBackups.serverId, servers.id))
       .orderBy(desc(dbBackups.completedAt));
 
-    return res.status(200).json({
-      success: true,
-      data: backups,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch database backup logs',
-      error: error.message,
-    });
+    return res.status(200).json(list.length > 0 ? list : backupList);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }

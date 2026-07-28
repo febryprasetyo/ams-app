@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   syncAccurateLicenses,
   getAccurateLicenses,
+  getAccurateDatabase,
   getServers,
   getDbBackups,
 } from '../controllers/infrastructureController';
@@ -14,6 +15,7 @@ router.use(authenticateToken);
 
 router.post('/accurate/sync', syncAccurateLicenses);
 router.get('/accurate', getAccurateLicenses);
+router.get('/accurate/database', getAccurateDatabase);
 router.get('/servers', getServers);
 router.get('/backups', getDbBackups);
 

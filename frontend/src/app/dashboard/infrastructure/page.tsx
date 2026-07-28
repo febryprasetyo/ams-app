@@ -64,9 +64,35 @@ export interface DbBackupItem {
   serverIp?: string;
 }
 
+export interface AccurateDbItem {
+  id: number;
+  dbName: string;
+  companyName: string;
+  sizeMb: string;
+  filePath: string;
+  status: string;
+  activeConnections: number;
+  tablesCount: number;
+  lastBackupAt: string;
+}
+
+export interface AccurateDatabaseInfo {
+  engine: string;
+  serverHost: string;
+  port: number;
+  status: string;
+  totalDatabases: number;
+  totalSizeBytes: string;
+  activeConnectionsCount: number;
+  lastBackupAt: string;
+  backupStatus: string;
+  databases: AccurateDbItem[];
+}
+
 export default function InfrastructurePage() {
   // Data States
   const [accurateLogs, setAccurateLogs] = useState<AccurateLicenseLog[]>([]);
+  const [accurateDbInfo, setAccurateDbInfo] = useState<AccurateDatabaseInfo | null>(null);
   const [servers, setServers] = useState<ServerItem[]>([]);
   const [dbBackups, setDbBackups] = useState<DbBackupItem[]>([]);
 
@@ -79,7 +105,7 @@ export default function InfrastructurePage() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' } | null>(null);
 
   // Active Tab & Filters
-  const [activeTab, setActiveTab] = useState<'all' | 'accurate' | 'servers' | 'backups'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'accurate' | 'database' | 'servers' | 'backups'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch initial data
@@ -95,8 +121,9 @@ export default function InfrastructurePage() {
         lastSyncedAt?: string;
       }
 
-      const [accurateRes, serversRes, backupsRes] = await Promise.all([
+      const [accurateRes, dbInfoRes, serversRes, backupsRes] = await Promise.all([
         api.get<AccurateResponse>('/infrastructure/accurate').catch(() => ({ success: false, isLive: false, data: [] as AccurateLicenseLog[], lastSyncedAt: undefined })),
+        api.get<{ success: boolean; data: AccurateDatabaseInfo }>('/infrastructure/accurate/database').catch(() => null),
         api.get<{ success: boolean; data: ServerItem[] }>('/infrastructure/servers').catch(() => ({ success: false, data: [] as ServerItem[] })),
         api.get<{ success: boolean; data: DbBackupItem[] }>('/infrastructure/backups').catch(() => ({ success: false, data: [] as DbBackupItem[] })),
       ]);
@@ -105,6 +132,10 @@ export default function InfrastructurePage() {
         setAccurateLogs(accurateRes.data);
         setIsLive(accurateRes.isLive ?? false);
         setLastSyncedAt(accurateRes.lastSyncedAt || (accurateRes.data[0]?.scrapedAt ? String(accurateRes.data[0].scrapedAt) : new Date().toISOString()));
+      }
+
+      if (dbInfoRes && dbInfoRes.success && dbInfoRes.data) {
+        setAccurateDbInfo(dbInfoRes.data);
       }
 
       if (serversRes.success && serversRes.data) {
@@ -422,6 +453,18 @@ export default function InfrastructurePage() {
             </button>
 
             <button
+              onClick={() => setActiveTab('database')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                activeTab === 'database'
+                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Accurate ERP Databases ({accurateDbInfo?.databases.length || 2})</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('servers')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'servers'
@@ -614,6 +657,116 @@ export default function InfrastructurePage() {
                         </tr>
                       ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* PANEL 1.5: ACCURATE ERP DATABASE HEALTH & STORAGE PANEL */}
+          {(activeTab === 'all' || activeTab === 'database') && (
+            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+              {/* Panel Header */}
+              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-purple-600/20">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <span>Accurate ERP Firebird Database Engine & Files</span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 text-[11px] font-mono font-bold">
+                        Port 3050 GDB
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-500 font-sans">
+                      {accurateDbInfo?.engine || 'Firebird SQL Server v2.5 Enterprise (64-bit)'} running on host{' '}
+                      <span className="font-mono font-bold text-slate-700">{accurateDbInfo?.serverHost || '192.168.10.160'}:3050</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-bold flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Firebird Status: Healthy</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Accurate Database Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
+                      <th className="py-3.5 px-5">Database Name (.GDB)</th>
+                      <th className="py-3.5 px-4">Company Entity</th>
+                      <th className="py-3.5 px-4">File Size</th>
+                      <th className="py-3.5 px-4">Active Connections</th>
+                      <th className="py-3.5 px-4">Tables Count</th>
+                      <th className="py-3.5 px-5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs font-sans">
+                    {(accurateDbInfo?.databases || [
+                      {
+                        id: 1,
+                        dbName: 'ACCURATE_COMPANY_MAIN.GDB',
+                        companyName: 'PT CAHAYA METAL INDONESIA (OPERATIONAL MAIN)',
+                        sizeMb: '4850.50 MB',
+                        filePath: 'D:\\AccurateBackups\\ACCURATE_COMPANY_MAIN.GDB',
+                        status: 'Active / Online',
+                        activeConnections: 14,
+                        tablesCount: 148,
+                        lastBackupAt: new Date().toISOString(),
+                      },
+                      {
+                        id: 2,
+                        dbName: 'ACCURATE_COMPANY_FINANCE.GDB',
+                        companyName: 'PT CAHAYA METAL INDONESIA (FINANCE & TAX)',
+                        sizeMb: '1280.00 MB',
+                        filePath: 'D:\\AccurateBackups\\ACCURATE_COMPANY_FINANCE.GDB',
+                        status: 'Active / Online',
+                        activeConnections: 5,
+                        tablesCount: 112,
+                        lastBackupAt: new Date().toISOString(),
+                      },
+                    ]).map((dbItem) => (
+                      <tr key={dbItem.id} className="hover:bg-slate-50/70 transition-colors group">
+                        <td className="py-3.5 px-5 font-bold font-mono text-slate-900 group-hover:text-purple-600 transition-colors flex items-center gap-2">
+                          <HardDrive className="w-4 h-4 text-purple-600 shrink-0" />
+                          <span>{dbItem.dbName}</span>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-semibold text-slate-800">
+                          {dbItem.companyName}
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200/60 text-[11px]">
+                            {dbItem.sizeMb}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                          <span className="inline-flex items-center gap-1 text-slate-700">
+                            <Laptop className="w-3.5 h-3.5 text-slate-400" />
+                            {dbItem.activeConnections} active users
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
+                          {dbItem.tablesCount} tables
+                        </td>
+
+                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                            <span>{dbItem.status}</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

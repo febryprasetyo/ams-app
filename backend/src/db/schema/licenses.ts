@@ -5,15 +5,15 @@ import { vendors } from './vendors';
 
 export const softwareLicenses = pgTable('software_licenses', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  name: varchar('name', { length: 150 }).notNull(),
+  name: varchar('license_name', { length: 150 }).notNull(),
   licenseKey: varchar('license_key', { length: 255 }),
   licenseType: varchar('license_type', { length: 50 }), // 'CD / Dongle', 'OEM Bundled', 'Subscription', 'Perpetual'
   vendorId: bigint('vendor_id', { mode: 'number' }).references(() => vendors.id),
   totalSeats: integer('total_seats').default(1).notNull(),
   usedSeats: integer('used_seats').default(0).notNull(),
   purchaseDate: timestamp('purchase_date'),
-  expirationDate: timestamp('expiration_date'),
-  cost: numeric('cost'),
+  expirationDate: timestamp('expiry_date'),
+  cost: numeric('purchase_price'),
   status: varchar('status', { length: 30 }).default('Active').notNull(),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

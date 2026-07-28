@@ -1,37 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
 export default function Home() {
-  const [health, setHealth] = useState<{ status: string; timestamp: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    fetch('http://localhost:5000/health')
-      .then((res) => res.json())
-      .then((data) => setHealth(data))
-      .catch((err) => setError('Could not connect to backend server: ' + err.message));
-  }, []);
+    if (!isLoading) {
+      if (user) {
+        router.replace('/dashboard/master/departments');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [user, isLoading, router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-slate-950 text-white">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-6 text-center text-blue-500">
-          IT Asset & Service Management System
-        </h1>
-        <div className="p-6 bg-slate-900 rounded-xl border border-slate-800 text-center shadow-xl">
-          <h2 className="text-xl font-semibold mb-3">System Health Status</h2>
-          {health && (
-            <div className="text-green-400">
-              <p>Backend API: <span className="font-bold">{health.status}</span></p>
-              <p className="text-xs text-slate-400 mt-1">Timestamp: {health.timestamp}</p>
-            </div>
-          )}
-          {error && <p className="text-red-400">{error}</p>}
-          {!health && !error && <p className="text-slate-400">Connecting to Backend...</p>}
+    <main className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-red-50/40 flex items-center justify-center p-4 font-sans text-slate-900">
+      <div className="flex flex-col items-center gap-4 bg-white/90 p-8 rounded-3xl border border-slate-200 shadow-2xl backdrop-blur-xl">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-600/20">
+          <ShieldCheck className="w-7 h-7" />
+        </div>
+        <div className="flex items-center gap-2 text-slate-600 font-mono text-xs font-semibold">
+          <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+          <span>Redirecting to AMS Portal...</span>
         </div>
       </div>
     </main>
   );
 }
-

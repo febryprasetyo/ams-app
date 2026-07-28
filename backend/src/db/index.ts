@@ -1,11 +1,16 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+
 import * as usersSchema from './schema/users';
 import * as masterSchema from './schema/master';
 import * as vendorsSchema from './schema/vendors';
-import * as assetsSchema from './schema/assets';
 import * as employeesSchema from './schema/employees';
+import * as assetsSchema from './schema/assets';
+import * as ticketsSchema from './schema/tickets';
+import * as licensesSchema from './schema/licenses';
+import * as infrastructureSchema from './schema/infrastructure';
+import * as systemSchema from './schema/system';
 
 dotenv.config();
 
@@ -18,7 +23,23 @@ export const db = drizzle(pool, {
     ...usersSchema,
     ...masterSchema,
     ...vendorsSchema,
-    ...assetsSchema,
     ...employeesSchema,
+    ...assetsSchema,
+    ...ticketsSchema,
+    ...licensesSchema,
+    ...infrastructureSchema,
+    ...systemSchema,
   },
 });
+
+export {
+  usersSchema,
+  masterSchema,
+  vendorsSchema,
+  employeesSchema,
+  assetsSchema,
+  ticketsSchema,
+  licensesSchema,
+  infrastructureSchema,
+  systemSchema,
+};

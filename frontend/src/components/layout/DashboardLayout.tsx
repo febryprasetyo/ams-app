@@ -60,7 +60,7 @@ const navGroups: NavGroup[] = [
     title: 'Operations',
     items: [
       { name: 'Service Desk', href: '/dashboard/tickets', icon: Ticket },
-      { name: 'Accurate & Servers', href: '/dashboard/infrastructure', icon: Server, badge: 'Phase 5' },
+      { name: 'Accurate & Servers', href: '/dashboard/infrastructure', icon: Server },
     ],
   },
 ];

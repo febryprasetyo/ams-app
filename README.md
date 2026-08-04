@@ -158,27 +158,15 @@ The backend exposes a RESTful API at `http://localhost:5000/api/v1/` with the fo
 ### Backend (.env)
 
 ```
-PORT=5000
+PORT=port
 NODE_ENV=development
 DATABASE_URL=postgres://user:password@host:port/dbname
 DB_HOST=your_host
 DB_PORT=5432
 DB_USER=your_user
 DB_PASSWORD=your_password
-DB_NAME=ams_db
+DB_NAME=dbname
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret-key
 ```
 
-## Project Structure Notes
-
-- **Design System:** Contains shared UI components for consistent styling across the application
-- **Backend Middleware:** Authentication checks on protected routes using JWT tokens
-- **Security:** Helmet.js for secure HTTP headers, bcrypt for password hashing, JWT for stateless auth
-- **Database:** PostgreSQL with Drizzle ORM providing type-safe database operations
-
-## Try asking
-
-1. **What does the authentication flow look like?** - Explore how JWT tokens are issued and validated across the application
-2. **How are assets tracked in this system?** - Examine the asset management data model and API endpoints
-3. **What's in the design-system directory?** - Check out shared UI components and styling conventions

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
+import { loadEnv } from '../config/env';
 
 import * as usersSchema from './schema/users';
 import * as masterSchema from './schema/master';
@@ -12,13 +12,25 @@ import * as licensesSchema from './schema/licenses';
 import * as infrastructureSchema from './schema/infrastructure';
 import * as systemSchema from './schema/system';
 
-dotenv.config();
+let poolInstance: Pool | null = null;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ams_itsm_db',
-});
+export function getPool(): Pool {
+  if (!poolInstance) {
+    const env = loadEnv();
+    poolInstance = new Pool({
+      connectionString: env.databaseUrl,
+    });
+  }
+  return poolInstance;
+}
 
-export const db = drizzle(pool, {
+export const pool = {
+  query: (text: string, params?: any[]) => getPool().query(text, params),
+  connect: () => getPool().connect(),
+  end: () => (poolInstance ? poolInstance.end() : Promise.resolve()),
+};
+
+export const db = drizzle(getPool(), {
   schema: {
     ...usersSchema,
     ...masterSchema,
@@ -31,6 +43,22 @@ export const db = drizzle(pool, {
     ...systemSchema,
   },
 });
+
+export async function checkDatabase(): Promise<void> {
+  const client = await getPool().connect();
+  try {
+    await client.query('SELECT 1');
+  } finally {
+    client.release();
+  }
+}
+
+export async function closeDatabase(): Promise<void> {
+  if (poolInstance) {
+    await poolInstance.end();
+    poolInstance = null;
+  }
+}
 
 export {
   usersSchema,

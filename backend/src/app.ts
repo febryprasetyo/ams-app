@@ -1,0 +1,55 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import authRoutes from './routes/authRoutes';
+import masterRoutes from './routes/masterRoutes';
+import employeeRoutes from './routes/employeeRoutes';
+import assetRoutes from './routes/assetRoutes';
+import ticketRoutes from './routes/ticketRoutes';
+import licenseRoutes from './routes/licenseRoutes';
+import infrastructureRoutes from './routes/infrastructureRoutes';
+import { checkDatabase } from './db';
+
+export interface AppOptions {
+  databaseCheck?: () => Promise<void>;
+}
+
+export function createApp(options: AppOptions = {}): express.Express {
+  const app = express();
+  const dbCheck = options.databaseCheck || checkDatabase;
+
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json());
+
+  // Health and readiness endpoints
+  app.get('/health/live', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
+  app.get('/health/ready', async (_req, res) => {
+    try {
+      await dbCheck();
+      res.status(200).json({ status: 'READY' });
+    } catch {
+      res.status(503).json({ status: 'NOT_READY' });
+    }
+  });
+
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+  });
+
+  // REST API Routes
+  app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/master', masterRoutes);
+  app.use('/api/v1/employees', employeeRoutes);
+  app.use('/api/v1/assets', assetRoutes);
+  app.use('/api/v1/tickets', ticketRoutes);
+  app.use('/api/v1/licenses', licenseRoutes);
+  app.use('/api/v1/infrastructure', infrastructureRoutes);
+
+  return app;
+}
+
+export default createApp;

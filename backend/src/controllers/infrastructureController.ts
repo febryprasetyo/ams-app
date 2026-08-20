@@ -1,3 +1,4 @@
+import { loadEnv } from '../config/env';
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { accurateLicenseLogs, servers, dbBackups } from '../db/schema/infrastructure';
@@ -199,7 +200,7 @@ function parseAccurateHtml(html: string) {
  * Performs UPSERT in PostgreSQL based on license_key!
  */
 export async function syncAccurateLicenses(req: Request, res: Response) {
-  const baseUrl = (process.env.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688').replace(/\/+$/, '');
+  const baseUrl = loadEnv().accurateLicenseServerUrl;
   const apiUrl = `${baseUrl}/accurate-license-list.do`;
 
   const controller = new AbortController();

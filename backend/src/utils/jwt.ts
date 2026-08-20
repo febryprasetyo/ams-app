@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
+import { loadEnv } from '../config/env';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-prod';
 const JWT_EXPIRES_IN = '1d';
 
 export interface TokenPayload {
@@ -11,9 +11,11 @@ export interface TokenPayload {
 }
 
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const env = loadEnv();
+  return jwt.sign(payload, env.jwtSecret, { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyToken(token: string): TokenPayload {
-  return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  const env = loadEnv();
+  return jwt.verify(token, env.jwtSecret) as TokenPayload;
 }

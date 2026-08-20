@@ -1,35 +1,35 @@
-import { db } from './index';
-import fs from 'fs';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { Pool } from 'pg';
 import path from 'path';
+import { loadEnv } from '../config/env';
 
-async function runMigration() {
-  console.log('⚡ Running Database Migration script...');
-  const sqlFilePath = path.join(__dirname, '../../drizzle/0000_elite_ares.sql');
-  const sql = fs.readFileSync(sqlFilePath, 'utf8');
+export async function runMigrations(databaseUrl: string, migrationsFolder?: string): Promise<void> {
+  const resolvedFolder = migrationsFolder || path.resolve(__dirname, '../../drizzle');
+  console.log(`⚡ Running journal-based Drizzle migrations from: ${resolvedFolder}`);
 
-  // Split SQL statements by Drizzle statement-breakpoint or semicolon
-  const statements = sql
-    .split(/--> statement-breakpoint|;/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const pool = new Pool({ connectionString: databaseUrl });
+  const db = drizzle(pool);
 
-  for (const statement of statements) {
-    try {
-      await db.execute(statement);
-    } catch (err: any) {
-      // Ignore if table, constraint, or relation already exists (codes 42P07, 42710)
-      if (err.code === '42P07' || err.code === '42710' || err.code === '42701') {
-        continue;
-      }
-      console.warn(`  ⚠️ Migration notice: ${err.message || err}`);
-    }
+  try {
+    await migrate(db, { migrationsFolder: resolvedFolder });
+    console.log('✅ Drizzle migrations applied successfully!');
+  } catch (err) {
+    console.error('❌ Migration failed:', err);
+    throw err;
+  } finally {
+    await pool.end();
   }
-
-  console.log('✅ Migration statements executed successfully!');
-  process.exit(0);
 }
 
-runMigration().catch((err) => {
-  console.error('❌ Migration failed:', err);
-  process.exit(1);
-});
+if (process.argv[1] && (process.argv[1].endsWith('migrate.ts') || process.argv[1].endsWith('migrate.js'))) {
+  const env = loadEnv();
+  runMigrations(env.databaseUrl)
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('Fatal migration error:', err);
+      process.exit(1);
+    });
+}

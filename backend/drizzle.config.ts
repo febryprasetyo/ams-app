@@ -3,12 +3,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required for drizzle-kit commands.');
+}
+
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/db/schema/*',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'postgres://erpcahaya:erpcahaya123@192.168.10.23:5432/ams_db',
+    url: process.env.DATABASE_URL,
   },
   verbose: true,
   strict: true,

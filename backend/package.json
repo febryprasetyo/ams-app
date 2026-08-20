@@ -9,7 +9,6 @@
     "seed": "tsx src/db/seed.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {

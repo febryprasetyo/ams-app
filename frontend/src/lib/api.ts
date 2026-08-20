@@ -1,4 +1,15 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    // In browser, use relative path /api/v1 for same-origin proxy routing
+    return process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+  }
+  // Server-side rendering fallback
+  return (
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.INTERNAL_API_URL ||
+    'http://localhost:5000/api/v1'
+  );
+};
 
 export interface ApiOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -6,7 +17,7 @@ export interface ApiOptions extends RequestInit {
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  
+
   // Try localStorage first
   const localToken = localStorage.getItem('token');
   if (localToken) return localToken;
@@ -18,6 +29,7 @@ function getToken(): string | null {
 
 export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const token = getToken();
+  const baseUrl = getBaseUrl().replace(/\/+$/, '');
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -28,7 +40,8 @@ export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = 
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${cleanEndpoint}`;
 
   const response = await fetch(url, {
     ...options,

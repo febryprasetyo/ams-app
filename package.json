@@ -9,7 +9,11 @@
     "dev": "concurrently -k -n \"backend,frontend\" -c \"cyan,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:backend": "npm run build --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
-    "build": "npm run build:backend && npm run build:frontend"
+    "build": "npm run build:backend && npm run build:frontend",
+    "dev:up": "docker compose -f compose.dev.yml up -d",
+    "dev:down": "docker compose -f compose.dev.yml down",
+    "dev:logs": "docker compose -f compose.dev.yml logs -f",
+    "dev:check": "bash scripts/validate-compose.sh dev"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

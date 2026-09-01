@@ -1,13 +1,21 @@
 import { Router } from 'express';
+import multer from 'multer';
 import {
   getCategories,
   createCategory,
+  updateCategory,
+  deleteCategory,
   getAssets,
   getAssetById,
   createAsset,
   updateAsset,
   deleteAsset,
 } from '../controllers/assetController';
+import {
+  downloadAssetImportTemplate,
+  previewAssetImport,
+  commitAssetImportUpload,
+} from '../controllers/assetImportController';
 import {
   assignAsset,
   unassignAsset,
@@ -25,9 +33,27 @@ router.use(authenticateToken);
 const adminOnly = requireRoles('SuperAdmin', 'ITAdmin');
 const lifecycleRoles = requireRoles('SuperAdmin', 'ITAdmin', 'ITStaff');
 
+const uploadXlsx = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    if (!file.originalname.toLowerCase().endsWith('.xlsx')) {
+      return callback(new Error('Only .xlsx files are supported'));
+    }
+    callback(null, true);
+  },
+});
+
 // --- Asset Categories ---
 router.get('/categories', getCategories);
 router.post('/categories', adminOnly, createCategory);
+router.put('/categories/:id', adminOnly, updateCategory);
+router.delete('/categories/:id', adminOnly, deleteCategory);
+
+// --- Asset Import (must be registered before /:id) ---
+router.get('/import/template', adminOnly, downloadAssetImportTemplate);
+router.post('/import/preview', adminOnly, uploadXlsx.single('file'), previewAssetImport);
+router.post('/import/commit', adminOnly, uploadXlsx.single('file'), commitAssetImportUpload);
 
 // --- Asset Inventory ---
 router.get('/', getAssets);

@@ -1,4 +1,5 @@
-import { pgTable, bigint, varchar, timestamp, text } from 'drizzle-orm/pg-core';
+import { pgTable, bigint, varchar, timestamp, text, uniqueIndex, integer, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { locations } from './master';
 import { employees } from './employees';
 import { users } from './users';
@@ -8,7 +9,10 @@ export const assetCategories = pgTable('asset_categories', {
   name: varchar('name', { length: 100 }).notNull().unique(),
   codePrefix: varchar('code', { length: 20 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('asset_categories_name_lower_unique').on(sql`lower(${table.name})`),
+  uniqueIndex('asset_categories_code_lower_unique').on(sql`lower(${table.codePrefix})`),
+]);
 
 export const assets = pgTable('assets', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
@@ -37,3 +41,39 @@ export const assetAssignmentHistory = pgTable('asset_assignment_history', {
   handoverNotes: text('handover_notes'),
   returnNotes: text('return_notes'),
 });
+
+export const assetComputerSpecs = pgTable('asset_computer_specs', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  assetId: bigint('asset_id', { mode: 'number' })
+    .references(() => assets.id, { onDelete: 'cascade' })
+    .notNull()
+    .unique(),
+  cpuName: varchar('cpu_name', { length: 200 }).notNull(),
+  ramSizeGb: integer('ram_size_gb').notNull(),
+  ramSlotCount: integer('ram_slot_count').notNull(),
+  disk1SizeGb: integer('disk_1_size_gb').notNull(),
+  disk2SizeGb: integer('disk_2_size_gb'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  check('asset_computer_specs_ram_size_positive', sql`${table.ramSizeGb} > 0`),
+  check('asset_computer_specs_ram_slots_positive', sql`${table.ramSlotCount} > 0`),
+  check('asset_computer_specs_disk_1_positive', sql`${table.disk1SizeGb} > 0`),
+  check('asset_computer_specs_disk_2_positive', sql`${table.disk2SizeGb} IS NULL OR ${table.disk2SizeGb} > 0`),
+]);
+
+export const assetAccessories = pgTable('asset_accessories', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  assetId: bigint('asset_id', { mode: 'number' })
+    .references(() => assets.id, { onDelete: 'cascade' })
+    .notNull(),
+  accessoryType: varchar('accessory_type', { length: 50 }).notNull(),
+  description: varchar('description', { length: 150 }),
+  quantity: integer('quantity').default(1).notNull(),
+  condition: varchar('condition', { length: 30 }).default('Good').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  check('asset_accessories_quantity_positive', sql`${table.quantity} > 0`),
+]);

@@ -31,8 +31,9 @@ export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = 
   const token = getToken();
   const baseUrl = getBaseUrl().replace(/\/+$/, '');
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {}),
   };
 
@@ -80,4 +81,42 @@ export const api = {
 
   delete: <T = any>(endpoint: string, options?: ApiOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  upload: <T = any>(endpoint: string, formData: FormData, options?: ApiOptions) =>
+    apiFetch<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: formData,
+    }),
+
+  download: async (endpoint: string, options?: ApiOptions): Promise<Blob> => {
+    const token = getToken();
+    const baseUrl = getBaseUrl().replace(/\/+$/, '');
+    const headers: Record<string, string> = {
+      ...(options?.headers || {}),
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${cleanEndpoint}`;
+
+    const response = await fetch(url, {
+      ...options,
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+      try {
+        const errJson = await response.json();
+        if (errJson.error || errJson.message) errorMessage = errJson.error || errJson.message;
+      } catch {
+        // ignore
+      }
+      throw new Error(errorMessage);
+    }
+    return response.blob();
+  },
 };

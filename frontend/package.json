@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test next.config.test.mjs src/lib/assetForm.test.mjs src/lib/assetImport.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.27.0",

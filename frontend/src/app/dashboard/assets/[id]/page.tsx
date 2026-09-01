@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
+import { isComputerCategoryName } from '@/lib/assetForm';
 import QRCode from 'qrcode';
 import {
   HardDrive,
@@ -32,8 +33,29 @@ import {
   ChevronRight,
   Plus,
   ArrowRightLeft,
-  UserX
+  UserX,
+  Cpu,
+  Layers,
+  Disc,
+  Headphones
 } from 'lucide-react';
+
+interface ComputerSpecs {
+  cpuName: string;
+  ramSizeGb: number;
+  ramSlotCount: number;
+  disk1SizeGb: number;
+  disk2SizeGb?: number | null;
+}
+
+interface AssetAccessory {
+  id?: number;
+  accessoryType: string;
+  description?: string | null;
+  quantity: number;
+  condition: 'Good' | 'Fair' | 'Poor' | 'Damaged';
+  notes?: string | null;
+}
 
 interface AssetDetail {
   id: number;
@@ -51,6 +73,8 @@ interface AssetDetail {
   status: 'Available' | 'Assigned' | 'Maintenance' | 'Disposed' | 'Lost';
   condition: 'Good' | 'Fair' | 'Poor' | 'Damaged';
   notes?: string | null;
+  computerSpecs?: ComputerSpecs | null;
+  accessories?: AssetAccessory[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -405,6 +429,8 @@ export default function AssetDetailPage() {
     );
   }
 
+  const isComputer = isComputerCategoryName(asset.categoryName);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Available':
@@ -491,7 +517,7 @@ export default function AssetDetailPage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <HardDrive className="w-4 h-4 text-red-600" />
-                <span>Technical Specifications</span>
+                <span>Asset Information</span>
               </h3>
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(asset.status)}`}>
@@ -522,7 +548,7 @@ export default function AssetDetailPage() {
               </div>
               <div>
                 <span className="text-slate-400 text-[10px] uppercase block mb-1">Assigned User</span>
-                <span className="font-bold text-red-600">{asset.assignedEmployeeName || 'Stock / Pool'}</span>
+                <span className="font-bold text-red-600">{asset.assignedEmployeeName ? `${asset.assignedEmployeeName} (${asset.assignedEmployeeCode || ''})` : 'Stock / Pool'}</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[10px] uppercase block mb-1">Registered Date</span>
@@ -532,7 +558,7 @@ export default function AssetDetailPage() {
 
             {asset.notes && (
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
-                <span className="font-mono text-[10px] text-slate-400 uppercase block mb-1 font-bold">Notes & Specifications</span>
+                <span className="font-mono text-[10px] text-slate-400 uppercase block mb-1 font-bold">Notes / Complaints</span>
                 <p className="text-slate-700 whitespace-pre-wrap">{asset.notes}</p>
               </div>
             )}
@@ -549,277 +575,317 @@ export default function AssetDetailPage() {
               {qrCodeDataUrl ? (
                 <img
                   src={qrCodeDataUrl}
-                  alt="Asset QR Code"
-                  className="w-28 h-28 mx-auto mb-2 border border-slate-200 rounded-xl p-1 bg-white shadow-2xs"
+                  alt="Scannable QR Code"
+                  className="w-32 h-32 mx-auto border border-slate-900 p-1 bg-white"
                 />
               ) : (
-                <div className="w-28 h-28 bg-slate-100 text-slate-400 rounded-xl mx-auto flex items-center justify-center mb-2">
+                <div className="w-32 h-32 bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               )}
-              <p className="font-mono font-extrabold text-sm text-slate-900 tracking-wider">{asset.assetCode}</p>
-              <p className="text-[9px] font-mono text-slate-500 mt-0.5 truncate">{asset.name}</p>
+              <p className="text-[10px] font-mono text-slate-500 font-bold mt-2 tracking-wider uppercase">
+                {asset.assetCode}
+              </p>
             </div>
 
             <button
               onClick={() => setIsPrintModalOpen(true)}
-              className="w-full py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-md shadow-red-600/20"
+              className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-mono font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print QR Sticker</span>
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Thermal Sticker Preview</span>
             </button>
           </div>
         </div>
 
-        {/* Device Tracking & History Tabs */}
-        <div className="space-y-4">
-          <div className="glass-panel p-2 rounded-2xl bg-white flex items-center gap-2 border border-slate-200">
-            <button
-              onClick={() => setActiveTab('transfers')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'transfers'
-                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              <span>Device Transfer History ({history?.assignmentHistory?.length || 0})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('maintenance')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'maintenance'
-                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Wrench className="w-4 h-4" />
-              <span>Maintenance Logs ({history?.maintenanceHistory?.length || 0})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold font-mono flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'audit'
-                  ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Activity className="w-4 h-4" />
-              <span>Audit Trail ({history?.auditLogs?.length || 0})</span>
-            </button>
-          </div>
-
-          {/* TAB 1: Device Transfer Tracking History */}
-          {activeTab === 'transfers' && (
-            <div className="glass-panel p-6 rounded-3xl bg-white space-y-6 border border-slate-200">
+        {/* Computer Specific Cards (Specs & Accessories) */}
+        {isComputer && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Computer Specs Card */}
+            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ArrowRightLeft className="w-4 h-4 text-red-600" />
-                    <span>Device Ownership & User Transfer Tracking</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Complete chronological record of users who have used and returned this device
-                  </p>
-                </div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-blue-600" />
+                  <span>Hardware & System Specifications</span>
+                </h3>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  {asset.categoryName?.toUpperCase()}
+                </span>
               </div>
 
-              {!history?.assignmentHistory || history.assignmentHistory.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-xs">
-                  <UserX className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">No transfer history recorded yet</p>
-                  <p className="text-slate-400 mt-0.5">Assign this asset to an employee to initiate device tracking.</p>
+              {asset.computerSpecs ? (
+                <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="col-span-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Processor (CPU)</span>
+                    <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      <Cpu className="w-3.5 h-3.5 text-slate-500" />
+                      {asset.computerSpecs.cpuName}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-slate-400 text-[10px] uppercase block mb-1">RAM Memory</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-slate-500" />
+                      {asset.computerSpecs.ramSizeGb} GB ({asset.computerSpecs.ramSlotCount} Slots)
+                    </span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Primary Storage (Disk 1)</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Disc className="w-3.5 h-3.5 text-slate-500" />
+                      {asset.computerSpecs.disk1SizeGb} GB
+                    </span>
+                  </div>
+                  <div className="col-span-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Secondary Storage (Disk 2)</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Disc className="w-3.5 h-3.5 text-slate-500" />
+                      {asset.computerSpecs.disk2SizeGb ? `${asset.computerSpecs.disk2SizeGb} GB` : 'None / Not installed'}
+                    </span>
+                  </div>
                 </div>
               ) : (
-                <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
-                  {history.assignmentHistory.map((item, idx) => {
-                    const isCurrentActive = !item.returnedAt;
-                    return (
-                      <div key={item.id || idx} className="relative group">
-                        {/* Timeline Node Icon */}
-                        <div
-                          className={`absolute -left-[31px] top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                            isCurrentActive
-                              ? 'bg-red-600 border-white text-white shadow-md shadow-red-600/30'
-                              : 'bg-slate-100 border-slate-300 text-slate-500'
-                          }`}
-                        >
-                          <UserIcon className="w-3 h-3" />
-                        </div>
-
-                        {/* Transfer Item Box */}
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-slate-900">
-                                {item.employeeName || 'Unassigned User'}
-                              </span>
-                              {item.employeeCode && (
-                                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
-                                  {item.employeeCode}
-                                </span>
-                              )}
-                              {item.departmentName && (
-                                <span className="text-[11px] text-slate-500 font-medium">({item.departmentName})</span>
-                              )}
-                            </div>
-
-                            <span
-                              className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border w-fit ${
-                                isCurrentActive
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-slate-200 text-slate-600 border-slate-300'
-                              }`}
-                            >
-                              {isCurrentActive ? '● Current Active Owner' : 'Returned / Reallocated'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
-                            <div>
-                              <span className="text-slate-400 text-[10px] uppercase block">Assigned Date</span>
-                              <span className="font-semibold text-slate-800">
-                                {new Date(item.assignedAt).toLocaleDateString()}
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-slate-400 text-[10px] uppercase block">Returned Date</span>
-                              <span className="font-semibold text-slate-800">
-                                {item.returnedAt ? new Date(item.returnedAt).toLocaleDateString() : 'Active Assignment'}
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-slate-400 text-[10px] uppercase block">Condition on Assign</span>
-                              <span className="font-semibold text-emerald-700">{item.conditionOnAssign}</span>
-                            </div>
-
-                            <div>
-                              <span className="text-slate-400 text-[10px] uppercase block">Condition on Return</span>
-                              <span className="font-semibold text-amber-700">{item.conditionOnReturn || '—'}</span>
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          <div className="space-y-1 text-xs">
-                            {item.handoverNotes && (
-                              <p className="text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200">
-                                <strong className="font-mono text-[10px] text-slate-500 uppercase block">Handover Notes:</strong>
-                                {item.handoverNotes}
-                              </p>
-                            )}
-                            {item.returnNotes && (
-                              <p className="text-slate-600 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
-                                <strong className="font-mono text-[10px] text-amber-700 uppercase block">Return / Transfer Notes:</strong>
-                                {item.returnNotes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="p-6 text-center text-slate-400 text-xs font-mono">
+                  No detailed computer specifications registered.
                 </div>
               )}
             </div>
-          )}
 
-          {/* TAB 2: Maintenance History */}
-          {activeTab === 'maintenance' && (
+            {/* Accessories Card */}
             <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Wrench className="w-4 h-4 text-amber-600" />
-                <span>Service & Maintenance Records</span>
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Headphones className="w-4 h-4 text-purple-600" />
+                  <span>Attached Accessories</span>
+                </h3>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                  {asset.accessories?.length || 0} ITEMS
+                </span>
+              </div>
 
-              {!history?.maintenanceHistory || history.maintenanceHistory.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-xs">
-                  <Wrench className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">No maintenance records logged</p>
-                  <p className="text-slate-400 mt-0.5">Use the "Log Maintenance" button to record routine repairs.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {history.maintenanceHistory.map((m) => (
-                    <div key={m.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
+              {asset.accessories && asset.accessories.length > 0 ? (
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {asset.accessories.map((acc, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-100 flex items-center justify-between transition-colors text-xs font-mono"
+                    >
+                      <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xs text-amber-700 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded">
-                            {m.maintenanceType}
+                          <span className="font-bold text-slate-900">{acc.accessoryType}</span>
+                          <span className="text-[10px] px-2 py-0.2 rounded-md bg-slate-200 text-slate-700">
+                            Qty: {acc.quantity}
                           </span>
-                          <span className="font-bold text-slate-900 text-xs">{m.title}</span>
                         </div>
-                        {m.description && <p className="text-xs text-slate-600">{m.description}</p>}
-                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400 pt-1">
-                          <span>By: {m.performedByUsername || 'System Tech'}</span>
-                          <span>Completed: {m.completedAt ? new Date(m.completedAt).toLocaleDateString() : 'In Progress'}</span>
-                        </div>
+                        {acc.description && (
+                          <p className="text-[11px] text-slate-600 font-sans">{acc.description}</p>
+                        )}
+                        {acc.notes && (
+                          <p className="text-[10px] text-slate-400 italic font-sans">{acc.notes}</p>
+                        )}
                       </div>
-                      <div className="font-mono font-extrabold text-sm text-slate-900 sm:text-right">
-                        Rp {Number(m.cost || 0).toLocaleString('id-ID')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: Audit Trail */}
-          {activeTab === 'audit' && (
-            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Activity className="w-4 h-4 text-blue-600" />
-                <span>System Audit Logs</span>
-              </h3>
-
-              {!history?.auditLogs || history.auditLogs.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-xs">
-                  <Activity className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">No audit logs found</p>
-                </div>
-              ) : (
-                <div className="space-y-2 font-mono text-xs">
-                  {history.auditLogs.map((log) => (
-                    <div key={log.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-red-600 px-2 py-0.5 bg-red-50 border border-red-200 rounded text-[10px]">
-                          {log.action}
-                        </span>
-                        <span className="text-slate-800">{log.username || 'System Admin'}</span>
-                      </div>
-                      <span className="text-slate-400 text-[11px]">
-                        {new Date(log.createdAt).toLocaleString()}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getConditionBadge(acc.condition)}`}>
+                        {acc.condition}
                       </span>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="p-8 text-center text-slate-400 text-xs font-mono">
+                  No accessories registered for this computer.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* History Tabs Navigation */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+            <button
+              onClick={() => setActiveTab('transfers')}
+              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === 'transfers'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              <span>Assignment & Handover History ({history?.assignmentHistory?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === 'maintenance'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Maintenance & Servicing ({history?.maintenanceHistory?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === 'audit'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>System Audit Logs ({history?.auditLogs?.length || 0})</span>
+            </button>
+          </div>
+
+          {/* Tab 1: Assignment History */}
+          {activeTab === 'transfers' && (
+            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">Custody & Transfer Timeline</h3>
+              {history?.assignmentHistory && history.assignmentHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {history.assignmentHistory.map((item, idx) => (
+                    <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-blue-600" />
+                          <span className="font-bold text-slate-900 text-sm">{item.employeeName || 'Unknown Staff'}</span>
+                          <span className="text-[10px] text-slate-400">({item.employeeCode || 'N/A'})</span>
+                        </div>
+                        <p className="text-slate-500 text-[11px]">{item.departmentName || 'General Staff'} • Handed over by {item.assignedByUsername || 'IT Admin'}</p>
+                        {item.handoverNotes && (
+                          <p className="text-slate-700 bg-white p-2 rounded-xl border border-slate-200 text-[11px] font-sans mt-1">
+                            Note: {item.handoverNotes}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="text-left md:text-right space-y-1 shrink-0">
+                        <div className="flex items-center md:justify-end gap-1.5 text-slate-500">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>Assigned: {new Date(item.assignedAt).toLocaleDateString()}</span>
+                        </div>
+                        {item.returnedAt ? (
+                          <div className="flex items-center md:justify-end gap-1.5 text-amber-600 font-bold">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Returned: {new Date(item.returnedAt).toLocaleDateString()}</span>
+                          </div>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold text-[10px] border border-blue-200">
+                            Current Active Custodian
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 font-mono">No historical assignment records found for this asset.</p>
+              )}
+            </div>
+          )}
+
+          {/* Tab 2: Maintenance History */}
+          {activeTab === 'maintenance' && (
+            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Repair & Servicing Log</h3>
+                <button
+                  onClick={() => setIsMaintenanceModalOpen(true)}
+                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Log Service</span>
+                </button>
+              </div>
+
+              {history?.maintenanceHistory && history.maintenanceHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {history.maintenanceHistory.map((item, idx) => (
+                    <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-amber-600" />
+                          <span className="font-bold text-slate-900 text-sm">{item.title}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                            {item.maintenanceType}
+                          </span>
+                        </div>
+                        {item.description && <p className="text-slate-600 text-[11px] font-sans">{item.description}</p>}
+                        <p className="text-slate-400 text-[10px]">Logged by: {item.performedByUsername || 'IT Staff'}</p>
+                      </div>
+
+                      <div className="text-left md:text-right space-y-1 shrink-0">
+                        <span className="font-bold text-slate-900 block text-sm">
+                          IDR {Number(item.cost || 0).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 font-mono">No maintenance records logged for this asset.</p>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Audit Logs */}
+          {activeTab === 'audit' && (
+            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">System Activity Audit Trail</h3>
+              {history?.auditLogs && history.auditLogs.length > 0 ? (
+                <div className="space-y-3">
+                  {history.auditLogs.map((item, idx) => (
+                    <div key={item.id || idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs font-mono">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-red-600 uppercase tracking-wider text-[11px]">{item.action}</span>
+                          <span className="text-slate-700">{item.entity} #{item.entityId}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">By user: {item.username || `ID ${item.userId || 'system'}`}</p>
+                      </div>
+                      <span className="text-slate-400 text-[10px]">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'N/A'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 font-mono">No system audit records available.</p>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* --- Printable Asset Tag QR Modal --- */}
+      {/* --- Print Thermal QR Sticker Modal --- */}
       {isPrintModalOpen && asset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
           <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Printer className="w-4 h-4 text-red-600" />
-                <span>Print IT Asset Property Tag (QR Sticker)</span>
-              </h3>
-              <button onClick={() => setIsPrintModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer">
-                <X className="w-4 h-4" />
+              <div className="flex items-center gap-2">
+                <Printer className="w-5 h-5 text-red-600" />
+                <h3 className="text-base font-bold text-slate-900">Print Asset Tag QR Label</h3>
+              </div>
+              <button
+                onClick={() => setIsPrintModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Sticker Preview Box */}
-            <div className="my-4 p-5 bg-white border-2 border-slate-900 rounded-2xl shadow-md space-y-3 font-mono">
-              <div className="flex items-center justify-between text-[10px] font-extrabold uppercase border-b border-slate-900 pb-1 text-slate-900">
+            <p className="text-xs text-slate-500 mb-4">
+              Preview of standard 80mm x 50mm thermal sticker tag. Scan the QR code to open this asset catalog item on mobile:
+            </p>
+
+            {/* Thermal Label Preview Card */}
+            <div className="border-2 border-slate-900 rounded-2xl p-4 bg-white space-y-3 font-mono shadow-inner my-4">
+              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[10px] font-bold text-slate-900">
                 <span>ERP CAHAYA ITSM</span>
                 <span>PROPERTY TAG</span>
               </div>

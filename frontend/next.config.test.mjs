@@ -4,7 +4,9 @@ import test from "node:test";
 process.env.NODE_ENV = "development";
 const { default: nextConfig } = await import("./next.config.ts");
 
-test("allows the AMS LAN host to load development assets", () => {
+test("allows localhost, loopback, and LAN hosts to load development assets", () => {
+  assert.ok(nextConfig.allowedDevOrigins?.includes("127.0.0.1"));
+  assert.ok(nextConfig.allowedDevOrigins?.includes("localhost"));
   assert.ok(nextConfig.allowedDevOrigins?.includes("192.168.10.212"));
 });
 

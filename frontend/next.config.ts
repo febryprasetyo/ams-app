@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  allowedDevOrigins: ["192.168.10.212"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "localhost",
+    "192.168.10.212",
+  ],
   async rewrites() {
     if (process.env.NODE_ENV !== "development") {
       return [];

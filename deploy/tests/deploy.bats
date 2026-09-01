@@ -18,7 +18,7 @@ setup() {
 DATABASE_URL=postgresql://ams_app:secret@localhost:5432/ams_prod_db
 JWT_SECRET=production-secret-min-32-chars-long-1234
 JWT_REFRESH_SECRET=production-refresh-secret-min-32-chars-1234
-ACCURATE_LICENSE_SERVER_URL=http://192.168.10.160:6688
+AGENT_API_KEY=production-agent-key-min-32-chars-1234
 MOCK_ENV
 
   # Create mock docker command

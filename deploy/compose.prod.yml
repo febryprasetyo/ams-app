@@ -32,7 +32,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      ACCURATE_LICENSE_SERVER_URL: ${ACCURATE_LICENSE_SERVER_URL:-http://192.168.10.160:6688}
+      AGENT_API_KEY: ${AGENT_API_KEY}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/health/ready || exit 1"]
       interval: 5s

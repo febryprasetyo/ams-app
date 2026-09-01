@@ -1,16 +1,24 @@
 import { Router } from 'express';
+import { loadEnv } from '../config/env';
 import {
-  syncAccurateLicenses,
-  getAccurateLicenses,
   getAccurateDatabase,
-  getServers,
+  getAccurateLicenses,
   getDbBackups,
+  getServers,
+  receiveAccurateAgentSignal,
+  syncAccurateLicenses,
 } from '../controllers/infrastructureController';
+import { createAgentAuthenticator } from '../middleware/agentAuth';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Protect all infrastructure routes with authentication middleware
+router.post(
+  '/agent/signal',
+  createAgentAuthenticator(loadEnv().agentApiKey),
+  receiveAccurateAgentSignal,
+);
+
 router.use(authenticateToken);
 
 router.post('/accurate/sync', syncAccurateLicenses);

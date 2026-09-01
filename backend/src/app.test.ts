@@ -16,6 +16,15 @@ test('loadEnv rejects invalid port or invalid URL', () => {
   }), /PORT|DATABASE_URL/);
 });
 
+test('loadEnv requires a dedicated agent API key', () => {
+  assert.throws(() => loadEnv({
+    DATABASE_URL: 'postgresql://postgres:password@localhost:5432/ams_test',
+    JWT_SECRET: 'jwt-secret-key-12345',
+    JWT_REFRESH_SECRET: 'jwt-refresh-key-12345',
+    NODE_ENV: 'test',
+  }), /AGENT_API_KEY/);
+});
+
 test('loadEnv parses valid configuration correctly', () => {
   const env = loadEnv({
     DATABASE_URL: 'postgresql://postgres:password@localhost:5432/ams_test',
@@ -23,7 +32,7 @@ test('loadEnv parses valid configuration correctly', () => {
     JWT_REFRESH_SECRET: 'jwt-refresh-key-12345',
     PORT: '5001',
     NODE_ENV: 'test',
-    ACCURATE_LICENSE_SERVER_URL: 'http://192.168.10.160:6688'
+    AGENT_API_KEY: 'agent-secret-key-12345'
   });
 
   assert.equal(env.port, 5001);
@@ -31,7 +40,7 @@ test('loadEnv parses valid configuration correctly', () => {
   assert.equal(env.databaseUrl, 'postgresql://postgres:password@localhost:5432/ams_test');
   assert.equal(env.jwtSecret, 'jwt-secret-key-12345');
   assert.equal(env.jwtRefreshSecret, 'jwt-refresh-key-12345');
-  assert.equal(env.accurateLicenseServerUrl, 'http://192.168.10.160:6688');
+  assert.equal(env.agentApiKey, 'agent-secret-key-12345');
 });
 
 test('GET /health/live returns 200 OK', async () => {

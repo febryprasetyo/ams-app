@@ -64,7 +64,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
           JWT_SECRET: ci-jwt-secret-do-not-use-in-production-1234
           JWT_REFRESH_SECRET: ci-jwt-refresh-secret-do-not-use-in-production-1234
-          ACCURATE_LICENSE_SERVER_URL: http://192.168.10.160:6688
+          AGENT_API_KEY: ci-agent-key-do-not-use-in-production-1234
         run: npm run db:migrate --prefix backend
 
       - name: Lint Frontend

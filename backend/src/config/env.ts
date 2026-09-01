@@ -8,7 +8,7 @@ export interface AppEnv {
   databaseUrl: string;
   jwtSecret: string;
   jwtRefreshSecret: string;
-  accurateLicenseServerUrl: string;
+  agentApiKey: string;
 }
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
@@ -38,15 +38,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     errors.push('JWT_REFRESH_SECRET is required and cannot be empty');
   }
 
-  const rawAccurateUrl = (source.ACCURATE_LICENSE_SERVER_URL || 'http://192.168.10.160:6688').trim();
-  if (!rawAccurateUrl) {
-    errors.push('ACCURATE_LICENSE_SERVER_URL is required and cannot be empty');
-  } else {
-    try {
-      new URL(rawAccurateUrl);
-    } catch {
-      errors.push('ACCURATE_LICENSE_SERVER_URL must be a valid URL');
-    }
+  const agentApiKey = source.AGENT_API_KEY?.trim();
+  if (!agentApiKey) {
+    errors.push('AGENT_API_KEY is required and cannot be empty');
   }
 
   const rawPort = source.PORT?.trim() || '5000';
@@ -70,6 +64,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     databaseUrl: rawDbUrl!,
     jwtSecret: jwtSecret!,
     jwtRefreshSecret: jwtRefreshSecret!,
-    accurateLicenseServerUrl: rawAccurateUrl.replace(/\/+$/, ''),
+    agentApiKey: agentApiKey!,
   };
 }

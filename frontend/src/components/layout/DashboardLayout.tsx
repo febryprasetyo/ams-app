@@ -15,15 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  User as UserIcon,
   Loader2,
   Search,
   Bell,
   HardDrive,
   Ticket,
   Key,
-  Server,
-  Activity
+  Server
 } from 'lucide-react';
 
 interface NavItem {
@@ -214,22 +212,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </div>
 
-        {/* System Health Widget in Sidebar Footer */}
-        {!collapsed && (
-          <div className="p-3 m-3 rounded-2xl bg-red-50/50 border border-red-100">
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-mono text-[11px] text-slate-600 flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-red-600" />
-                PostgreSQL Live
-              </span>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-              </span>
-            </div>
-            <p className="text-[10px] font-mono text-slate-500 truncate">192.168.10.23:5432/ams_db</p>
-          </div>
-        )}
 
         {/* User Card in Sidebar Bottom */}
         {!collapsed && (

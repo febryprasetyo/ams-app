@@ -1,1024 +1,489 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { api } from '@/lib/api';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Server,
-  Database,
-  RefreshCw,
-  Wifi,
-  WifiOff,
   Activity,
+  AlertCircle,
   CheckCircle2,
   Clock,
-  Laptop,
-  Cpu,
-  ShieldCheck,
-  Search,
-  FileText,
-  Loader2,
-  AlertCircle,
+  Database,
   ExternalLink,
-  Layers,
   HardDrive,
-  Check,
-  Terminal,
-  CheckCircle,
-  X
+  Laptop,
+  Loader2,
+  RefreshCw,
+  Search,
+  Server,
+  Wifi,
+  WifiOff,
+  X,
 } from 'lucide-react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { api } from '@/lib/api';
 
-export interface AccurateLicenseLog {
-  id?: number;
-  no: number;
-  licenseKey: string;
-  date?: string | null;
-  ip?: string | null;
-  version?: string | null;
-  host: string;
-  status: string;
-  scrapedAt?: string | Date;
-}
-
-export interface ServerItem {
-  id: number;
-  serverCode: string;
-  name: string;
-  ipAddress: string;
-  os: string;
-  specs: string;
-  status: string;
-  notes?: string;
-}
-
-export interface DbBackupItem {
+interface AccurateLicenseLog {
   id: number;
   serverId: number;
-  dbName: string;
-  sizeMb: string | number;
+  serverHostname: string;
+  serverIp: string;
+  no: number;
+  licenseKey: string;
+  date: string | null;
+  ip: string | null;
+  version: string | null;
+  host: string;
   status: string;
-  backupPath: string;
-  completedAt: string | Date;
-  serverName?: string;
-  serverCode?: string;
-  serverIp?: string;
+  scrapedAt: string | null;
 }
 
-export interface AccurateDbItem {
+interface AccurateDatabaseFile {
   id: number;
   dbName: string;
-  companyName: string;
-  sizeMb: string;
   filePath: string;
+  fileSizeBytes: number;
+  fileSizeMb: string;
+  fileSizeFormatted: string;
   status: string;
-  activeConnections: number;
-  tablesCount: number;
-  lastBackupAt: string;
+  lastModifiedAt: string | null;
+  createdAt: string | null;
+  reportedAt: string;
 }
 
-export interface AccurateDatabaseInfo {
-  engine: string;
-  serverHost: string;
-  port: number;
-  status: string;
-  totalDatabases: number;
-  totalSizeBytes: string;
-  activeConnectionsCount: number;
-  lastBackupAt: string;
-  backupStatus: string;
-  databases: AccurateDbItem[];
+interface AccurateServerMonitoring {
+  id: number;
+  hostname: string;
+  name: string | null;
+  ipAddress: string;
+  os: string | null;
+  macAddress: string | null;
+  status: 'Online' | 'Offline';
+  lastSeenAt: string | null;
+  agentVersion: string | null;
+  uptimeSeconds: number;
+  licenseServerUrl: string | null;
+  accurateStatus: string | null;
+  isAccurateActive: boolean;
+  isFirebirdActive: boolean;
+  services: Array<{ serviceName?: string; displayName?: string; status?: string; isStarted?: boolean }>;
+  processes: Array<{ processName?: string; processId?: number; workingSetMb?: number }>;
+  licensesCount: number;
+  activeLicensesCount: number;
+  databases: AccurateDatabaseFile[];
+}
+
+interface LicensesResponse {
+  success: boolean;
+  data: AccurateLicenseLog[];
+  totalLicenses: number;
+  activeLicenses: number;
+  lastSyncedAt: string | null;
+}
+
+interface MonitoringResponse {
+  success: boolean;
+  data: AccurateServerMonitoring[];
+  serversCount: number;
+  databasesCount: number;
+  totalSizeBytes: number;
+}
+
+interface SyncResponse {
+  success: boolean;
+  message: string;
+  data: AccurateLicenseLog[];
+  results: Array<{
+    serverId: number;
+    hostname: string;
+    success: boolean;
+    licensesCount?: number;
+    syncedAt?: string;
+    error?: string;
+  }>;
+}
+
+function toDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const standardMatch = value.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (standardMatch) {
+    const [, day, month, year, hour = '00', minute = '00', second = '00'] = standardMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(value: string | Date | null | undefined): string {
+  const date = toDate(value);
+  if (!date) return '—';
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function formatUptime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${days}h ${hours}j ${minutes}m`;
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 MB';
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  return `${(bytes / 1024 ** 2).toFixed(2)} MB`;
 }
 
 export default function InfrastructurePage() {
-  // Data States
-  const [accurateLogs, setAccurateLogs] = useState<AccurateLicenseLog[]>([]);
-  const [accurateDbInfo, setAccurateDbInfo] = useState<AccurateDatabaseInfo | null>(null);
-  const [servers, setServers] = useState<ServerItem[]>([]);
-  const [dbBackups, setDbBackups] = useState<DbBackupItem[]>([]);
-
-  // UI States
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLive, setIsLive] = useState<boolean>(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'warning' } | null>(null);
-
-  // Active Tab & Filters
-  const [activeTab, setActiveTab] = useState<'all' | 'accurate' | 'database' | 'servers' | 'backups'>('all');
+  const [licenses, setLicenses] = useState<AccurateLicenseLog[]>([]);
+  const [servers, setServers] = useState<AccurateServerMonitoring[]>([]);
+  const [activeTab, setActiveTab] = useState<'licenses' | 'database'>('licenses');
+  const [selectedServerId, setSelectedServerId] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [syncingServer, setSyncingServer] = useState<number | 'all' | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'warning'; text: string } | null>(null);
 
-  // Fetch initial data
   const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
-      interface AccurateResponse {
-        success: boolean;
-        isLive?: boolean;
-        data: AccurateLicenseLog[];
-        lastSyncedAt?: string;
-      }
-
-      const [accurateRes, dbInfoRes, serversRes, backupsRes] = await Promise.all([
-        api.get<AccurateResponse>('/infrastructure/accurate').catch(() => ({ success: false, isLive: false, data: [] as AccurateLicenseLog[], lastSyncedAt: undefined })),
-        api.get<{ success: boolean; data: AccurateDatabaseInfo }>('/infrastructure/accurate/database').catch(() => null),
-        api.get<{ success: boolean; data: ServerItem[] }>('/infrastructure/servers').catch(() => ({ success: false, data: [] as ServerItem[] })),
-        api.get<{ success: boolean; data: DbBackupItem[] }>('/infrastructure/backups').catch(() => ({ success: false, data: [] as DbBackupItem[] })),
+      const [licenseResponse, monitoringResponse] = await Promise.all([
+        api.get<LicensesResponse>('/infrastructure/accurate'),
+        api.get<MonitoringResponse>('/infrastructure/accurate/database'),
       ]);
-
-      if (accurateRes.success && accurateRes.data) {
-        setAccurateLogs(accurateRes.data);
-        setIsLive(accurateRes.isLive ?? false);
-        setLastSyncedAt(accurateRes.lastSyncedAt || (accurateRes.data[0]?.scrapedAt ? String(accurateRes.data[0].scrapedAt) : new Date().toISOString()));
-      }
-
-      if (dbInfoRes && dbInfoRes.success && dbInfoRes.data) {
-        setAccurateDbInfo(dbInfoRes.data);
-      }
-
-      if (serversRes.success && serversRes.data) {
-        setServers(serversRes.data);
-      }
-
-      if (backupsRes.success && backupsRes.data) {
-        setDbBackups(backupsRes.data);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load infrastructure data.');
+      setLicenses(licenseResponse.data ?? []);
+      setLastSyncedAt(licenseResponse.lastSyncedAt ?? null);
+      setServers(monitoringResponse.data ?? []);
+    } catch (requestError: unknown) {
+      setError(errorMessage(requestError, 'Gagal membaca data monitoring Accurate.'));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Initial remote data load is the external synchronization owned by this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
-  // Sync Accurate 5 License Trigger
-  const handleSync = async () => {
+  const handleSync = async (serverId: number | 'all') => {
+    setSyncingServer(serverId);
+    setError(null);
     try {
-      setSyncing(true);
-      setError(null);
-
-      const syncRes = await api.post<{
-        success: boolean;
-        isLive: boolean;
-        message: string;
-        data: AccurateLicenseLog[];
-        syncedAt: string;
-      }>('/infrastructure/accurate/sync');
-
-      if (syncRes.success) {
-        setAccurateLogs(syncRes.data || []);
-        setIsLive(syncRes.isLive);
-        setLastSyncedAt(syncRes.syncedAt);
-
-        setToastMessage({
-          text: syncRes.message || (syncRes.isLive ? 'Live scraping successful!' : 'Synced snapshot data'),
-          type: syncRes.isLive ? 'success' : 'warning',
-        });
-
-        // Clear toast after 6 seconds
-        setTimeout(() => setToastMessage(null), 6000);
-      }
-    } catch (err: any) {
-      setToastMessage({
-        text: err.message || 'Error triggering Accurate 5 sync',
-        type: 'warning',
+      const response = await api.post<SyncResponse>(
+        '/infrastructure/accurate/sync',
+        serverId === 'all' ? {} : { serverId },
+      );
+      setLicenses(response.data ?? []);
+      const latestSuccess = response.results
+        .filter((result) => result.success && result.syncedAt)
+        .map((result) => result.syncedAt as string)
+        .sort()
+        .at(-1);
+      if (latestSuccess) setLastSyncedAt(latestSuccess);
+      setToast({
+        type: response.results.every((result) => result.success) ? 'success' : 'warning',
+        text: response.results.map((result) => (
+          result.success
+            ? `${result.hostname}: ${result.licensesCount ?? 0} lisensi`
+            : `${result.hostname}: ${result.error || 'gagal'}`
+        )).join(' • '),
       });
-      setTimeout(() => setToastMessage(null), 6000);
+      await fetchData();
+    } catch (requestError: unknown) {
+      setToast({ type: 'warning', text: errorMessage(requestError, 'Sinkronisasi lisensi gagal.') });
     } finally {
-      setSyncing(false);
+      setSyncingServer(null);
+      window.setTimeout(() => setToast(null), 7000);
     }
   };
 
-  // Stats Calculations
-  const activeAccurateSessionsCount = accurateLogs.filter((l) => l.status === 'ACTIVE' || l.status === 'Active').length;
-  const totalServersCount = servers.length;
-  const onlineServersCount = servers.filter((s) => s.status === 'Online').length;
-  const successfulBackupsCount = dbBackups.filter((b) => b.status === 'Success').length;
-  const latestBackupDate = dbBackups.length > 0 ? new Date(dbBackups[0].completedAt) : null;
-
-  // Filtered lists
-  const filteredAccurate = accurateLogs.filter(
-    (l) =>
-      (l.host || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.licenseKey || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.ip || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.version || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredServers = servers.filter(
-    (s) =>
-      s.serverCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.ipAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.os.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredBackups = dbBackups.filter(
-    (b) =>
-      b.dbName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.serverName && b.serverName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (b.serverCode && b.serverCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      b.backupPath.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Formatters
-  const formatDate = (dateStr?: string | Date) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
+  const filteredLicenses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return licenses.filter((license) => {
+      if (selectedServerId !== 'all' && license.serverId !== selectedServerId) return false;
+      if (!query) return true;
+      return [
+        license.licenseKey,
+        license.host,
+        license.ip,
+        license.version,
+        license.serverHostname,
+      ].some((value) => value?.toLowerCase().includes(query));
     });
-  };
+  }, [licenses, searchQuery, selectedServerId]);
 
-  const formatSizeMb = (size: string | number) => {
-    const num = typeof size === 'string' ? parseFloat(size) : size;
-    if (isNaN(num)) return `${size} MB`;
-    if (num >= 1024) {
-      return `${(num / 1024).toFixed(2)} GB`;
-    }
-    return `${num.toFixed(2)} MB`;
-  };
+  const visibleServers = selectedServerId === 'all'
+    ? servers
+    : servers.filter((server) => server.id === selectedServerId);
+  const activeLicenses = licenses.filter((license) => (
+    license.status === 'ACTIVE'
+    && (selectedServerId === 'all' || license.serverId === selectedServerId)
+  )).length;
+  const totalLicenses = licenses.filter((license) => (
+    selectedServerId === 'all' || license.serverId === selectedServerId
+  )).length;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 pb-16">
-        {/* Toast Notification */}
-        {toastMessage && (
-          <div
-            className={`fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-xl border flex items-center gap-3 font-sans text-xs transition-all animate-bounce ${
-              toastMessage.type === 'success'
-                ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/20'
-                : 'bg-amber-600 text-white border-amber-500 shadow-amber-600/20'
-            }`}
-          >
-            {toastMessage.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-white shrink-0" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-white shrink-0" />
-            )}
-            <div className="flex flex-col">
-              <span className="font-bold text-sm">Accurate Sync Update</span>
-              <span className="opacity-90">{toastMessage.text}</span>
+      <div className="space-y-6 pb-16">
+        {toast && (
+          <div className={`fixed bottom-6 right-6 z-50 max-w-xl rounded-2xl border px-5 py-4 text-sm text-white shadow-xl ${
+            toast.type === 'success' ? 'border-emerald-500 bg-emerald-600' : 'border-amber-500 bg-amber-600'
+          }`}>
+            <div className="flex items-start gap-3">
+              {toast.type === 'success' ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /> : <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />}
+              <span className="flex-1">{toast.text}</span>
+              <button onClick={() => setToast(null)} aria-label="Tutup notifikasi"><X className="h-4 w-4" /></button>
             </div>
-            <button
-              onClick={() => setToastMessage(null)}
-              className="ml-2 text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         )}
 
-        {/* Top Control Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-2 h-full bg-red-600" />
-          <div className="space-y-1 pl-2">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-600/20">
-                  <Server className="w-5.5 h-5.5" />
-                </div>
-                <span>Accurate 5 & Server Infrastructure</span>
+        <header className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="absolute inset-y-0 left-0 w-2 bg-red-600" />
+          <div className="flex flex-col gap-5 pl-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600 text-white">
+                  <Server className="h-5 w-5" />
+                </span>
+                Accurate Database
               </h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Telemetry server, Firebird database, dan lisensi Accurate dari agent yang terdaftar otomatis.
+              </p>
             </div>
-            <p className="text-xs md:text-sm text-slate-500 font-sans">
-              Real-time monitoring for Accurate 5 ERP concurrent license sessions, primary Windows/Linux server nodes, and Firebird DB backups.
-            </p>
-          </div>
-
-          {/* Sync Trigger & Status Badge */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-            {/* Last Synced & Live Connection Badge */}
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-mono">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span
-                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                    isLive ? 'bg-emerald-400' : 'bg-amber-400'
-                  }`}
-                />
-                <span
-                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                    isLive ? 'bg-emerald-600' : 'bg-amber-500'
-                  }`}
-                />
-              </span>
-              <div className="flex flex-col">
-                <span className="font-bold text-[11px] text-slate-800 flex items-center gap-1">
-                  {isLive ? 'Live Subnet Scraper' : 'Stored Snapshot'}
-                </span>
-                <span className="text-[10px] text-slate-500">
-                  Synced: {lastSyncedAt ? formatDate(lastSyncedAt) : 'Never'}
-                </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                <Clock className="mr-1.5 inline h-4 w-4" />
+                Sync lisensi terakhir: <strong>{formatDate(lastSyncedAt)}</strong>
               </div>
-            </div>
-
-            {/* Sync Button */}
-            <button
-              onClick={handleSync}
-              disabled={syncing}
-              className="w-full sm:w-auto px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md shadow-red-600/20 hover:shadow-lg hover:shadow-red-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
-              title="Trigger scraper http://192.168.10.160:6688/"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              <span>Sync Accurate 5 License (http://192.168.10.160:6688/)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Bento Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Card 1: Active Accurate 5 Sessions */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600 rounded-l-2xl" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  Active Accurate 5 Sessions
-                </p>
-                <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">
-                  {activeAccurateSessionsCount}
-                </h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Laptop className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-              <span className="text-red-600 font-bold font-mono">Port 6688</span> concurrent users active
-            </div>
-          </div>
-
-          {/* Card 2: Accurate License Server Status */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 rounded-l-2xl" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  License Server Status
-                </p>
-                <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 mt-1 flex items-center gap-2">
-                  <span className="text-emerald-600">Online</span>
-                </h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Wifi className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-              <span className="font-mono text-slate-700 font-semibold truncate">http://192.168.10.160:6688/</span>
-            </div>
-          </div>
-
-          {/* Card 3: Total Infrastructure Servers */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600 rounded-l-2xl" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  Total Infra Servers
-                </p>
-                <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">
-                  {totalServersCount}
-                </h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Server className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-              <span className="text-blue-600 font-bold font-mono">{onlineServersCount} / {totalServersCount}</span> servers online & healthy
-            </div>
-          </div>
-
-          {/* Card 4: Daily ERP DB Backup Status */}
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-600 rounded-l-2xl" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  Daily ERP DB Backups
-                </p>
-                <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 mt-1 text-purple-700">
-                  {successfulBackupsCount} / {dbBackups.length} Verified
-                </h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Database className="w-6 h-6" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium truncate">
-              <span className="text-purple-600 font-bold font-mono">Latest:</span>{' '}
-              {latestBackupDate ? formatDate(latestBackupDate) : 'No backups found'}
-            </div>
-          </div>
-        </div>
-
-        {/* Section Navigation Tabs & Search Bar */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* View Segment Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl overflow-x-auto custom-scrollbar">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'all'
-                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>All Workspace Panels</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('accurate')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'accurate'
-                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Laptop className="w-3.5 h-3.5" />
-              <span>Accurate 5 Live Users ({filteredAccurate.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('database')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'database'
-                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>Accurate ERP Databases ({accurateDbInfo?.databases.length || 2})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('servers')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'servers'
-                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Server className="w-3.5 h-3.5" />
-              <span>Server Topology ({filteredServers.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('backups')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'backups'
-                  ? 'bg-white text-red-600 shadow-xs border border-slate-200/60'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>DB Backup Logs ({filteredBackups.length})</span>
-            </button>
-          </div>
-
-          {/* Search Filter Bar */}
-          <div className="relative min-w-[240px] md:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search hosts, IPs, users, DBs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-sans text-slate-800"
-            />
-            {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                onClick={() => handleSync('all')}
+                disabled={syncingServer !== null || servers.length === 0}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <X className="w-3.5 h-3.5" />
+                <RefreshCw className={`h-4 w-4 ${syncingServer === 'all' ? 'animate-spin' : ''}`} />
+                Sync Semua Lisensi
               </button>
-            )}
+            </div>
           </div>
-        </div>
+        </header>
 
-        {/* Global Error Banner */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-            <div className="flex-1 font-medium">{error}</div>
-            <button onClick={fetchData} className="underline font-bold text-red-700 hover:text-red-800">
-              Retry Load
-            </button>
+          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button onClick={fetchData} className="font-bold underline">Muat ulang</button>
           </div>
         )}
 
-        {/* Workspace Panels Content */}
-        <div className="space-y-8">
-          {/* PANEL 1: ACCURATE 5 LIVE USER TABLE (Scraped Data View) */}
-          {(activeTab === 'all' || activeTab === 'accurate') && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-              {/* Panel Header */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                    <Laptop className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                      <span>Accurate 5 Live User Table</span>
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
-                        Scraped Data View
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-sans mt-0.5">
-                      Active concurrent client sessions fetched from License Server `http://192.168.10.160:6688/`.
-                    </p>
-                  </div>
-                </div>
 
-                <a
-                  href="http://192.168.10.160:6688/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-red-200 bg-white transition-colors"
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-12 text-slate-500">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membaca telemetry dari database…
+            </div>
+          ) : servers.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+              <Server className="mx-auto h-10 w-10 text-slate-300" />
+              <h2 className="mt-3 font-bold text-slate-800">Belum ada server Accurate terdaftar</h2>
+              <p className="mt-1 text-sm text-slate-500">Jalankan accurate_agent.ps1 pada server pertama untuk mengirim heartbeat.</p>
+            </div>
+          ) : servers.map((server) => (
+            <article key={server.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    {server.status === 'Online' ? <Wifi className="h-5 w-5 text-emerald-600" /> : <WifiOff className="h-5 w-5 text-red-500" />}
+                    <h2 className="font-extrabold text-slate-900">{server.hostname}</h2>
+                  </div>
+                  <p className="mt-1 font-mono text-xs text-slate-500">{server.ipAddress}</p>
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                  server.status === 'Online' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                }`}>{server.status}</span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <div><dt className="text-slate-400">Lisensi</dt><dd className="mt-1 font-bold text-slate-800">{server.activeLicensesCount} aktif / {server.licensesCount}</dd></div>
+                <div><dt className="text-slate-400">Database</dt><dd className="mt-1 font-bold text-slate-800">{server.databases.length} file</dd></div>
+                <div><dt className="text-slate-400">Accurate</dt><dd className="mt-1 font-bold text-slate-800">{server.isAccurateActive ? 'Aktif' : 'Tidak aktif'}</dd></div>
+                <div><dt className="text-slate-400">Firebird</dt><dd className="mt-1 font-bold text-slate-800">{server.isFirebirdActive ? 'Aktif' : 'Tidak aktif'}</dd></div>
+                <div><dt className="text-slate-400">Uptime</dt><dd className="mt-1 font-bold text-slate-800">{formatUptime(server.uptimeSeconds)}</dd></div>
+                <div><dt className="text-slate-400">Signal terakhir</dt><dd className="mt-1 font-bold text-slate-800">{formatDate(server.lastSeenAt)}</dd></div>
+              </dl>
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  onClick={() => handleSync(server.id)}
+                  disabled={syncingServer !== null || !server.licenseServerUrl}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50"
                 >
-                  <span>192.168.10.160:6688</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                  <RefreshCw className={`h-3.5 w-3.5 ${syncingServer === server.id ? 'animate-spin' : ''}`} />
+                  Sync lisensi
+                </button>
+                {server.licenseServerUrl && (
+                  <a href={server.licenseServerUrl} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-red-600" title="Buka License Server">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
               </div>
+            </article>
+          ))}
+        </section>
 
-              {/* Accurate 5 Users Table (licenseList.json format) */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="py-3.5 px-4 text-center w-12">No</th>
-                      <th className="py-3.5 px-4">Serial / License Key</th>
-                      <th className="py-3.5 px-5">Host / Computer</th>
-                      <th className="py-3.5 px-4">IP Address</th>
-                      <th className="py-3.5 px-4">Accurate Version</th>
-                      <th className="py-3.5 px-4">Active Date</th>
-                      <th className="py-3.5 px-5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-sans">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={7} className="py-10 text-center text-slate-400">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="w-6 h-6 animate-spin text-red-600" />
-                            <span className="font-mono text-xs text-slate-500">Scraping License Server...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : filteredAccurate.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-10 text-center">
-                          <div className="max-w-xs mx-auto text-slate-400 space-y-1.5">
-                            <Laptop className="w-8 h-8 mx-auto text-slate-300" />
-                            <p className="text-xs font-semibold text-slate-700">No Accurate 5 licenses found</p>
-                            <p className="text-[11px] text-slate-500">
-                              {searchQuery ? 'Try clearing your search query.' : 'Click "Sync Accurate 5 License" to perform a fresh scan.'}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredAccurate.map((row, idx) => (
-                        <tr key={row.licenseKey || idx} className="hover:bg-slate-50/70 transition-colors group">
-                          {/* Seat No */}
-                          <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-500 text-xs">
-                            #{row.no || idx + 1}
-                          </td>
-
-                          {/* License Key */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-                            <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200/80 tracking-wider">
-                              {row.licenseKey}
-                            </span>
-                          </td>
-
-                          {/* Host / Computer Name */}
-                          <td className="py-3.5 px-5 font-bold font-sans text-slate-800 flex items-center gap-2">
-                            <Laptop className="w-4 h-4 text-slate-400 shrink-0" />
-                            <span>{row.host || 'Unassigned'}</span>
-                          </td>
-
-                          {/* IP Address */}
-                          <td className="py-3.5 px-4 font-mono text-slate-700">
-                            {row.ip ? (
-                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200/60 font-semibold text-[11px]">
-                                {row.ip}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 font-mono text-[11px]">-</span>
-                            )}
-                          </td>
-
-                          {/* Accurate Version */}
-                          <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                            {row.version ? (
-                              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
-                                v{row.version}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 font-mono text-[11px]">-</span>
-                            )}
-                          </td>
-
-                          {/* Active Date */}
-                          <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                            {row.date ? row.date : <span className="text-slate-400">-</span>}
-                          </td>
-
-                          {/* Status Badge */}
-                          <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                            {row.status === 'ACTIVE' || row.status === 'Active' ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                                <span>ACTIVE</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-slate-100 text-slate-500 border border-slate-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                                <span>RELEASED</span>
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setActiveTab('licenses')} className={`rounded-xl px-4 py-2 text-xs font-bold ${activeTab === 'licenses' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                <Laptop className="mr-2 inline h-4 w-4" />
+                Accurate 5 Live Users ({activeLicenses}/{totalLicenses})
+              </button>
+              <button onClick={() => setActiveTab('database')} className={`rounded-xl px-4 py-2 text-xs font-bold ${activeTab === 'database' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                <Database className="mr-2 inline h-4 w-4" />
+                Accurate Database ({visibleServers.reduce((sum, server) => sum + server.databases.length, 0)})
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select
+                value={selectedServerId}
+                onChange={(event) => setSelectedServerId(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
+              >
+                <option value="all">Semua server</option>
+                {servers.map((server) => <option key={server.id} value={server.id}>{server.hostname}</option>)}
+              </select>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Cari lisensi, host, IP…"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-700 sm:w-64"
+                />
               </div>
             </div>
-          )}
+          </div>
+        </section>
 
-          {/* PANEL 1.5: ACCURATE ERP DATABASE HEALTH & STORAGE PANEL */}
-          {(activeTab === 'all' || activeTab === 'database') && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-              {/* Panel Header */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-purple-600/20">
-                    <Database className="w-5 h-5" />
-                  </div>
+        {activeTab === 'licenses' ? (
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 p-5">
+              <h2 className="font-extrabold text-slate-900">Accurate 5 Live Users</h2>
+              <p className="mt-1 text-xs text-slate-500">Data tersimpan dari sync manual terakhir; membuka halaman tidak memicu sinkronisasi.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Server</th>
+                    <th className="px-4 py-3">No</th>
+                    <th className="px-4 py-3">License Key</th>
+                    <th className="px-4 py-3">Host</th>
+                    <th className="px-4 py-3">IP</th>
+                    <th className="px-4 py-3">Version</th>
+                    <th className="px-4 py-3">Active Date</th>
+                    <th className="px-4 py-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredLicenses.length === 0 ? (
+                    <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">Belum ada data lisensi tersimpan untuk pilihan ini.</td></tr>
+                  ) : filteredLicenses.map((license) => (
+                    <tr key={`${license.serverId}-${license.licenseKey}`} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-bold text-slate-700">{license.serverHostname}</td>
+                      <td className="px-4 py-3 font-mono text-slate-500">#{license.no}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-slate-900">{license.licenseKey}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-700">{license.host || 'Unassigned'}</td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{license.ip || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{license.version || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{formatDate(license.date)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${license.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {license.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : (
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-extrabold text-slate-900"><Database className="h-5 w-5 text-purple-600" />Accurate Database</h2>
+              <p className="mt-1 text-xs text-slate-500">File database yang terakhir dilaporkan oleh accurate_agent.ps1 pada masing-masing server.</p>
+            </div>
+            {visibleServers.map((server) => (
+              <article key={server.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <span>Accurate ERP Firebird Database Engine & Files</span>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 text-[11px] font-mono font-bold">
-                        Port 3050 GDB
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-sans">
-                      {accurateDbInfo?.engine || 'Firebird SQL Server v2.5 Enterprise (64-bit)'} running on host{' '}
-                      <span className="font-mono font-bold text-slate-700">{accurateDbInfo?.serverHost || '192.168.10.160'}:3050</span>
-                    </p>
+                    <h3 className="font-extrabold text-slate-900">{server.hostname} <span className="font-mono text-xs font-normal text-slate-500">({server.ipAddress})</span></h3>
+                    <p className="mt-1 text-xs text-slate-500">{server.os || 'OS belum dilaporkan'} • Signal {formatDate(server.lastSeenAt)}</p>
+                  </div>
+                  <div className="flex gap-2 text-[11px] font-bold">
+                    <span className={`rounded-full px-2.5 py-1 ${server.isFirebirdActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>Firebird {server.isFirebirdActive ? 'aktif' : 'tidak aktif'}</span>
+                    <span className="rounded-full bg-purple-50 px-2.5 py-1 text-purple-700">{server.databases.length} database • {formatBytes(server.databases.reduce((sum, item) => sum + Number(item.fileSizeBytes), 0))}</span>
                   </div>
                 </div>
-
-                <div className="hidden sm:flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-mono font-bold flex items-center gap-1.5">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Firebird Status: Healthy</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Accurate Database Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="py-3.5 px-5">Database Name (.GDB)</th>
-                      <th className="py-3.5 px-4">Company Entity</th>
-                      <th className="py-3.5 px-4">File Size</th>
-                      <th className="py-3.5 px-4">Active Connections</th>
-                      <th className="py-3.5 px-4">Tables Count</th>
-                      <th className="py-3.5 px-5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-sans">
-                    {(accurateDbInfo?.databases || [
-                      {
-                        id: 1,
-                        dbName: 'ACCURATE_COMPANY_MAIN.GDB',
-                        companyName: 'PT CAHAYA METAL INDONESIA (OPERATIONAL MAIN)',
-                        sizeMb: '4850.50 MB',
-                        filePath: 'D:\\AccurateBackups\\ACCURATE_COMPANY_MAIN.GDB',
-                        status: 'Active / Online',
-                        activeConnections: 14,
-                        tablesCount: 148,
-                        lastBackupAt: new Date().toISOString(),
-                      },
-                      {
-                        id: 2,
-                        dbName: 'ACCURATE_COMPANY_FINANCE.GDB',
-                        companyName: 'PT CAHAYA METAL INDONESIA (FINANCE & TAX)',
-                        sizeMb: '1280.00 MB',
-                        filePath: 'D:\\AccurateBackups\\ACCURATE_COMPANY_FINANCE.GDB',
-                        status: 'Active / Online',
-                        activeConnections: 5,
-                        tablesCount: 112,
-                        lastBackupAt: new Date().toISOString(),
-                      },
-                    ]).map((dbItem) => (
-                      <tr key={dbItem.id} className="hover:bg-slate-50/70 transition-colors group">
-                        <td className="py-3.5 px-5 font-bold font-mono text-slate-900 group-hover:text-purple-600 transition-colors flex items-center gap-2">
-                          <HardDrive className="w-4 h-4 text-purple-600 shrink-0" />
-                          <span>{dbItem.dbName}</span>
-                        </td>
-
-                        <td className="py-3.5 px-4 font-semibold text-slate-800">
-                          {dbItem.companyName}
-                        </td>
-
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
-                          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200/60 text-[11px]">
-                            {dbItem.sizeMb}
-                          </span>
-                        </td>
-
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                          <span className="inline-flex items-center gap-1 text-slate-700">
-                            <Laptop className="w-3.5 h-3.5 text-slate-400" />
-                            {dbItem.activeConnections} active users
-                          </span>
-                        </td>
-
-                        <td className="py-3.5 px-4 text-slate-600 font-mono text-[11px]">
-                          {dbItem.tablesCount} tables
-                        </td>
-
-                        <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                            <span>{dbItem.status}</span>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* PANEL 2: INFRASTRUCTURE SERVER TOPOLOGY PANEL */}
-          {(activeTab === 'all' || activeTab === 'servers') && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-              {/* Panel Header */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Server className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                      <span>Infrastructure Server Topology Panel</span>
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                        Primary Core Nodes
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-sans mt-0.5">
-                      Monitored hardware servers, virtual machines, domain controllers, and backup repositories.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
-                  <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
-                  <span>Subnet 192.168.10.0/24</span>
-                </div>
-              </div>
-
-              {/* Servers Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="py-3.5 px-5">Server Code & Name</th>
-                      <th className="py-3.5 px-4">IP Address</th>
-                      <th className="py-3.5 px-4">Operating System</th>
-                      <th className="py-3.5 px-4">Hardware Specifications</th>
-                      <th className="py-3.5 px-4">Role / Notes</th>
-                      <th className="py-3.5 px-5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-sans">
-                    {loading ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-slate-200 bg-white text-[11px] uppercase text-slate-500">
                       <tr>
-                        <td colSpan={6} className="py-10 text-center text-slate-400">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                            <span className="font-mono text-xs text-slate-500">Loading Server Topology...</span>
-                          </div>
-                        </td>
+                        <th className="px-5 py-3">Database</th>
+                        <th className="px-4 py-3">Lokasi file</th>
+                        <th className="px-4 py-3">Ukuran</th>
+                        <th className="px-4 py-3">Terakhir berubah</th>
+                        <th className="px-5 py-3 text-right">Status</th>
                       </tr>
-                    ) : filteredServers.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-10 text-center">
-                          <div className="max-w-xs mx-auto text-slate-400 space-y-1.5">
-                            <Server className="w-8 h-8 mx-auto text-slate-300" />
-                            <p className="text-xs font-semibold text-slate-700">No servers found</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredServers.map((srv) => (
-                        <tr key={srv.id} className="hover:bg-slate-50/70 transition-colors group">
-                          {/* Server Code & Name */}
-                          <td className="py-4 px-5">
-                            <div className="space-y-0.5">
-                              <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
-                                <span className="font-mono px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200/80 text-[11px]">
-                                  {srv.serverCode}
-                                </span>
-                                <span>{srv.name}</span>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* IP Address */}
-                          <td className="py-4 px-4 font-mono text-slate-800">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200/80 font-bold text-[11px]">
-                              {srv.ipAddress}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {server.databases.length === 0 ? (
+                        <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400">Agent belum melaporkan file .gdb pada server ini.</td></tr>
+                      ) : server.databases.map((database) => (
+                        <tr key={database.id} className="hover:bg-slate-50">
+                          <td className="px-5 py-3 font-bold text-slate-900"><HardDrive className="mr-2 inline h-4 w-4 text-purple-600" />{database.dbName}</td>
+                          <td className="max-w-md truncate px-4 py-3 font-mono text-slate-600" title={database.filePath}>{database.filePath}</td>
+                          <td className="px-4 py-3 font-mono font-bold text-slate-700">{database.fileSizeFormatted}</td>
+                          <td className="px-4 py-3 font-mono text-slate-600">{formatDate(database.lastModifiedAt)}</td>
+                          <td className="px-5 py-3 text-right">
+                            <span className={`rounded-full px-2.5 py-1 font-bold ${database.status === 'Online' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                              {database.status}
                             </span>
                           </td>
 
-                          {/* OS */}
-                          <td className="py-4 px-4 font-medium text-slate-700">
-                            <div className="flex items-center gap-1.5">
-                              <HardDrive className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{srv.os}</span>
-                            </div>
-                          </td>
-
-                          {/* Specifications */}
-                          <td className="py-4 px-4 text-slate-600 font-mono text-[11px] max-w-[280px]">
-                            <div className="flex items-center gap-1.5">
-                              <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate" title={srv.specs}>{srv.specs}</span>
-                            </div>
-                          </td>
-
-                          {/* Notes */}
-                          <td className="py-4 px-4 text-slate-500 text-[11px] max-w-[220px] truncate" title={srv.notes || undefined}>
-                            {srv.notes || '—'}
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-4 px-5 text-right whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                              <span>{srv.status || 'Online'}</span>
-                            </span>
-                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* PANEL 3: DATABASE BACKUP LOGS PANEL */}
-          {(activeTab === 'all' || activeTab === 'backups') && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-              {/* Panel Header */}
-              <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <Database className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                      <span>Database Backup Logs Panel</span>
-                      <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-                        Veeam & Firebird GDB Vault
-                      </span>
-                    </h2>
-                    <p className="text-xs text-slate-500 font-sans mt-0.5">
-                      Automated nightly backups of Firebird Accurate `.GDB` databases and PostgreSQL ITSM instances.
-                    </p>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              </article>
+            ))}
+          </section>
+        )}
 
-                <div className="flex items-center gap-2 text-xs font-mono text-purple-700 font-semibold bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200">
-                  <CheckCircle2 className="w-4 h-4 text-purple-600" />
-                  <span>Verified Integrity</span>
-                </div>
-              </div>
-
-              {/* Database Backups Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="py-3.5 px-5">Target Database Name</th>
-                      <th className="py-3.5 px-4">Host Server</th>
-                      <th className="py-3.5 px-4">File Size</th>
-                      <th className="py-3.5 px-4">Backup File Destination</th>
-                      <th className="py-3.5 px-4">Completed Timestamp</th>
-                      <th className="py-3.5 px-5 text-right">Backup Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-sans">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={6} className="py-10 text-center text-slate-400">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-                            <span className="font-mono text-xs text-slate-500">Retrieving Backup History...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : filteredBackups.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-10 text-center">
-                          <div className="max-w-xs mx-auto text-slate-400 space-y-1.5">
-                            <Database className="w-8 h-8 mx-auto text-slate-300" />
-                            <p className="text-xs font-semibold text-slate-700">No database backup logs found</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredBackups.map((bkp) => (
-                        <tr key={bkp.id} className="hover:bg-slate-50/70 transition-colors group">
-                          {/* DB Name */}
-                          <td className="py-4 px-5 font-bold font-mono text-slate-900 group-hover:text-purple-700 transition-colors flex items-center gap-2">
-                            <Database className="w-4 h-4 text-purple-600 shrink-0" />
-                            <span>{bkp.dbName}</span>
-                          </td>
-
-                          {/* Server */}
-                          <td className="py-4 px-4 font-medium text-slate-800">
-                            <div className="space-y-0.5">
-                              <div className="text-xs font-semibold text-slate-800">
-                                {bkp.serverName || 'SVR-ERP-01'}
-                              </div>
-                              <div className="text-[10px] font-mono text-slate-500">
-                                {bkp.serverIp || '192.168.10.160'}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* File Size */}
-                          <td className="py-4 px-4 font-mono font-bold text-slate-700">
-                            <span className="px-2 py-1 rounded bg-slate-100 border border-slate-200/80">
-                              {formatSizeMb(bkp.sizeMb)}
-                            </span>
-                          </td>
-
-                          {/* Backup Path */}
-                          <td className="py-4 px-4 font-mono text-[11px] text-slate-600 max-w-[260px]">
-                            <div className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-lg border border-slate-200/60">
-                              <Terminal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate" title={bkp.backupPath}>{bkp.backupPath}</span>
-                            </div>
-                          </td>
-
-                          {/* Completed Timestamp */}
-                          <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
-                            {formatDate(bkp.completedAt)}
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-4 px-5 text-right whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono ${
-                                bkp.status === 'Success'
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-red-50 text-red-700 border border-red-200'
-                              }`}
-                            >
-                              {bkp.status === 'Success' ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              ) : (
-                                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                              )}
-                              <span>{bkp.status || 'Success'}</span>
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+        <footer className="flex items-center gap-2 text-xs text-slate-400">
+          <Activity className="h-4 w-4" />
+          Status online dihitung dari heartbeat agent tiga menit terakhir. Tidak ada data monitoring contoh yang ditampilkan.
+        </footer>
       </div>
     </DashboardLayout>
   );

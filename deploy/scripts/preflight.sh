@@ -33,6 +33,7 @@ set +a
 require_var "DATABASE_URL"
 require_var "JWT_SECRET"
 require_var "JWT_REFRESH_SECRET"
+require_var "AGENT_API_KEY"
 
 # 4. Check available disk space (require at least 500MB)
 AVAILABLE_KB=$(df -k . | awk 'NR==2 {print $4}')

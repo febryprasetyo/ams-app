@@ -21,7 +21,8 @@ import {
   HardDrive,
   Ticket,
   Key,
-  Server
+  Server,
+  Shapes
 } from 'lucide-react';
 
 interface NavItem {
@@ -42,6 +43,7 @@ const navGroups: NavGroup[] = [
     title: 'Master Data',
     items: [
       { name: 'Departments', href: '/dashboard/master/departments', icon: Building2 },
+      { name: 'IT Equipment Types', href: '/dashboard/master/equipment-types', icon: Shapes },
       { name: 'Locations', href: '/dashboard/master/locations', icon: MapPin },
       { name: 'Vendors', href: '/dashboard/master/vendors', icon: Store },
       { name: 'Employees', href: '/dashboard/master/employees', icon: Users },

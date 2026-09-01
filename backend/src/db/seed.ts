@@ -8,6 +8,7 @@ import { ticketCategories, slaPolicies, itTickets, ticketComments } from './sche
 import { softwareLicenses, licenseAllocations } from './schema/licenses';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
+import { DEFAULT_IT_EQUIPMENT_TYPES, shouldSeedDefaultEquipmentTypes } from '../domain/equipmentTypes';
 
 async function seed() {
   console.log('🌱 Starting database seed procedure...');
@@ -132,6 +133,20 @@ async function seed() {
       await db.insert(locations).values(loc);
       console.log(`  ✓ Inserted location: ${loc.name}`);
     }
+  }
+
+  // 4a. Seed the initial catalog; ongoing maintenance happens in the web app.
+  const insertedEquipmentTypes = await db.transaction(async (tx) => {
+    const existingEquipmentTypes = await tx
+      .select({ id: assetCategories.id })
+      .from(assetCategories)
+      .limit(1);
+    if (!shouldSeedDefaultEquipmentTypes(existingEquipmentTypes.length)) return [];
+
+    return tx.insert(assetCategories).values([...DEFAULT_IT_EQUIPMENT_TYPES]).returning();
+  });
+  for (const equipmentType of insertedEquipmentTypes) {
+    console.log(`  ✓ Inserted IT equipment type: ${equipmentType.name}`);
   }
 
   // 4b. Seed Vendors

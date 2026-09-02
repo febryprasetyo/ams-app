@@ -382,6 +382,20 @@ export async function createAsset(req: Request, res: Response) {
         throw new Error('Category not found');
       }
 
+      const normSerial = parsed.serialNumber && parsed.serialNumber.trim() ? parsed.serialNumber.trim() : null;
+
+      if (normSerial) {
+        const [existingSerial] = await tx
+          .select({ id: assets.id, assetCode: assets.assetCode })
+          .from(assets)
+          .where(sql`lower(trim(${assets.serialNumber})) = lower(${normSerial})`)
+          .limit(1);
+
+        if (existingSerial) {
+          throw new Error(`Serial number "${normSerial}" is already registered on asset "${existingSerial.assetCode}". Each device must have a unique serial number.`);
+        }
+      }
+
       let code = parsed.assetCode;
       if (!code || code.trim() === '') {
         code = await generateAssetCode(parsed.categoryId, tx);
@@ -394,7 +408,7 @@ export async function createAsset(req: Request, res: Response) {
           name: parsed.name,
           categoryId: parsed.categoryId,
           locationId: parsed.locationId ?? null,
-          serialNumber: parsed.serialNumber ?? null,
+          serialNumber: normSerial,
           status: parsed.status,
           condition: parsed.condition,
           notes: parsed.notes ?? null,
@@ -498,6 +512,30 @@ export async function updateAsset(req: Request, res: Response) {
       }
 
       const { computerSpecs, accessories, ...baseUpdateFields } = parsed;
+
+      if (baseUpdateFields.serialNumber !== undefined) {
+        const normSerial = baseUpdateFields.serialNumber && baseUpdateFields.serialNumber.trim()
+          ? baseUpdateFields.serialNumber.trim()
+          : null;
+        baseUpdateFields.serialNumber = normSerial;
+
+        if (normSerial) {
+          const [existingSerial] = await tx
+            .select({ id: assets.id, assetCode: assets.assetCode })
+            .from(assets)
+            .where(
+              and(
+                sql`lower(trim(${assets.serialNumber})) = lower(${normSerial})`,
+                ne(assets.id, id)
+              )
+            )
+            .limit(1);
+
+          if (existingSerial) {
+            throw new Error(`Serial number "${normSerial}" is already registered on asset "${existingSerial.assetCode}". Each device must have a unique serial number.`);
+          }
+        }
+      }
 
       if (Object.keys(baseUpdateFields).length > 0) {
         await tx

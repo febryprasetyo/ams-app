@@ -42,6 +42,13 @@
       "when": 1788255153110,
       "tag": "0005_busy_marrow",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788313744124,
+      "tag": "0006_fluffy_iron_monger",
+      "breakpoints": true
     }
   ],
   "version": "7"

@@ -27,7 +27,11 @@ export const assets = pgTable('assets', {
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('assets_serial_number_lower_unique')
+    .on(sql`lower(trim(${table.serialNumber}))`)
+    .where(sql`${table.serialNumber} IS NOT NULL AND trim(${table.serialNumber}) <> ''`),
+]);
 
 export const assetAssignmentHistory = pgTable('asset_assignment_history', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),

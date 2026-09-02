@@ -123,6 +123,7 @@ export function validateAssetImport(
   const categoryByName = new Map<string, CategoryLookup>();
   for (const cat of lookups.categories) {
     categoryByName.set(cat.name.trim().toLowerCase(), cat);
+    categoryByName.set(cat.codePrefix.trim().toLowerCase(), cat);
   }
 
   const locationByCode = new Map<string, LocationLookup>();
@@ -146,13 +147,14 @@ export function validateAssetImport(
     const rowNum = row.rowNumber;
     let rowHasError = false;
 
-    if (!row.computerReference) {
+    const effectiveCompRef = (row.computerReference || row.assetCode || '').trim();
+    if (!effectiveCompRef) {
       messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Computer Reference', type: 'error', message: 'Computer Reference is required' });
       rowHasError = true;
     } else {
-      const refKey = row.computerReference.toLowerCase();
+      const refKey = effectiveCompRef.toLowerCase();
       if (computerReferenceSet.has(refKey)) {
-        messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Computer Reference', type: 'error', message: `Duplicate Computer Reference "${row.computerReference}" in sheet` });
+        messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Computer Reference', type: 'error', message: `Duplicate Computer Reference "${effectiveCompRef}" in sheet` });
         rowHasError = true;
       } else {
         computerReferenceSet.add(refKey);
@@ -165,7 +167,9 @@ export function validateAssetImport(
       rowHasError = true;
     }
 
-    const category = categoryByName.get(devTypeNorm === 'laptop' ? 'laptop' : 'pc');
+    const category =
+      categoryByName.get(devTypeNorm) ||
+      (devTypeNorm === 'pc' ? categoryByName.get('desktop pc') || categoryByName.get('pc') : categoryByName.get('laptop') || categoryByName.get('lpt'));
     if (!category) {
       messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Device Type', type: 'error', message: `Equipment category for "${row.deviceType}" does not exist in master data` });
       rowHasError = true;
@@ -275,7 +279,7 @@ export function validateAssetImport(
     if (category) {
       resolvedLaptops.push({
         rowNumber: rowNum,
-        computerReference: row.computerReference,
+        computerReference: effectiveCompRef,
         categoryId: category.id,
         categoryName: category.name,
         categoryPrefix: category.codePrefix,
@@ -455,7 +459,7 @@ export function validateAssetImport(
 
     resolvedAccessories.push({
       rowNumber: rowNum,
-      computerReference: row.computerReference,
+      computerReference: row.computerReference.trim(),
       accessoryType: row.accessoryType,
       description: row.description,
       quantity: row.quantity,

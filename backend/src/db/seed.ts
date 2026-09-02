@@ -123,8 +123,9 @@ async function seed() {
 
   // 4. Seed Locations
   const defaultLocations = [
-    { code: 'JKT-HO', name: 'Head Office Jakarta', address: 'Jl. Jend. Sudirman No. 1, Jakarta' },
-    { code: 'SUB-BO', name: 'Branch Office Surabaya', address: 'Jl. Pemuda No. 45, Surabaya' },
+    { code: 'CMC', name: 'Cahaya Mas Cemerlang', address: '' },
+    { code: 'ARV', name: 'Arvirotech', address: '' },
+    { code: 'MGM', name: 'Multi Gas medika', address: '' },
   ];
 
   for (const loc of defaultLocations) {
@@ -152,8 +153,6 @@ async function seed() {
   // 4b. Seed Vendors
   const defaultVendors = [
     { name: 'Schneider Electric / AVEVA', contactName: 'Sales Schneider ID', email: 'sales.id@se.com', phone: '+6221500800', address: 'Jakarta' },
-    { name: 'Microsoft Corporation Indonesia', contactName: 'Volume Licensing Team', email: 'ms-licensing@microsoft.com', phone: '+62215155111', address: 'Jakarta' },
-    { name: 'Dell Technologies Indonesia', contactName: 'Enterprise Account Rep', email: 'sales@dell.co.id', phone: '+62211500858', address: 'Jakarta' },
   ];
 
   for (const vnd of defaultVendors) {

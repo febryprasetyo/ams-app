@@ -42,11 +42,18 @@ test('accessory rejects invalid conditions', () => {
   }));
 });
 
-test('computer type matching is case insensitive and limited to laptop or pc', () => {
+test('computer type matching covers laptop, desktop pc, workstation, and pc variations', () => {
   assert.equal(isComputerEquipmentType('Laptop'), true);
+  assert.equal(isComputerEquipmentType('Desktop PC'), true);
   assert.equal(isComputerEquipmentType('pc'), true);
   assert.equal(isComputerEquipmentType(' PC '), true);
   assert.equal(isComputerEquipmentType('laptop'), true);
+  assert.equal(isComputerEquipmentType('Mini PC'), true);
+  assert.equal(isComputerEquipmentType('Workstation'), true);
+  assert.equal(isComputerEquipmentType('Personal Computer'), true);
+  assert.equal(isComputerEquipmentType('Notebook'), true);
   assert.equal(isComputerEquipmentType('Printer'), false);
-  assert.equal(isComputerEquipmentType('Server'), false);
+  assert.equal(isComputerEquipmentType('Server Physical'), false);
+  assert.equal(isComputerEquipmentType('Monitor'), false);
+  assert.equal(isComputerEquipmentType('Other IT Equipment'), false);
 });

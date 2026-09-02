@@ -34,5 +34,19 @@ export type AssetDetailsInput = z.infer<typeof assetDetailsSchema>;
 export function isComputerEquipmentType(name?: string | null): boolean {
   if (!name) return false;
   const normalized = name.trim().toLowerCase();
-  return normalized === 'laptop' || normalized === 'pc';
+  return (
+    normalized === 'laptop' ||
+    normalized === 'pc' ||
+    normalized === 'desktop' ||
+    normalized === 'desktop pc' ||
+    normalized === 'pc desktop' ||
+    normalized === 'notebook' ||
+    normalized === 'workstation' ||
+    normalized === 'personal computer' ||
+    normalized === 'computer' ||
+    normalized.includes('laptop') ||
+    normalized.includes('desktop') ||
+    normalized.includes('notebook') ||
+    /\b(pc|computer|workstation)\b/i.test(normalized)
+  );
 }

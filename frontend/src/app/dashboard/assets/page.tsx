@@ -188,7 +188,7 @@ export default function AssetsPage() {
 
   // Determine if selected category is Laptop or PC
   const selectedCatObj = categories.find((c) => c.id === formCategoryId);
-  const isComputerType = isComputerCategoryName(selectedCatObj?.name);
+  const isComputerType = isComputerCategoryName(selectedCatObj?.name) || selectedCatObj?.codePrefix === 'PC' || selectedCatObj?.codePrefix === 'LPT';
 
   // Fetch Auxiliary Master Data
   const fetchAuxiliaryData = useCallback(async () => {

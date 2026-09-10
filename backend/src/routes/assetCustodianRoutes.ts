@@ -1,0 +1,16 @@
+import { Router } from 'express';
+import { authenticateToken, requireRoles } from '../middleware/auth';
+import { getCustodians, postCustodian, patchCustodian, resolveEmployee, linkEmployee, mergeCustodian, getReconciliationCandidates, getCustodianAssetsHandler } from '../controllers/assetCustodianController';
+const router = Router();
+router.use(authenticateToken);
+const admin = requireRoles('SuperAdmin', 'ITAdmin');
+const lifecycle = requireRoles('SuperAdmin', 'ITAdmin', 'ITStaff');
+router.get('/', lifecycle, getCustodians);
+router.get('/reconciliation-candidates', admin, getReconciliationCandidates);
+router.get('/:id/assets', lifecycle, getCustodianAssetsHandler);
+router.post('/resolve-employee', lifecycle, resolveEmployee);
+router.post('/', admin, postCustodian);
+router.patch('/:id', admin, patchCustodian);
+router.post('/:id/link-employee', admin, linkEmployee);
+router.post('/:id/merge', admin, mergeCustodian);
+export default router;

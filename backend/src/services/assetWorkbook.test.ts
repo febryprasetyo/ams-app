@@ -8,8 +8,39 @@ test('template exposes the four exact sheets and headers', async () => {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
   assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ['Petunjuk', 'Laptop-PC', 'Other Assets', 'Accessories']);
-  assert.equal(workbook.getWorksheet('Laptop-PC')!.getCell('A1').value, 'Computer Reference');
+  assert.deepEqual(
+    workbook.getWorksheet('Laptop-PC')!.getRow(1).values.slice(1),
+    [
+      'Computer Reference', 'Device Type', 'Asset Code', 'Asset Name', 'Serial Number',
+      'Location Code', 'Employee Code', 'Employee Name', 'Assigned Date', 'Condition',
+      'CPU Name', 'RAM Size (GB)', 'RAM Slot Count', 'Disk 1 Size (GB)',
+      'Disk 2 Size (GB)', 'Complaint / Notes',
+    ],
+  );
   assert.equal(workbook.getWorksheet('Accessories')!.getCell('F1').value, 'Notes');
+  const guideText = workbook.getWorksheet('Petunjuk')!.getColumn(3).values.join(' ');
+  assert.match(guideText, /Employee Name/);
+  assert.match(guideText, /opsional/i);
+});
+
+
+test('parser preserves blank and partial hardware specifications as nullable values', async () => {
+  const buffer = await buildAssetImportTemplate();
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as any);
+  workbook.getWorksheet('Laptop-PC')!.addRow([
+    'COMP-02', 'LAPTOP', '', 'Framework Laptop', '', '', '', 'External Contractor',
+    '', 'Good', '', '', 2, '', 1024, '',
+  ]);
+
+  const parsed = await parseAssetImportWorkbook(Buffer.from(await workbook.xlsx.writeBuffer()));
+
+  assert.deepEqual(parsed.laptopPcRows[0].cpuName, null);
+  assert.deepEqual(parsed.laptopPcRows[0].ramSizeGb, null);
+  assert.equal(parsed.laptopPcRows[0].ramSlotCount, 2);
+  assert.deepEqual(parsed.laptopPcRows[0].disk1SizeGb, null);
+  assert.equal(parsed.laptopPcRows[0].disk2SizeGb, 1024);
+  assert.equal(parsed.laptopPcRows[0].employeeName, 'External Contractor');
 });
 
 test('parser rejects formula cells', async () => {

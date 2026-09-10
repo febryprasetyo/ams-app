@@ -6,30 +6,34 @@ import { assetMaintenances } from '../db/schema/tickets';
 import { auditLogs } from '../db/schema/system';
 import { users } from '../db/schema/users';
 import { employees } from '../db/schema/employees';
+import { assetCustodians } from '../db/schema/assetCustodians';
+import { CustodianError, manualCustodianSchema, sendCustodianError } from '../domain/assetCustodian';
+import { lockCustodianDirectory, requireActiveCustodian, resolveCustodianSelection } from '../services/assetCustodian';
+import { hydrateAssetCustodians } from '../services/assetCustodianRead';
+import { assignmentActor, canCreateManualCustodian, writeAssetAssignment } from '../services/assetAssignment';
 import { departments, locations } from '../db/schema/master';
-import { eq, and, desc, isNull } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
 
 // --- Zod Schemas ---
-const assignAssetSchema = z
-  .object({
-    assignedToEmployeeId: z.number().optional().nullable(),
-    assignedToLocationId: z.number().optional().nullable(),
-    notes: z.string().optional().nullable(),
-    handoverNotes: z.string().optional().nullable(),
-    conditionOnAssign: z.string().optional().default('Good'),
-  })
-  .refine(
-    (data) => data.assignedToEmployeeId != null || data.assignedToLocationId != null || data.notes != null,
-    {
-      message: 'Either assignedToEmployeeId or assignedToLocationId must be provided',
-      path: ['assignedToEmployeeId'],
-    }
-  );
+const assignAssetSchema = z.object({
+  custodianId: z.number().int().positive().optional(),
+  newCustodian: manualCustodianSchema.optional(),
+  assignedToEmployeeId: z.never().optional(),
+  currentCustodianId: z.never().optional(),
+  assignedToLocationId: z.number().int().positive().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  handoverNotes: z.string().nullable().optional(),
+  conditionOnAssign: z.enum(['Good', 'Fair', 'Poor', 'Damaged']).optional(),
+}).refine(data => !(data.custodianId !== undefined && data.newCustodian !== undefined), {
+  message: 'Select one existing custodian or create one new holder',
+}).refine(data => data.custodianId !== undefined || data.newCustodian !== undefined || data.assignedToLocationId != null, {
+  message: 'A custodian or assignment location is required',
+});
 
 const unassignAssetSchema = z.object({
   returnNotes: z.string().optional().nullable(),
-  conditionOnReturn: z.string().optional().default('Good'),
+  conditionOnReturn: z.enum(['Good', 'Fair', 'Poor', 'Damaged']).optional(),
 });
 
 const logMaintenanceSchema = z.object({
@@ -54,183 +58,55 @@ const disposeAssetSchema = z.object({
 export async function assignAsset(req: AuthenticatedRequest, res: Response) {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid asset ID' });
-    }
-
-    const [existingAsset] = await db
-      .select()
-      .from(assets)
-      .where(eq(assets.id, id));
-
-    if (!existingAsset) {
-      return res.status(404).json({ error: 'Asset not found' });
-    }
-
+    if (!Number.isSafeInteger(id) || id <= 0) throw new CustodianError('Invalid asset ID');
     const parsed = assignAssetSchema.parse(req.body);
-
-    // If employee ID passed, check employee existence
-    if (parsed.assignedToEmployeeId) {
-      const [emp] = await db
-        .select()
-        .from(employees)
-        .where(eq(employees.id, parsed.assignedToEmployeeId));
-      if (!emp) {
-        return res.status(400).json({ error: 'Assigned employee not found' });
-      }
-    }
-
-    // If location ID passed, check location existence
-    if (parsed.assignedToLocationId) {
-      const [loc] = await db
-        .select()
-        .from(locations)
-        .where(eq(locations.id, parsed.assignedToLocationId));
-      if (!loc) {
-        return res.status(400).json({ error: 'Assigned location not found' });
-      }
-    }
-
-    const newLocationId = parsed.assignedToLocationId ?? existingAsset.locationId;
-    const newEmployeeId = parsed.assignedToEmployeeId ?? existingAsset.assignedToEmployeeId;
-    const newStatus = newEmployeeId ? 'Assigned' : 'Available';
-
-    // 1. Close open active assignment in history if any
-    await db
-      .update(assetAssignmentHistory)
-      .set({
-        returnedAt: new Date(),
-        conditionOnReturn: existingAsset.condition,
-        returnNotes: parsed.notes || 'Asset reassigned / returned',
-      })
-      .where(and(eq(assetAssignmentHistory.assetId, id), isNull(assetAssignmentHistory.returnedAt)));
-
-    // 2. Insert new assignment history row
-    if (newEmployeeId) {
-      await db.insert(assetAssignmentHistory).values({
-        assetId: id,
-        employeeId: newEmployeeId,
-        assignedByUserId: req.user?.userId || null,
-        assignedAt: new Date(),
-        conditionOnAssign: parsed.conditionOnAssign || existingAsset.condition || 'Good',
-        handoverNotes: parsed.handoverNotes || parsed.notes || 'Handed over device',
+    const actorId = assignmentActor(req);
+    const result = await db.transaction(async tx => {
+      await lockCustodianDirectory(tx);
+      const [existing] = await tx.select().from(assets).where(eq(assets.id, id)).for('update');
+      if (!existing) throw new CustodianError('Asset not found', 404);
+      if (['Disposed', 'Lost', 'Maintenance'].includes(existing.status)) throw new CustodianError('This asset is not available for assignment', 409);
+      const custodian = parsed.custodianId !== undefined || parsed.newCustodian !== undefined
+        ? await resolveCustodianSelection(tx, parsed, actorId, canCreateManualCustodian(req))
+        : existing.currentCustodianId ? await requireActiveCustodian(tx, existing.currentCustodianId) : null;
+      const updated = await writeAssetAssignment(tx, existing, custodian, actorId, {
+        locationId: parsed.assignedToLocationId ?? existing.locationId ?? custodian?.locationId ?? null,
+        conditionOnAssign: parsed.conditionOnAssign,
+        handoverNotes: parsed.handoverNotes,
+        notes: parsed.notes,
+        returnNotes: parsed.notes,
+        action: 'ASSIGN',
       });
-    }
-
-    // 3. Update main asset record
-    const [updatedAsset] = await db
-      .update(assets)
-      .set({
-        status: newStatus,
-        locationId: newLocationId,
-        assignedToEmployeeId: newEmployeeId,
-        notes: parsed.notes !== undefined ? parsed.notes : existingAsset.notes,
-        updatedAt: new Date(),
-      })
-      .where(eq(assets.id, id))
-      .returning();
-
-    // 4. Log audit action
-    await db.insert(auditLogs).values({
-      userId: req.user?.userId || null,
-      action: 'ASSIGN',
-      entity: 'ASSET',
-      entityId: id,
-      oldValues: {
-        status: existingAsset.status,
-        locationId: existingAsset.locationId,
-        assignedToEmployeeId: existingAsset.assignedToEmployeeId,
-      },
-      newValues: {
-        status: updatedAsset.status,
-        locationId: updatedAsset.locationId,
-        assignedToEmployeeId: updatedAsset.assignedToEmployeeId,
-        notes: updatedAsset.notes,
-      },
-      ipAddress: req.ip || null,
-      userAgent: req.get('user-agent') || null,
+      return (await hydrateAssetCustodians([updated], tx))[0];
     });
-
-    return res.status(200).json({
-      message: 'Asset assigned successfully',
-      asset: updatedAsset,
-    });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.issues });
-    }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(200).json({ message: 'Asset assigned successfully', asset: result });
+  } catch (err) {
+    if (sendCustodianError(res, err)) return;
+    return res.status(500).json({ error: 'Failed to assign asset' });
   }
 }
 
 export async function unassignAsset(req: AuthenticatedRequest, res: Response) {
   try {
     const id = Number(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid asset ID' });
-    }
-
-    const [existingAsset] = await db
-      .select()
-      .from(assets)
-      .where(eq(assets.id, id));
-
-    if (!existingAsset) {
-      return res.status(404).json({ error: 'Asset not found' });
-    }
-
+    if (!Number.isSafeInteger(id) || id <= 0) throw new CustodianError('Invalid asset ID');
     const parsed = unassignAssetSchema.parse(req.body || {});
-
-    // 1. Close open active assignment record in history
-    await db
-      .update(assetAssignmentHistory)
-      .set({
-        returnedAt: new Date(),
-        conditionOnReturn: parsed.conditionOnReturn || existingAsset.condition || 'Good',
-        returnNotes: parsed.returnNotes || 'Unassigned / Returned to available IT stock pool',
-      })
-      .where(and(eq(assetAssignmentHistory.assetId, id), isNull(assetAssignmentHistory.returnedAt)));
-
-    // 2. Reset asset state
-    const [updatedAsset] = await db
-      .update(assets)
-      .set({
-        status: 'Available',
-        assignedToEmployeeId: null,
-        condition: parsed.conditionOnReturn || existingAsset.condition,
-        updatedAt: new Date(),
-      })
-      .where(eq(assets.id, id))
-      .returning();
-
-    // 3. Log audit action
-    await db.insert(auditLogs).values({
-      userId: req.user?.userId || null,
-      action: 'UNASSIGN',
-      entity: 'ASSET',
-      entityId: id,
-      oldValues: {
-        status: existingAsset.status,
-        assignedToEmployeeId: existingAsset.assignedToEmployeeId,
-      },
-      newValues: {
-        status: 'Available',
-        assignedToEmployeeId: null,
-        returnNotes: parsed.returnNotes,
-      },
-      ipAddress: req.ip || null,
-      userAgent: req.get('user-agent') || null,
+    const actorId = assignmentActor(req);
+    const updated = await db.transaction(async tx => {
+      await lockCustodianDirectory(tx);
+      const [existing] = await tx.select().from(assets).where(eq(assets.id, id)).for('update');
+      if (!existing) throw new CustodianError('Asset not found', 404);
+      const asset = await writeAssetAssignment(tx, existing, null, actorId, {
+        conditionOnReturn: parsed.conditionOnReturn,
+        returnNotes: parsed.returnNotes ?? 'Returned to IT stock',
+        action: 'UNASSIGN',
+      });
+      return (await hydrateAssetCustodians([asset], tx))[0];
     });
-
-    return res.status(200).json({
-      message: 'Asset unassigned successfully and returned to stock',
-      asset: updatedAsset,
-    });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.issues });
-    }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(200).json({ message: 'Asset unassigned successfully and returned to stock', asset: updated });
+  } catch (err) {
+    if (sendCustodianError(res, err)) return;
+    return res.status(500).json({ error: 'Failed to unassign asset' });
   }
 }
 
@@ -305,7 +181,7 @@ export async function logMaintenance(req: AuthenticatedRequest, res: Response) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
     }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Asset operation failed' });
   }
 }
 
@@ -368,7 +244,7 @@ export async function disposeAsset(req: AuthenticatedRequest, res: Response) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
     }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Asset operation failed' });
   }
 }
 
@@ -393,9 +269,13 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
       .select({
         id: assetAssignmentHistory.id,
         assetId: assetAssignmentHistory.assetId,
-        employeeId: assetAssignmentHistory.employeeId,
+        custodianId: assetAssignmentHistory.custodianId,
+        custodianNameSnapshot: assetAssignmentHistory.custodianNameSnapshot,
+        locationNameSnapshot: assetAssignmentHistory.locationNameSnapshot,
+        assignedByUserId: assetAssignmentHistory.assignedByUserId,
+        employeeId: employees.id,
         employeeCode: employees.employeeCode,
-        employeeName: employees.fullName,
+        employeeName: assetAssignmentHistory.custodianNameSnapshot,
         employeePosition: employees.position,
         departmentName: departments.name,
         assignedByUsername: users.username,
@@ -407,7 +287,8 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
         returnNotes: assetAssignmentHistory.returnNotes,
       })
       .from(assetAssignmentHistory)
-      .leftJoin(employees, eq(assetAssignmentHistory.employeeId, employees.id))
+      .leftJoin(assetCustodians, eq(assetAssignmentHistory.custodianId, assetCustodians.id))
+      .leftJoin(employees, eq(assetCustodians.employeeId, employees.id))
       .leftJoin(departments, eq(employees.departmentId, departments.id))
       .leftJoin(users, eq(assetAssignmentHistory.assignedByUserId, users.id))
       .where(eq(assetAssignmentHistory.assetId, id))
@@ -462,6 +343,6 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
       auditLogs: logs,
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Asset operation failed' });
   }
 }

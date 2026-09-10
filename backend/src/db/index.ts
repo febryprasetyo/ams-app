@@ -6,6 +6,7 @@ import * as usersSchema from './schema/users';
 import * as masterSchema from './schema/master';
 import * as vendorsSchema from './schema/vendors';
 import * as employeesSchema from './schema/employees';
+import * as assetCustodiansSchema from './schema/assetCustodians';
 import * as assetsSchema from './schema/assets';
 import * as ticketsSchema from './schema/tickets';
 import * as licensesSchema from './schema/licenses';
@@ -37,6 +38,7 @@ export const db = drizzle(getPool(), {
     ...vendorsSchema,
     ...employeesSchema,
     ...assetsSchema,
+    ...assetCustodiansSchema,
     ...ticketsSchema,
     ...licensesSchema,
     ...infrastructureSchema,
@@ -66,6 +68,7 @@ export {
   vendorsSchema,
   employeesSchema,
   assetsSchema,
+  assetCustodiansSchema,
   ticketsSchema,
   licensesSchema,
   infrastructureSchema,

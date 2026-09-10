@@ -25,7 +25,8 @@ import {
   Laptop,
   Disc,
   CreditCard,
-  User as UserIcon
+  User as UserIcon,
+  MapPin
 } from 'lucide-react';
 
 export interface Vendor {
@@ -49,6 +50,12 @@ export interface Asset {
   status?: string;
 }
 
+export interface LocationItem {
+  id: number;
+  name: string;
+  code: string;
+}
+
 export interface SoftwareLicense {
   id: number;
   name: string;
@@ -56,6 +63,9 @@ export interface SoftwareLicense {
   licenseType?: string | null; // 'CD / Dongle', 'OEM Bundled', 'Subscription', 'Perpetual'
   vendorId?: number | null;
   vendorName?: string | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  locationCode?: string | null;
   totalSeats: number;
   usedSeats: number;
   purchaseDate?: string | null;
@@ -72,6 +82,8 @@ export default function LicensesPage() {
   // Data States
   const [licenses, setLicenses] = useState<SoftwareLicense[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
 
@@ -91,6 +103,7 @@ export default function LicensesPage() {
   const [formLicenseKey, setFormLicenseKey] = useState('');
   const [formLicenseType, setFormLicenseType] = useState<string>('Perpetual');
   const [formVendorId, setFormVendorId] = useState<number | ''>('');
+  const [formLocationId, setFormLocationId] = useState<number | ''>('');
   const [formTotalSeats, setFormTotalSeats] = useState<number>(1);
   const [formPurchaseDate, setFormPurchaseDate] = useState('');
   const [formExpirationDate, setFormExpirationDate] = useState('');
@@ -127,26 +140,29 @@ export default function LicensesPage() {
       if (selectedType) params.append('licenseType', selectedType);
       if (selectedStatus) params.append('status', selectedStatus);
       if (selectedVendor) params.append('vendorId', selectedVendor);
+      if (selectedLocation) params.append('locationId', selectedLocation);
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
 
-      const [licensesData, vendorsData, employeesData, assetsData] = await Promise.all([
+      const [licensesData, vendorsData, employeesData, assetsData, locationsData] = await Promise.all([
         api.get<SoftwareLicense[]>(`/licenses${queryString}`),
         api.get<Vendor[]>('/master/vendors').catch(() => []),
         api.get<Employee[]>('/employees').catch(() => []),
         api.get<Asset[]>('/assets').catch(() => []),
+        api.get<LocationItem[]>('/master/locations').catch(() => []),
       ]);
 
       setLicenses(licensesData || []);
       setVendors(vendorsData || []);
       setEmployees(employeesData || []);
       setAssets(assetsData || []);
+      setLocations(locationsData || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load software licenses');
     } finally {
       setLoading(false);
     }
-  }, [search, selectedType, selectedStatus, selectedVendor]);
+  }, [search, selectedType, selectedStatus, selectedVendor, selectedLocation]);
 
   useEffect(() => {
     fetchData();
@@ -174,6 +190,7 @@ export default function LicensesPage() {
     setFormLicenseKey('');
     setFormLicenseType('Perpetual');
     setFormVendorId('');
+    setFormLocationId('');
     setFormTotalSeats(1);
     setFormPurchaseDate('');
     setFormExpirationDate('');
@@ -191,6 +208,7 @@ export default function LicensesPage() {
     setFormLicenseKey(lic.licenseKey || '');
     setFormLicenseType(lic.licenseType || 'Perpetual');
     setFormVendorId(lic.vendorId || '');
+    setFormLocationId(lic.locationId || '');
     setFormTotalSeats(lic.totalSeats || 1);
     setFormPurchaseDate(lic.purchaseDate ? new Date(lic.purchaseDate).toISOString().split('T')[0] : '');
     setFormExpirationDate(lic.expirationDate ? new Date(lic.expirationDate).toISOString().split('T')[0] : '');
@@ -218,6 +236,7 @@ export default function LicensesPage() {
         licenseKey: formLicenseKey.trim() || null,
         licenseType: formLicenseType || null,
         vendorId: formVendorId !== '' ? Number(formVendorId) : null,
+        locationId: formLocationId !== '' ? Number(formLocationId) : null,
         totalSeats: Number(formTotalSeats) || 1,
         purchaseDate: formPurchaseDate ? formPurchaseDate : null,
         expirationDate: formExpirationDate ? formExpirationDate : null,
@@ -524,6 +543,22 @@ export default function LicensesPage() {
                 ))}
               </select>
             </div>
+
+            {/* Office Location / PT Filter */}
+            <div>
+              <select
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-slate-700"
+              >
+                <option value="">All Locations / PT</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.code} - {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -607,15 +642,17 @@ export default function LicensesPage() {
                             >
                               <span>{lic.name}</span>
                             </Link>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 inline-block">
-                                Key: {maskKey(lic.licenseKey)}
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                              <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 inline-flex items-center gap-1">
+                                <span className="text-slate-400 font-medium">Key:</span> {maskKey(lic.licenseKey)}
                               </span>
-                              {lic.notes && (
-                                <span className="text-[11px] text-slate-400 truncate max-w-[200px]" title={lic.notes}>
-                                  {lic.notes}
+                              <span className="text-[11px] font-sans text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60 inline-flex items-center gap-1.5 font-medium">
+                                <Building2 className="w-3 h-3 text-red-600 shrink-0" />
+                                <span className="text-slate-400 font-normal">Location:</span>
+                                <span className="font-semibold text-slate-800" title={lic.locationName ? `${lic.locationCode || ''} - ${lic.locationName}` : (lic.notes || 'Unassigned Location')}>
+                                  {lic.locationName ? (lic.locationCode ? `${lic.locationCode} - ${lic.locationName}` : lic.locationName) : (lic.notes || '—')}
                                 </span>
-                              )}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -852,6 +889,28 @@ export default function LicensesPage() {
                 </div>
               </div>
 
+              {/* Office Location / Entity (PT / Site) */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Office Location / Entity (PT / Site)</span>
+                  </label>
+                  <select
+                    value={formLocationId}
+                    onChange={(e) => setFormLocationId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-slate-900 font-medium"
+                  >
+                    <option value="">Select Office Location (PT / Site)</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.code} - {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Total Seats & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -919,7 +978,10 @@ export default function LicensesPage() {
 
               {/* Notes */}
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Notes / Physical Location</label>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Location / Notes</span>
+                </label>
                 <textarea
                   rows={2}
                   placeholder="e.g. USB Dongle placed in Server Room Rack A, Slot 2. Bound to Dell XPS laptop."

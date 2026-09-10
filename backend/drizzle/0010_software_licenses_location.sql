@@ -1,0 +1,1 @@
+ALTER TABLE "software_licenses" ADD COLUMN IF NOT EXISTS "location_id" bigint REFERENCES "locations"("id") ON DELETE SET NULL;

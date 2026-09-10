@@ -46,10 +46,9 @@ export function canSubmitAssetForm(input: AssetFormValues): boolean {
   if (!input.isEditing && !input.equipmentTypesAvailable) return false;
 
   if (input.isComputerType) {
-    if (!input.cpuName || !input.cpuName.trim()) return false;
-    if (input.ramSizeGb === undefined || input.ramSizeGb === '' || Number(input.ramSizeGb) <= 0) return false;
-    if (input.ramSlotCount === undefined || input.ramSlotCount === '' || Number(input.ramSlotCount) <= 0) return false;
-    if (input.disk1SizeGb === undefined || input.disk1SizeGb === '' || Number(input.disk1SizeGb) <= 0) return false;
+    if (input.ramSizeGb !== undefined && input.ramSizeGb !== '' && Number(input.ramSizeGb) <= 0) return false;
+    if (input.ramSlotCount !== undefined && input.ramSlotCount !== '' && Number(input.ramSlotCount) <= 0) return false;
+    if (input.disk1SizeGb !== undefined && input.disk1SizeGb !== '' && Number(input.disk1SizeGb) <= 0) return false;
     if (input.disk2SizeGb !== undefined && input.disk2SizeGb !== '' && Number(input.disk2SizeGb) <= 0) return false;
 
     if (input.accessories && input.accessories.length > 0) {
@@ -62,4 +61,27 @@ export function canSubmitAssetForm(input: AssetFormValues): boolean {
   }
 
   return true;
+}
+
+export function buildComputerSpecsPayload(
+  input: Pick<AssetFormValues, 'cpuName' | 'ramSizeGb' | 'ramSlotCount' | 'disk1SizeGb' | 'disk2SizeGb'>,
+): {
+  cpuName: string | null;
+  ramSizeGb: number | null;
+  ramSlotCount: number | null;
+  disk1SizeGb: number | null;
+  disk2SizeGb: number | null;
+} | undefined {
+  const cpuName = input.cpuName?.trim() || null;
+  const numberOrNull = (value: number | '' | undefined) => value === '' || value === undefined ? null : Number(value);
+  const ramSizeGb = numberOrNull(input.ramSizeGb);
+  const ramSlotCount = numberOrNull(input.ramSlotCount);
+  const disk1SizeGb = numberOrNull(input.disk1SizeGb);
+  const disk2SizeGb = numberOrNull(input.disk2SizeGb);
+
+  if (cpuName === null && ramSizeGb === null && ramSlotCount === null && disk1SizeGb === null && disk2SizeGb === null) {
+    return undefined;
+  }
+
+  return { cpuName, ramSizeGb, ramSlotCount, disk1SizeGb, disk2SizeGb };
 }

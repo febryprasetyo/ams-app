@@ -35,7 +35,8 @@ import {
   FileText,
   RefreshCw,
   CheckCircle2,
-  Sliders
+  Sliders,
+  MapPin,
 } from 'lucide-react';
 
 export interface Vendor {
@@ -82,6 +83,9 @@ export interface SoftwareLicenseDetail {
   licenseType?: string | null;
   vendorId?: number | null;
   vendorName?: string | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  locationCode?: string | null;
   totalSeats: number;
   usedSeats: number;
   purchaseDate?: string | null;
@@ -101,6 +105,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
   // Data States
   const [license, setLicense] = useState<SoftwareLicenseDetail | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [locations, setLocations] = useState<{ id: number; name: string; code: string }[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
 
@@ -131,6 +136,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
   const [formLicenseKey, setFormLicenseKey] = useState('');
   const [formLicenseType, setFormLicenseType] = useState('Perpetual');
   const [formVendorId, setFormVendorId] = useState<number | ''>('');
+  const [formLocationId, setFormLocationId] = useState<number | ''>('');
   const [formTotalSeats, setFormTotalSeats] = useState(1);
   const [formPurchaseDate, setFormPurchaseDate] = useState('');
   const [formExpirationDate, setFormExpirationDate] = useState('');
@@ -156,17 +162,19 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
       setLoading(true);
       setError(null);
 
-      const [licData, vendorsData, employeesData, assetsData] = await Promise.all([
+      const [licData, vendorsData, employeesData, assetsData, locationsData] = await Promise.all([
         api.get<SoftwareLicenseDetail>(`/licenses/${licenseId}`),
         api.get<Vendor[]>('/master/vendors').catch(() => []),
         api.get<Employee[]>('/employees').catch(() => []),
         api.get<Asset[]>('/assets').catch(() => []),
+        api.get<{ id: number; name: string; code: string }[]>('/master/locations').catch(() => []),
       ]);
 
       setLicense(licData);
       setVendors(vendorsData || []);
       setEmployees(employeesData || []);
       setAssets(assetsData || []);
+      setLocations(locationsData || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch software license details');
     } finally {
@@ -262,6 +270,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
     setFormLicenseKey(license.licenseKey || '');
     setFormLicenseType(license.licenseType || 'Perpetual');
     setFormVendorId(license.vendorId || '');
+    setFormLocationId(license.locationId || '');
     setFormTotalSeats(license.totalSeats || 1);
     setFormPurchaseDate(license.purchaseDate ? new Date(license.purchaseDate).toISOString().split('T')[0] : '');
     setFormExpirationDate(license.expirationDate ? new Date(license.expirationDate).toISOString().split('T')[0] : '');
@@ -291,6 +300,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
         licenseKey: formLicenseKey.trim() || null,
         licenseType: formLicenseType || null,
         vendorId: formVendorId !== '' ? Number(formVendorId) : null,
+        locationId: formLocationId !== '' ? Number(formLocationId) : null,
         totalSeats: Number(formTotalSeats) || 1,
         purchaseDate: formPurchaseDate ? formPurchaseDate : null,
         expirationDate: formExpirationDate ? formExpirationDate : null,
@@ -589,16 +599,30 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Notes Panel */}
-            {license.notes && (
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
+            {/* Office Location & Notes Panel */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
                 <p className="font-semibold text-slate-700 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Notes & Physical Location:</span>
+                  <Building2 className="w-3.5 h-3.5 text-red-600" />
+                  <span>Office Location / Entity (PT / Site):</span>
                 </p>
-                <p className="text-slate-600 leading-relaxed font-sans">{license.notes}</p>
+                <p className="text-slate-900 font-bold font-sans">
+                  {license.locationName
+                    ? (license.locationCode ? `${license.locationCode} - ${license.locationName}` : license.locationName)
+                    : 'Unassigned Location'}
+                </p>
               </div>
-            )}
+
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
+                <p className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Physical Notes / Cabinet:</span>
+                </p>
+                <p className="text-slate-600 leading-relaxed font-sans">
+                  {license.notes || 'No physical notes recorded.'}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Card 2: Seat Utilization Gauge */}
@@ -1087,6 +1111,28 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
+              {/* Office Location / PT Field */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Office Location / Entity (PT / Site)</span>
+                  </label>
+                  <select
+                    value={formLocationId}
+                    onChange={(e) => setFormLocationId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-slate-900 font-medium"
+                  >
+                    <option value="">Select Office Location (PT / Site)</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.code} - {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Total Seats</label>
@@ -1147,7 +1193,10 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Notes / Physical Location</label>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Location / Notes</span>
+                </label>
                 <textarea
                   rows={2}
                   value={formNotes}

@@ -29,19 +29,17 @@ export async function replaceAssetDetails(
     throw new Error('Computer specifications and accessories require a Laptop or PC category');
   }
 
-  if (computer && !input.computerSpecs) {
-    throw new Error('Computer specifications are required for Laptop or PC');
-  }
-
   await repository.deleteComputerSpecs(input.assetId);
   await repository.deleteAccessories(input.assetId);
 
   if (!computer) return;
 
-  await repository.insertComputerSpecs({
-    assetId: input.assetId,
-    ...input.computerSpecs!,
-  });
+  if (input.computerSpecs && Object.values(input.computerSpecs).some(value => value !== null && value !== undefined && value !== '')) {
+    await repository.insertComputerSpecs({
+      assetId: input.assetId,
+      ...input.computerSpecs,
+    });
+  }
 
   if (accessories.length > 0) {
     await repository.insertAccessories(

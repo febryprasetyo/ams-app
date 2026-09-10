@@ -4,12 +4,12 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { assetAccessories, assetComputerSpecs } from './schema/assets';
 
-test('computer specifications require one asset and canonical numeric fields', () => {
+test('computer specifications require one asset and allow every hardware field to be omitted', () => {
   assert.equal(assetComputerSpecs.assetId.notNull, true);
-  assert.equal(assetComputerSpecs.cpuName.notNull, true);
-  assert.equal(assetComputerSpecs.ramSizeGb.notNull, true);
-  assert.equal(assetComputerSpecs.ramSlotCount.notNull, true);
-  assert.equal(assetComputerSpecs.disk1SizeGb.notNull, true);
+  assert.equal(assetComputerSpecs.cpuName.notNull, false);
+  assert.equal(assetComputerSpecs.ramSizeGb.notNull, false);
+  assert.equal(assetComputerSpecs.ramSlotCount.notNull, false);
+  assert.equal(assetComputerSpecs.disk1SizeGb.notNull, false);
   assert.equal(assetComputerSpecs.disk2SizeGb.notNull, false);
 });
 

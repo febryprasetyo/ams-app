@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { locations } from './master';
 import { employees } from './employees';
 import { users } from './users';
+import { assetCustodians } from './assetCustodians';
 
 export const assetCategories = pgTable('asset_categories', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
@@ -20,6 +21,7 @@ export const assets = pgTable('assets', {
   name: varchar('brand', { length: 150 }).notNull(),
   categoryId: bigint('category_id', { mode: 'number' }).references(() => assetCategories.id).notNull(),
   locationId: bigint('location_id', { mode: 'number' }).references(() => locations.id),
+  currentCustodianId: bigint('current_custodian_id', { mode: 'number' }).references(() => assetCustodians.id),
   assignedToEmployeeId: bigint('current_user_id', { mode: 'number' }).references(() => employees.id),
   serialNumber: varchar('serial_number', { length: 100 }),
   status: varchar('status', { length: 30 }).default('Available').notNull(), // Available, Assigned, Maintenance, Disposed, Lost
@@ -35,7 +37,10 @@ export const assets = pgTable('assets', {
 
 export const assetAssignmentHistory = pgTable('asset_assignment_history', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id).notNull(),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id, { onDelete: 'cascade' }).notNull(),
+  custodianId: bigint('custodian_id', { mode: 'number' }).references(() => assetCustodians.id),
+  custodianNameSnapshot: varchar('custodian_name_snapshot', { length: 150 }),
+  locationNameSnapshot: varchar('location_name_snapshot', { length: 100 }),
   employeeId: bigint('employee_id', { mode: 'number' }).references(() => employees.id),
   assignedByUserId: bigint('assigned_by_user_id', { mode: 'number' }).references(() => users.id),
   assignedAt: timestamp('assigned_at').defaultNow().notNull(),
@@ -52,10 +57,10 @@ export const assetComputerSpecs = pgTable('asset_computer_specs', {
     .references(() => assets.id, { onDelete: 'cascade' })
     .notNull()
     .unique(),
-  cpuName: varchar('cpu_name', { length: 200 }).notNull(),
-  ramSizeGb: integer('ram_size_gb').notNull(),
-  ramSlotCount: integer('ram_slot_count').notNull(),
-  disk1SizeGb: integer('disk_1_size_gb').notNull(),
+  cpuName: varchar('cpu_name', { length: 200 }),
+  ramSizeGb: integer('ram_size_gb'),
+  ramSlotCount: integer('ram_slot_count'),
+  disk1SizeGb: integer('disk_1_size_gb'),
   disk2SizeGb: integer('disk_2_size_gb'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { canManageCustodians } from '@/lib/assetCustodian';
 import {
   Building2,
   MapPin,
@@ -22,7 +23,9 @@ import {
   Ticket,
   Key,
   Server,
-  Shapes
+  Shapes,
+  UserRoundCog,
+  GitMerge
 } from 'lucide-react';
 
 interface NavItem {
@@ -31,6 +34,7 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   disabled?: boolean;
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -47,6 +51,8 @@ const navGroups: NavGroup[] = [
       { name: 'Locations', href: '/dashboard/master/locations', icon: MapPin },
       { name: 'Vendors', href: '/dashboard/master/vendors', icon: Store },
       { name: 'Employees', href: '/dashboard/master/employees', icon: Users },
+      { name: 'Asset Custodians', href: '/dashboard/master/asset-custodians', icon: UserRoundCog, adminOnly: true },
+      { name: 'HR Reconciliation', href: '/dashboard/master/asset-custodians/reconciliation', icon: GitMerge, adminOnly: true },
     ],
   },
   {
@@ -90,8 +96,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const visibleNavGroups = navGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.adminOnly || canManageCustodians(user.roleName)),
+  }));
+
   // Get active item name for breadcrumb
-  const currentNavItem = navGroups
+  const currentNavItem = visibleNavGroups
     .flatMap((g) => g.items)
     .find((item) => item.href === pathname);
 
@@ -163,7 +174,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Navigation Group Section */}
         <div className="flex-1 py-3 px-3 space-y-6 overflow-y-auto custom-scrollbar">
-          {navGroups.map((group) => (
+          {visibleNavGroups.map((group) => (
             <div key={group.title} className="space-y-1">
               {!collapsed && (
                 <div className="px-3 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2">

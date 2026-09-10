@@ -2,6 +2,7 @@ import { pgTable, bigint, varchar, timestamp, text, integer, numeric } from 'dri
 import { employees } from './employees';
 import { assets } from './assets';
 import { vendors } from './vendors';
+import { locations } from './master';
 
 export const softwareLicenses = pgTable('software_licenses', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
@@ -13,6 +14,7 @@ export const softwareLicenses = pgTable('software_licenses', {
   usedSeats: integer('used_seats').default(0).notNull(),
   purchaseDate: timestamp('purchase_date'),
   expirationDate: timestamp('expiry_date'),
+  locationId: bigint('location_id', { mode: 'number' }).references(() => locations.id, { onDelete: 'set null' }),
   cost: numeric('purchase_price'),
   status: varchar('status', { length: 30 }).default('Active').notNull(),
   notes: text('notes'),
@@ -23,7 +25,7 @@ export const licenseAllocations = pgTable('license_allocations', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
   licenseId: bigint('license_id', { mode: 'number' }).references(() => softwareLicenses.id),
   employeeId: bigint('employee_id', { mode: 'number' }).references(() => employees.id),
-  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id, { onDelete: 'set null' }),
   allocatedAt: timestamp('allocated_at').defaultNow().notNull(),
   notes: text('notes'),
 });
@@ -43,7 +45,7 @@ export const accurateLicenses = pgTable('accurate_licenses', {
   licenseNumber: varchar('license_number', { length: 100 }).notNull().unique(),
   variant: varchar('variant', { length: 50 }), // Accurate 5 Desktop Standard, Executive, Deluxe
   employeeId: bigint('employee_id', { mode: 'number' }).references(() => employees.id),
-  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id, { onDelete: 'set null' }),
   status: varchar('status', { length: 30 }).default('Active').notNull(),
   registeredAt: timestamp('registered_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

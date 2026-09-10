@@ -1,4 +1,5 @@
 import { isComputerEquipmentType } from '../domain/assetDetails';
+import { findCustodianCandidates, normalizeCustodianName } from '../domain/assetCustodian';
 import type { ParsedAssetWorkbook } from './assetWorkbook';
 
 export interface EmployeeLookup {
@@ -7,6 +8,18 @@ export interface EmployeeLookup {
   fullName: string;
   locationId?: number | null;
   locationName?: string | null;
+}
+
+export interface CustodianLookup {
+  id: number;
+  displayName: string;
+  normalizedName: string;
+  origin: string;
+  verificationStatus: string;
+  employeeId?: number | null;
+  locationId?: number | null;
+  locationName?: string | null;
+  recordStatus: string;
 }
 
 export interface CategoryLookup {
@@ -23,6 +36,7 @@ export interface LocationLookup {
 
 export interface AssetImportLookups {
   employees: EmployeeLookup[];
+  custodians: CustodianLookup[];
   categories: CategoryLookup[];
   locations: LocationLookup[];
   existingAssetCodes: Set<string>;
@@ -37,6 +51,13 @@ export interface AssetImportRowMessage {
   message: string;
 }
 
+export interface CustodianResolution {
+  action: 'REUSE' | 'CREATE_MANUAL' | 'LINK_EMPLOYEE' | 'UNASSIGNED' | 'ERROR';
+  holderName: string | null;
+  custodianId?: number;
+  employeeId?: number;
+}
+
 export interface ResolvedLaptopAsset {
   rowNumber: number;
   computerReference: string;
@@ -47,16 +68,17 @@ export interface ResolvedLaptopAsset {
   name: string;
   serialNumber?: string | null;
   locationId?: number | null;
-  assignedToEmployeeId?: number | null;
+  locationName?: string | null;
+  custodianResolution: CustodianResolution;
   assignedDate?: string | null;
   status: string;
   condition: string;
   notes?: string | null;
   computerSpecs: {
-    cpuName: string;
-    ramSizeGb: number;
-    ramSlotCount: number;
-    disk1SizeGb: number;
+    cpuName?: string | null;
+    ramSizeGb?: number | null;
+    ramSlotCount?: number | null;
+    disk1SizeGb?: number | null;
     disk2SizeGb?: number | null;
   };
 }
@@ -71,7 +93,8 @@ export interface ResolvedOtherAsset {
   serialNumber?: string | null;
   assignmentType: string;
   locationId?: number | null;
-  assignedToEmployeeId?: number | null;
+  locationName?: string | null;
+  custodianResolution: CustodianResolution;
   assignedDate?: string | null;
   status: string;
   condition: string;
@@ -109,6 +132,98 @@ export interface AssetImportValidationResult {
 
 const VALID_CONDITIONS = new Set(['Good', 'Fair', 'Poor', 'Damaged']);
 
+function cleanHolderName(name: string): string {
+  return name.trim().replace(/\s+/gu, ' ');
+}
+
+function resolveCustodianPreview(
+  employeeCode: string | null | undefined,
+  employeeName: string | null | undefined,
+  employeesByCode: Map<string, EmployeeLookup>,
+  activeCustodians: CustodianLookup[],
+  context: Pick<AssetImportRowMessage, 'sheet' | 'rowNumber'>,
+  messages: AssetImportRowMessage[],
+): {
+  resolution: CustodianResolution;
+  defaultLocationId: number | null;
+  defaultLocationName: string | null;
+} {
+  const code = employeeCode?.trim();
+  const suppliedName = employeeName ? cleanHolderName(employeeName) : '';
+
+  if (code) {
+    const employee = employeesByCode.get(code.toLowerCase());
+    if (!employee) {
+      messages.push({ ...context, field: 'Employee Code', type: 'error', message: `Employee Code "${code}" not found` });
+      return { resolution: { action: 'ERROR', holderName: suppliedName || null }, defaultLocationId: null, defaultLocationName: null };
+    }
+
+    if (suppliedName && normalizeCustodianName(suppliedName) !== normalizeCustodianName(employee.fullName)) {
+      messages.push({ ...context, field: 'Employee Name', type: 'error', message: `Employee name "${suppliedName}" does not match master record "${employee.fullName}"` });
+      return {
+        resolution: { action: 'ERROR', holderName: suppliedName, employeeId: employee.id },
+        defaultLocationId: employee.locationId ?? null,
+        defaultLocationName: employee.locationName ?? null,
+      };
+    }
+
+    const employeeCustodians = activeCustodians.filter((custodian) => custodian.employeeId === employee.id);
+    if (employeeCustodians.length > 1) {
+      messages.push({ ...context, field: 'Employee Code', type: 'error', message: `Employee Code "${code}" resolves to multiple active custodians` });
+      return {
+        resolution: { action: 'ERROR', holderName: employee.fullName, employeeId: employee.id },
+        defaultLocationId: employee.locationId ?? null,
+        defaultLocationName: employee.locationName ?? null,
+      };
+    }
+
+    const existing = employeeCustodians[0];
+    return {
+      resolution: existing
+        ? { action: 'REUSE', holderName: existing.displayName, custodianId: existing.id, employeeId: employee.id }
+        : { action: 'LINK_EMPLOYEE', holderName: cleanHolderName(employee.fullName), employeeId: employee.id },
+      defaultLocationId: existing?.locationId ?? employee.locationId ?? null,
+      defaultLocationName: existing?.locationName ?? employee.locationName ?? null,
+    };
+  }
+
+  if (!suppliedName) {
+    return { resolution: { action: 'UNASSIGNED', holderName: null }, defaultLocationId: null, defaultLocationName: null };
+  }
+
+  const normalizedName = normalizeCustodianName(suppliedName);
+  const exact = activeCustodians.filter((custodian) => custodian.normalizedName === normalizedName);
+  if (exact.length > 1) {
+    messages.push({ ...context, field: 'Employee Name', type: 'error', message: `Employee name "${suppliedName}" matches multiple active custodians` });
+    return { resolution: { action: 'ERROR', holderName: suppliedName }, defaultLocationId: null, defaultLocationName: null };
+  }
+  if (exact.length === 1) {
+    const custodian = exact[0];
+    return {
+      resolution: {
+        action: 'REUSE',
+        holderName: custodian.displayName,
+        custodianId: custodian.id,
+        ...(custodian.employeeId != null ? { employeeId: custodian.employeeId } : {}),
+      },
+      defaultLocationId: custodian.locationId ?? null,
+      defaultLocationName: custodian.locationName ?? null,
+    };
+  }
+
+  const similar = findCustodianCandidates(suppliedName, activeCustodians)
+    .filter((custodian) => custodian.normalizedName !== normalizedName);
+  if (similar.length > 0) {
+    messages.push({
+      ...context,
+      field: 'Employee Name',
+      type: 'warning',
+      message: `Similar custodians exist (${similar.map((custodian) => custodian.displayName).join(', ')}); "${suppliedName}" will remain separate`,
+    });
+  }
+  return { resolution: { action: 'CREATE_MANUAL', holderName: suppliedName }, defaultLocationId: null, defaultLocationName: null };
+}
+
 export function validateAssetImport(
   workbook: ParsedAssetWorkbook,
   lookups: AssetImportLookups,
@@ -119,6 +234,8 @@ export function validateAssetImport(
   for (const emp of lookups.employees) {
     employeeByCode.set(emp.employeeCode.trim().toLowerCase(), emp);
   }
+
+  const activeCustodians = lookups.custodians.filter((custodian) => custodian.recordStatus === 'ACTIVE');
 
   const categoryByName = new Map<string, CategoryLookup>();
   for (const cat of lookups.categories) {
@@ -206,44 +323,29 @@ export function validateAssetImport(
       }
     }
 
-    let resolvedLocationId: number | null = null;
-    let resolvedEmployeeId: number | null = null;
-    let status = 'Available';
+    const holder = resolveCustodianPreview(
+      row.employeeCode,
+      row.employeeName,
+      employeeByCode,
+      activeCustodians,
+      { sheet: 'Laptop-PC', rowNumber: rowNum },
+      messages,
+    );
+    if (holder.resolution.action === 'ERROR') rowHasError = true;
 
-    if (row.employeeCode) {
-      const emp = employeeByCode.get(row.employeeCode.trim().toLowerCase());
-      if (!emp) {
-        messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Employee Code', type: 'error', message: `Employee Code "${row.employeeCode}" not found` });
+    let resolvedLocationId = holder.defaultLocationId;
+    let resolvedLocationName = holder.defaultLocationName;
+    if (row.locationCode) {
+      const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
+      if (!loc) {
+        messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
         rowHasError = true;
       } else {
-        resolvedEmployeeId = emp.id;
-        status = 'Assigned';
-        if (row.employeeName && row.employeeName.trim().toLowerCase() !== emp.fullName.trim().toLowerCase()) {
-          messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Employee Name', type: 'warning', message: `Employee name "${row.employeeName}" does not match master record "${emp.fullName}"` });
-        }
-        if (row.locationCode) {
-          const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
-          if (!loc) {
-            messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
-            rowHasError = true;
-          } else {
-            resolvedLocationId = loc.id;
-          }
-        } else {
-          resolvedLocationId = emp.locationId ?? null;
-        }
-      }
-    } else {
-      if (row.locationCode) {
-        const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
-        if (!loc) {
-          messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
-          rowHasError = true;
-        } else {
-          resolvedLocationId = loc.id;
-        }
+        resolvedLocationId = loc.id;
+        resolvedLocationName = loc.name;
       }
     }
+    const status = holder.resolution.action === 'UNASSIGNED' ? 'Available' : 'Assigned';
 
     const cond = (row.condition || '').trim();
     if (!VALID_CONDITIONS.has(cond)) {
@@ -251,23 +353,18 @@ export function validateAssetImport(
       rowHasError = true;
     }
 
-    if (!row.cpuName) {
-      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'CPU Name', type: 'error', message: 'CPU Name is required' });
+    if (row.ramSizeGb != null && row.ramSizeGb <= 0) {
+      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'RAM Size (GB)', type: 'error', message: 'RAM Size (GB) must be greater than 0 if provided' });
       rowHasError = true;
     }
 
-    if (!row.ramSizeGb || row.ramSizeGb <= 0) {
-      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'RAM Size (GB)', type: 'error', message: 'RAM Size (GB) must be greater than 0' });
+    if (row.ramSlotCount != null && row.ramSlotCount <= 0) {
+      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'RAM Slot Count', type: 'error', message: 'RAM Slot Count must be greater than 0 if provided' });
       rowHasError = true;
     }
 
-    if (!row.ramSlotCount || row.ramSlotCount <= 0) {
-      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'RAM Slot Count', type: 'error', message: 'RAM Slot Count must be greater than 0' });
-      rowHasError = true;
-    }
-
-    if (!row.disk1SizeGb || row.disk1SizeGb <= 0) {
-      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Disk 1 Size (GB)', type: 'error', message: 'Disk 1 Size (GB) must be greater than 0' });
+    if (row.disk1SizeGb != null && row.disk1SizeGb <= 0) {
+      messages.push({ sheet: 'Laptop-PC', rowNumber: rowNum, field: 'Disk 1 Size (GB)', type: 'error', message: 'Disk 1 Size (GB) must be greater than 0 if provided' });
       rowHasError = true;
     }
 
@@ -287,7 +384,8 @@ export function validateAssetImport(
         name: row.assetName,
         serialNumber: row.serialNumber,
         locationId: resolvedLocationId,
-        assignedToEmployeeId: resolvedEmployeeId,
+        locationName: resolvedLocationName,
+        custodianResolution: holder.resolution,
         assignedDate: row.assignedDate,
         status,
         condition: cond || 'Good',
@@ -355,52 +453,49 @@ export function validateAssetImport(
       rowHasError = true;
     }
 
-    let resolvedLocationId: number | null = null;
-    let resolvedEmployeeId: number | null = null;
-    let status = 'Available';
-
+    let holder: ReturnType<typeof resolveCustodianPreview> = {
+      resolution: { action: 'UNASSIGNED', holderName: null },
+      defaultLocationId: null,
+      defaultLocationName: null,
+    };
     if (assignTypeNorm === 'EMPLOYEE') {
-      if (!row.employeeCode) {
-        messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Employee Code', type: 'error', message: 'Employee Code is required when Assignment Type is EMPLOYEE' });
+      holder = resolveCustodianPreview(
+        row.employeeCode,
+        row.employeeName,
+        employeeByCode,
+        activeCustodians,
+        { sheet: 'Other Assets', rowNumber: rowNum },
+        messages,
+      );
+      if (holder.resolution.action === 'UNASSIGNED') {
+        messages.push({
+          sheet: 'Other Assets',
+          rowNumber: rowNum,
+          field: 'Employee Name',
+          type: 'error',
+          message: 'Employee Code or Employee Name is required when Assignment Type is EMPLOYEE',
+        });
+        holder.resolution = { action: 'ERROR', holderName: null };
+      }
+      if (holder.resolution.action === 'ERROR') rowHasError = true;
+    }
+
+    let resolvedLocationId = holder.defaultLocationId;
+    let resolvedLocationName = holder.defaultLocationName;
+    if (row.locationCode) {
+      const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
+      if (!loc) {
+        messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
         rowHasError = true;
       } else {
-        const emp = employeeByCode.get(row.employeeCode.trim().toLowerCase());
-        if (!emp) {
-          messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Employee Code', type: 'error', message: `Employee Code "${row.employeeCode}" not found` });
-          rowHasError = true;
-        } else {
-          resolvedEmployeeId = emp.id;
-          status = 'Assigned';
-          if (row.employeeName && row.employeeName.trim().toLowerCase() !== emp.fullName.trim().toLowerCase()) {
-            messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Employee Name', type: 'warning', message: `Employee name "${row.employeeName}" does not match master record "${emp.fullName}"` });
-          }
-          if (row.locationCode) {
-            const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
-            if (!loc) {
-              messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
-              rowHasError = true;
-            } else {
-              resolvedLocationId = loc.id;
-            }
-          } else {
-            resolvedLocationId = emp.locationId ?? null;
-          }
-        }
+        resolvedLocationId = loc.id;
+        resolvedLocationName = loc.name;
       }
     } else if (assignTypeNorm === 'SHARED') {
-      if (!row.locationCode) {
-        messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Location Code', type: 'error', message: 'Location Code is required when Assignment Type is SHARED' });
-        rowHasError = true;
-      } else {
-        const loc = locationByCode.get(row.locationCode.trim().toLowerCase());
-        if (!loc) {
-          messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Location Code', type: 'error', message: `Location Code "${row.locationCode}" not found` });
-          rowHasError = true;
-        } else {
-          resolvedLocationId = loc.id;
-        }
-      }
+      messages.push({ sheet: 'Other Assets', rowNumber: rowNum, field: 'Location Code', type: 'error', message: 'Location Code is required when Assignment Type is SHARED' });
+      rowHasError = true;
     }
+    const status = assignTypeNorm === 'EMPLOYEE' && holder.resolution.action !== 'ERROR' ? 'Assigned' : 'Available';
 
     const cond = (row.condition || '').trim();
     if (!VALID_CONDITIONS.has(cond)) {
@@ -419,7 +514,8 @@ export function validateAssetImport(
         serialNumber: row.serialNumber,
         assignmentType: assignTypeNorm,
         locationId: resolvedLocationId,
-        assignedToEmployeeId: resolvedEmployeeId,
+        locationName: resolvedLocationName,
+        custodianResolution: holder.resolution,
         assignedDate: row.assignedDate,
         status,
         condition: cond || 'Good',
@@ -492,14 +588,27 @@ export function validateAssetImport(
   };
 }
 
+export interface CommittedCustodian {
+  id: number;
+  displayName: string;
+  locationId?: number | null;
+}
+
 export interface AssetImportRepository {
+  resolveEmployeeCustodian(employeeId: number): Promise<CommittedCustodian>;
+  createManualCustodian(input: {
+    displayName: string;
+    locationId?: number | null;
+    duplicateAcknowledged: true;
+  }): Promise<CommittedCustodian>;
+  requireActiveCustodian(custodianId: number): Promise<CommittedCustodian>;
   allocateCodes(prefix: string, count: number): Promise<string[]>;
   insertAsset(data: {
     assetCode: string;
     name: string;
     categoryId: number;
     locationId?: number | null;
-    assignedToEmployeeId?: number | null;
+    currentCustodianId?: number | null;
     serialNumber?: string | null;
     status: string;
     condition: string;
@@ -507,10 +616,10 @@ export interface AssetImportRepository {
   }): Promise<number>;
   insertComputerSpecs(data: {
     assetId: number;
-    cpuName: string;
-    ramSizeGb: number;
-    ramSlotCount: number;
-    disk1SizeGb: number;
+    cpuName?: string | null;
+    ramSizeGb?: number | null;
+    ramSlotCount?: number | null;
+    disk1SizeGb?: number | null;
     disk2SizeGb?: number | null;
   }): Promise<void>;
   insertAccessories(data: Array<{
@@ -523,7 +632,9 @@ export interface AssetImportRepository {
   }>): Promise<void>;
   insertAssignmentHistory(data: {
     assetId: number;
-    employeeId: number;
+    custodianId: number;
+    custodianNameSnapshot: string;
+    locationNameSnapshot?: string | null;
     assignedDate: Date;
     action: string;
     assignedByUserId: number;
@@ -548,164 +659,238 @@ export interface AssetImportCommitResult {
   createdAssetIds: number[];
 }
 
+type ResolvedPersonAsset = ResolvedLaptopAsset | ResolvedOtherAsset;
+
+async function resolveCommitCustodians(
+  repository: AssetImportRepository,
+  rows: ResolvedPersonAsset[],
+): Promise<Map<ResolvedPersonAsset, CommittedCustodian | null>> {
+  const result = new Map<ResolvedPersonAsset, CommittedCustodian | null>();
+  const existingById = new Map<number, Promise<CommittedCustodian>>();
+  const employeeById = new Map<number, Promise<CommittedCustodian>>();
+  const manualByName = new Map<string, Promise<CommittedCustodian>>();
+
+  for (const row of rows) {
+    const resolution = row.custodianResolution;
+    let custodian: CommittedCustodian | null;
+
+    switch (resolution.action) {
+      case 'UNASSIGNED':
+        custodian = null;
+        break;
+      case 'ERROR':
+        throw new Error('Cannot commit invalid custodian resolution on row ' + row.rowNumber);
+      case 'REUSE': {
+        if (!resolution.custodianId) throw new Error('Missing custodian ID on row ' + row.rowNumber);
+        let pending = existingById.get(resolution.custodianId);
+        if (!pending) {
+          pending = repository.requireActiveCustodian(resolution.custodianId);
+          existingById.set(resolution.custodianId, pending);
+        }
+        custodian = await pending;
+        break;
+      }
+      case 'LINK_EMPLOYEE': {
+        if (!resolution.employeeId) throw new Error('Missing employee ID on row ' + row.rowNumber);
+        let pending = employeeById.get(resolution.employeeId);
+        if (!pending) {
+          pending = repository.resolveEmployeeCustodian(resolution.employeeId);
+          employeeById.set(resolution.employeeId, pending);
+        }
+        custodian = await pending;
+        break;
+      }
+      case 'CREATE_MANUAL': {
+        if (!resolution.holderName) throw new Error('Missing holder name on row ' + row.rowNumber);
+        const key = normalizeCustodianName(resolution.holderName);
+        let pending = manualByName.get(key);
+        if (!pending) {
+          pending = repository.createManualCustodian({
+            displayName: resolution.holderName,
+            locationId: row.locationId ?? null,
+            duplicateAcknowledged: true,
+          });
+          manualByName.set(key, pending);
+        }
+        custodian = await pending;
+        break;
+      }
+    }
+    result.set(row, custodian);
+  }
+  return result;
+}
+
+function hasComputerSpecifications(specs: ResolvedLaptopAsset['computerSpecs']): boolean {
+  return specs.cpuName != null
+    || specs.ramSizeGb != null
+    || specs.ramSlotCount != null
+    || specs.disk1SizeGb != null
+    || specs.disk2SizeGb != null;
+}
+
 export async function commitAssetImport(
   repository: AssetImportRepository,
   preview: AssetImportValidationResult,
   actor: { userId: number },
 ): Promise<AssetImportCommitResult> {
-  if (!preview.valid || preview.messages.some((m) => m.type === 'error')) {
+  if (!preview.valid || preview.messages.some((message) => message.type === 'error')) {
     throw new Error('Cannot commit invalid asset import workbook');
   }
 
   const { laptops, otherAssets, accessories } = preview.resolvedData;
+  const committedCustodians = await resolveCommitCustodians(repository, [...laptops, ...otherAssets]);
   const createdAssetIds: number[] = [];
   const compRefToAssetId = new Map<string, number>();
 
-  // Allocate codes for laptops without codes
-  const laptopsNeedingCodes = laptops.filter((l) => !l.assetCode);
+  const laptopsNeedingCodes = laptops.filter((laptop) => !laptop.assetCode);
   const laptopsByPrefix = new Map<string, typeof laptops>();
-  for (const lap of laptopsNeedingCodes) {
-    const list = laptopsByPrefix.get(lap.categoryPrefix) || [];
-    list.push(lap);
-    laptopsByPrefix.set(lap.categoryPrefix, list);
+  for (const laptop of laptopsNeedingCodes) {
+    const list = laptopsByPrefix.get(laptop.categoryPrefix) || [];
+    list.push(laptop);
+    laptopsByPrefix.set(laptop.categoryPrefix, list);
   }
 
   const allocatedLaptopCodes = new Map<ResolvedLaptopAsset, string>();
-  for (const [prefix, laps] of laptopsByPrefix.entries()) {
-    const codes = await repository.allocateCodes(prefix, laps.length);
-    laps.forEach((lap, idx) => allocatedLaptopCodes.set(lap, codes[idx]));
+  for (const [prefix, rows] of laptopsByPrefix.entries()) {
+    const codes = await repository.allocateCodes(prefix, rows.length);
+    rows.forEach((row, index) => allocatedLaptopCodes.set(row, codes[index]));
   }
 
-  // Insert Laptops
   let computersCreated = 0;
-  for (const lap of laptops) {
-    const assetCode = lap.assetCode || allocatedLaptopCodes.get(lap)!;
+  for (const laptop of laptops) {
+    const custodian = committedCustodians.get(laptop) ?? null;
+    const assetCode = laptop.assetCode || allocatedLaptopCodes.get(laptop)!;
     const assetId = await repository.insertAsset({
       assetCode,
-      name: lap.name,
-      categoryId: lap.categoryId,
-      locationId: lap.locationId,
-      assignedToEmployeeId: lap.assignedToEmployeeId,
-      serialNumber: lap.serialNumber,
-      status: lap.status,
-      condition: lap.condition,
-      notes: lap.notes,
+      name: laptop.name,
+      categoryId: laptop.categoryId,
+      locationId: laptop.locationId,
+      currentCustodianId: custodian?.id ?? null,
+      serialNumber: laptop.serialNumber,
+      status: custodian ? 'Assigned' : 'Available',
+      condition: laptop.condition,
+      notes: laptop.notes,
     });
 
     createdAssetIds.push(assetId);
-    compRefToAssetId.set(lap.computerReference.toLowerCase(), assetId);
+    compRefToAssetId.set(laptop.computerReference.toLowerCase(), assetId);
     computersCreated++;
 
-    // Computer specs
-    await repository.insertComputerSpecs({
-      assetId,
-      ...lap.computerSpecs,
-    });
+    if (hasComputerSpecifications(laptop.computerSpecs)) {
+      await repository.insertComputerSpecs({ assetId, ...laptop.computerSpecs });
+    }
 
-    // Assignment history
-    if (lap.assignedToEmployeeId) {
+    if (custodian) {
       await repository.insertAssignmentHistory({
         assetId,
-        employeeId: lap.assignedToEmployeeId,
-        assignedDate: lap.assignedDate ? new Date(lap.assignedDate) : new Date(),
+        custodianId: custodian.id,
+        custodianNameSnapshot: custodian.displayName,
+        locationNameSnapshot: laptop.locationName ?? null,
+        assignedDate: laptop.assignedDate ? new Date(laptop.assignedDate) : new Date(),
         action: 'ASSIGNED',
         assignedByUserId: actor.userId,
-        conditionOnAssignment: lap.condition,
-        handoverNotes: lap.notes,
+        conditionOnAssignment: laptop.condition,
+        handoverNotes: laptop.notes,
       });
     }
 
-    // Audit log
     await repository.insertAuditLog({
       action: 'CREATE',
-      entity: 'Asset',
+      entity: 'ASSET',
       entityId: assetId,
       performedBy: actor.userId,
-      details: JSON.stringify({ source: 'XLSX_IMPORT', assetCode, category: lap.categoryName }),
+      details: JSON.stringify({
+        source: 'XLSX_IMPORT',
+        assetCode,
+        category: laptop.categoryName,
+        custodianResolution: laptop.custodianResolution.action,
+        custodianId: custodian?.id ?? null,
+      }),
     });
   }
 
-  // Accessories grouped by computerReference
   let accessoriesCreated = 0;
   const accessoriesByRef = new Map<string, ResolvedAccessory[]>();
-  for (const acc of accessories) {
-    const key = acc.computerReference.toLowerCase();
+  for (const accessory of accessories) {
+    const key = accessory.computerReference.toLowerCase();
     const list = accessoriesByRef.get(key) || [];
-    list.push(acc);
+    list.push(accessory);
     accessoriesByRef.set(key, list);
   }
-
-  for (const [key, accList] of accessoriesByRef.entries()) {
+  for (const [key, rows] of accessoriesByRef.entries()) {
     const assetId = compRefToAssetId.get(key);
     if (!assetId) continue;
-
-    await repository.insertAccessories(
-      accList.map((a) => ({
-        assetId,
-        accessoryType: a.accessoryType,
-        description: a.description,
-        quantity: a.quantity,
-        condition: a.condition,
-        notes: a.notes,
-      })),
-    );
-    accessoriesCreated += accList.length;
+    await repository.insertAccessories(rows.map((row) => ({
+      assetId,
+      accessoryType: row.accessoryType,
+      description: row.description,
+      quantity: row.quantity,
+      condition: row.condition,
+      notes: row.notes,
+    })));
+    accessoriesCreated += rows.length;
   }
 
-  // Allocate codes for other assets without codes
-  const othersNeedingCodes = otherAssets.filter((o) => !o.assetCode);
+  const othersNeedingCodes = otherAssets.filter((asset) => !asset.assetCode);
   const othersByPrefix = new Map<string, typeof otherAssets>();
-  for (const oth of othersNeedingCodes) {
-    const list = othersByPrefix.get(oth.categoryPrefix) || [];
-    list.push(oth);
-    othersByPrefix.set(oth.categoryPrefix, list);
+  for (const asset of othersNeedingCodes) {
+    const list = othersByPrefix.get(asset.categoryPrefix) || [];
+    list.push(asset);
+    othersByPrefix.set(asset.categoryPrefix, list);
   }
 
   const allocatedOtherCodes = new Map<ResolvedOtherAsset, string>();
-  for (const [prefix, oths] of othersByPrefix.entries()) {
-    const codes = await repository.allocateCodes(prefix, oths.length);
-    oths.forEach((oth, idx) => allocatedOtherCodes.set(oth, codes[idx]));
+  for (const [prefix, rows] of othersByPrefix.entries()) {
+    const codes = await repository.allocateCodes(prefix, rows.length);
+    rows.forEach((row, index) => allocatedOtherCodes.set(row, codes[index]));
   }
 
-  // Insert Other Assets
   let otherAssetsCreated = 0;
-  for (const oth of otherAssets) {
-    const assetCode = oth.assetCode || allocatedOtherCodes.get(oth)!;
+  for (const asset of otherAssets) {
+    const custodian = committedCustodians.get(asset) ?? null;
+    const assetCode = asset.assetCode || allocatedOtherCodes.get(asset)!;
     const assetId = await repository.insertAsset({
       assetCode,
-      name: oth.name,
-      categoryId: oth.categoryId,
-      locationId: oth.locationId,
-      assignedToEmployeeId: oth.assignedToEmployeeId,
-      serialNumber: oth.serialNumber,
-      status: oth.status,
-      condition: oth.condition,
-      notes: oth.notes,
+      name: asset.name,
+      categoryId: asset.categoryId,
+      locationId: asset.locationId,
+      currentCustodianId: custodian?.id ?? null,
+      serialNumber: asset.serialNumber,
+      status: custodian ? 'Assigned' : 'Available',
+      condition: asset.condition,
+      notes: asset.notes,
     });
 
     createdAssetIds.push(assetId);
     otherAssetsCreated++;
 
-    // Assignment history if assigned to employee
-    if (oth.assignedToEmployeeId) {
+    if (custodian) {
       await repository.insertAssignmentHistory({
         assetId,
-        employeeId: oth.assignedToEmployeeId,
-        assignedDate: oth.assignedDate ? new Date(oth.assignedDate) : new Date(),
+        custodianId: custodian.id,
+        custodianNameSnapshot: custodian.displayName,
+        locationNameSnapshot: asset.locationName ?? null,
+        assignedDate: asset.assignedDate ? new Date(asset.assignedDate) : new Date(),
         action: 'ASSIGNED',
         assignedByUserId: actor.userId,
-        conditionOnAssignment: oth.condition,
-        handoverNotes: oth.notes,
+        conditionOnAssignment: asset.condition,
+        handoverNotes: asset.notes,
       });
     }
 
-    // Audit log
     await repository.insertAuditLog({
       action: 'CREATE',
-      entity: 'Asset',
+      entity: 'ASSET',
       entityId: assetId,
       performedBy: actor.userId,
-      details: JSON.stringify({ source: 'XLSX_IMPORT', assetCode, category: oth.categoryName }),
+      details: JSON.stringify({
+        source: 'XLSX_IMPORT',
+        assetCode,
+        category: asset.categoryName,
+        custodianResolution: asset.custodianResolution.action,
+        custodianId: custodian?.id ?? null,
+      }),
     });
   }
 

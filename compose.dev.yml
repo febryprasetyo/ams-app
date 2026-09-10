@@ -50,10 +50,11 @@ services:
       target: development
     container_name: ams_frontend_dev
     ports:
-      - "127.0.0.1:3000:3000"
+      - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:3000:3000"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:5000/api/v1}
     volumes:
       - ./frontend:/app
       - /app/node_modules

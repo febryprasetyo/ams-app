@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { Server } from 'node:http';
 import { createApp } from '../app';
 import { closeDatabase } from '../db';
-import { generateToken } from '../utils/jwt';
+import { createTestOperator } from '../testing/testOperator';
 
 type ApiResult = {
   status: number;
@@ -20,18 +20,9 @@ test('IT equipment type API enforces roles, validation, uniqueness, and referenc
   const updatedName = `Updated Equipment ${uniqueSuffix}`;
   const originalPrefix = `T${uniqueSuffix}`.slice(0, 20);
   const updatedPrefix = `U${uniqueSuffix}`.slice(0, 20);
-  const adminToken = generateToken({
-    userId: 1,
-    email: 'integration-admin@example.com',
-    roleId: 1,
-    roleName: 'SuperAdmin',
-  });
-  const employeeToken = generateToken({
-    userId: 2,
-    email: 'integration-employee@example.com',
-    roleId: 2,
-    roleName: 'Employee',
-  });
+  const operator = await createTestOperator();
+  const adminToken = operator.token();
+  const employeeToken = operator.token('Employee');
   let equipmentTypeId: number | null = null;
   let assetId: number | null = null;
   let raceTypeId: number | null = null;
@@ -121,6 +112,7 @@ test('IT equipment type API enforces roles, validation, uniqueness, and referenc
     if (raceTypeId !== null) await api(`/assets/categories/${raceTypeId}`, 'DELETE', undefined, adminToken).catch(() => undefined);
     for (const id of patternTypeIds) await api(`/assets/categories/${id}`, 'DELETE', undefined, adminToken).catch(() => undefined);
     await new Promise<void>((resolve) => (server as Server).close(() => resolve()));
+    await operator.cleanup();
     await closeDatabase();
   }
 });

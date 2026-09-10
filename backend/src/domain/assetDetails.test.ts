@@ -57,3 +57,13 @@ test('computer type matching covers laptop, desktop pc, workstation, and pc vari
   assert.equal(isComputerEquipmentType('Monitor'), false);
   assert.equal(isComputerEquipmentType('Other IT Equipment'), false);
 });
+
+test('computer specifications allow omitted, blank and partial fields', () => {
+  assert.deepEqual(computerSpecsSchema.parse({}), {});
+  assert.deepEqual(computerSpecsSchema.parse({ cpuName: '   ', ramSizeGb: null }), { cpuName: null, ramSizeGb: null });
+  assert.deepEqual(computerSpecsSchema.parse({ ramSizeGb: 16 }), { ramSizeGb: 16 });
+  assert.deepEqual(computerSpecsSchema.parse({ cpuName: '  Intel  ' }), { cpuName: 'Intel' });
+  assert.throws(() => computerSpecsSchema.parse({ ramSizeGb: 0 }));
+  assert.throws(() => computerSpecsSchema.parse({ ramSlotCount: 1.5 }));
+  assert.throws(() => computerSpecsSchema.parse({ disk1SizeGb: -1 }));
+});

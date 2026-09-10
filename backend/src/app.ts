@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import masterRoutes from './routes/masterRoutes';
 import employeeRoutes from './routes/employeeRoutes';
 import assetRoutes from './routes/assetRoutes';
+import assetCustodianRoutes from './routes/assetCustodianRoutes';
 import ticketRoutes from './routes/ticketRoutes';
 import licenseRoutes from './routes/licenseRoutes';
 import infrastructureRoutes from './routes/infrastructureRoutes';
@@ -45,6 +46,7 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use('/api/v1/master', masterRoutes);
   app.use('/api/v1/employees', employeeRoutes);
   app.use('/api/v1/assets', assetRoutes);
+  app.use('/api/v1/asset-custodians', assetCustodianRoutes);
   app.use('/api/v1/tickets', ticketRoutes);
   app.use('/api/v1/licenses', licenseRoutes);
   app.use('/api/v1/infrastructure', infrastructureRoutes);

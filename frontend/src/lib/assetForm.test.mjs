@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canSubmitAssetForm, isComputerCategoryName } from './assetForm.ts';
+import { buildComputerSpecsPayload, canSubmitAssetForm, isComputerCategoryName } from './assetForm.ts';
 
 const validLaptopForm = {
   assetName: 'ThinkPad T14',
@@ -68,16 +68,53 @@ test('an existing inventory item remains editable with its current equipment typ
   }), true);
 });
 
-test('Laptop requires complete computer specs but permits an empty Disk 2', () => {
+test('computer hardware specs may be blank or partial', () => {
   assert.equal(canSubmitAssetForm(validLaptopForm), true);
+  assert.equal(canSubmitAssetForm({
+    assetName: 'Laptop without known specs',
+    equipmentTypeId: 1,
+    isEditing: false,
+    equipmentTypesAvailable: true,
+    isComputerType: true,
+    cpuName: '',
+    ramSizeGb: '',
+    ramSlotCount: '',
+    disk1SizeGb: '',
+    disk2SizeGb: '',
+  }), true);
+  assert.equal(canSubmitAssetForm({
+    ...validLaptopForm,
+    cpuName: '',
+    ramSizeGb: 16,
+    ramSlotCount: '',
+    disk1SizeGb: '',
+  }), true);
+});
+
+test('supplied computer numeric values must be positive', () => {
   assert.equal(canSubmitAssetForm({ ...validLaptopForm, ramSizeGb: 0 }), false);
-  assert.equal(canSubmitAssetForm({ ...validLaptopForm, cpuName: ' ' }), false);
-  assert.equal(canSubmitAssetForm({ ...validLaptopForm, disk1SizeGb: '' }), false);
+  assert.equal(canSubmitAssetForm({ ...validLaptopForm, ramSlotCount: -1 }), false);
+  assert.equal(canSubmitAssetForm({ ...validLaptopForm, disk1SizeGb: 0 }), false);
+});
+
+test('blank computer specs are omitted and partial specs retain explicit nulls', () => {
+  assert.equal(buildComputerSpecsPayload({
+    cpuName: '', ramSizeGb: '', ramSlotCount: '', disk1SizeGb: '', disk2SizeGb: '',
+  }), undefined);
+  assert.deepEqual(buildComputerSpecsPayload({
+    cpuName: ' Intel Core i5 ', ramSizeGb: 16, ramSlotCount: '', disk1SizeGb: '', disk2SizeGb: 512,
+  }), {
+    cpuName: 'Intel Core i5',
+    ramSizeGb: 16,
+    ramSlotCount: null,
+    disk1SizeGb: null,
+    disk2SizeGb: 512,
+  });
 });
 
 test('Desktop PC supports full computer hardware specs and accessories', () => {
   assert.equal(canSubmitAssetForm(validPcForm), true);
-  assert.equal(canSubmitAssetForm({ ...validPcForm, cpuName: '' }), false);
+  assert.equal(canSubmitAssetForm({ ...validPcForm, cpuName: '' }), true);
   assert.equal(canSubmitAssetForm({ ...validPcForm, ramSlotCount: 0 }), false);
 });
 

@@ -5,9 +5,9 @@ const getBaseUrl = (): string => {
   }
   // Server-side rendering fallback
   return (
-    process.env.NEXT_PUBLIC_API_URL ||
     process.env.INTERNAL_API_URL ||
-    'http://localhost:5000/api/v1'
+    (process.env.NEXT_PUBLIC_API_URL?.startsWith("http") ? process.env.NEXT_PUBLIC_API_URL : undefined) ||
+    'http://127.0.0.1:5000/api/v1'
   );
 };
 
@@ -76,6 +76,13 @@ export const api = {
     apiFetch<T>(endpoint, {
       ...options,
       method: 'PUT',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+
+  patch: <T = any>(endpoint: string, body?: any, options?: ApiOptions) =>
+    apiFetch<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 

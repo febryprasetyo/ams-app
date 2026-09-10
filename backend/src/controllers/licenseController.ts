@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { softwareLicenses, licenseAllocations } from '../db/schema/licenses';
 import { vendors } from '../db/schema/vendors';
+import { locations } from '../db/schema/master';
 import { employees } from '../db/schema/employees';
 import { assets } from '../db/schema/assets';
 import { eq, ilike, or, and, desc } from 'drizzle-orm';
@@ -13,6 +14,7 @@ const createLicenseSchema = z.object({
   licenseKey: z.string().max(255).optional().nullable(),
   licenseType: z.string().max(50).optional().nullable(),
   vendorId: z.number().optional().nullable(),
+  locationId: z.number().optional().nullable(),
   totalSeats: z.number().int().min(1, 'Total seats must be at least 1').default(1),
   purchaseDate: z.string().optional().nullable().transform((val) => (val ? new Date(val) : null)),
   expirationDate: z.string().optional().nullable().transform((val) => (val ? new Date(val) : null)),
@@ -26,6 +28,7 @@ const updateLicenseSchema = z.object({
   licenseKey: z.string().max(255).optional().nullable(),
   licenseType: z.string().max(50).optional().nullable(),
   vendorId: z.number().optional().nullable(),
+  locationId: z.number().optional().nullable(),
   totalSeats: z.number().int().min(1).optional(),
   purchaseDate: z.string().optional().nullable().transform((val) => (val ? new Date(val) : val === null ? null : undefined)),
   expirationDate: z.string().optional().nullable().transform((val) => (val ? new Date(val) : val === null ? null : undefined)),
@@ -50,7 +53,7 @@ const allocateSeatSchema = z.object({
  */
 export async function getLicenses(req: Request, res: Response) {
   try {
-    const { search, licenseType, status, vendorId } = req.query;
+    const { search, licenseType, status, vendorId, locationId } = req.query;
 
     const conditions = [];
 
@@ -59,7 +62,10 @@ export async function getLicenses(req: Request, res: Response) {
       conditions.push(
         or(
           ilike(softwareLicenses.name, pattern),
-          ilike(softwareLicenses.licenseKey, pattern)
+          ilike(softwareLicenses.licenseKey, pattern),
+          ilike(softwareLicenses.notes, pattern),
+          ilike(locations.name, pattern),
+          ilike(locations.code, pattern)
         )
       );
     }
@@ -79,6 +85,13 @@ export async function getLicenses(req: Request, res: Response) {
       }
     }
 
+    if (locationId) {
+      const lId = Number(locationId);
+      if (!isNaN(lId)) {
+        conditions.push(eq(softwareLicenses.locationId, lId));
+      }
+    }
+
     const query = db
       .select({
         id: softwareLicenses.id,
@@ -87,6 +100,9 @@ export async function getLicenses(req: Request, res: Response) {
         licenseType: softwareLicenses.licenseType,
         vendorId: softwareLicenses.vendorId,
         vendorName: vendors.name,
+        locationId: softwareLicenses.locationId,
+        locationName: locations.name,
+        locationCode: locations.code,
         totalSeats: softwareLicenses.totalSeats,
         usedSeats: softwareLicenses.usedSeats,
         purchaseDate: softwareLicenses.purchaseDate,
@@ -97,7 +113,8 @@ export async function getLicenses(req: Request, res: Response) {
         createdAt: softwareLicenses.createdAt,
       })
       .from(softwareLicenses)
-      .leftJoin(vendors, eq(softwareLicenses.vendorId, vendors.id));
+      .leftJoin(vendors, eq(softwareLicenses.vendorId, vendors.id))
+      .leftJoin(locations, eq(softwareLicenses.locationId, locations.id));
 
     const list = conditions.length > 0
       ? await query.where(and(...conditions)).orderBy(desc(softwareLicenses.id))
@@ -128,6 +145,9 @@ export async function getLicenseById(req: Request, res: Response) {
         licenseType: softwareLicenses.licenseType,
         vendorId: softwareLicenses.vendorId,
         vendorName: vendors.name,
+        locationId: softwareLicenses.locationId,
+        locationName: locations.name,
+        locationCode: locations.code,
         totalSeats: softwareLicenses.totalSeats,
         usedSeats: softwareLicenses.usedSeats,
         purchaseDate: softwareLicenses.purchaseDate,
@@ -139,6 +159,7 @@ export async function getLicenseById(req: Request, res: Response) {
       })
       .from(softwareLicenses)
       .leftJoin(vendors, eq(softwareLicenses.vendorId, vendors.id))
+      .leftJoin(locations, eq(softwareLicenses.locationId, locations.id))
       .where(eq(softwareLicenses.id, id))
       .limit(1);
 
@@ -194,6 +215,7 @@ export async function createLicense(req: Request, res: Response) {
         licenseKey: parsed.licenseKey ?? null,
         licenseType: parsed.licenseType ?? null,
         vendorId: parsed.vendorId ?? null,
+        locationId: parsed.locationId ?? null,
         totalSeats: parsed.totalSeats,
         usedSeats: 0,
         purchaseDate: parsed.purchaseDate ?? null,
@@ -241,6 +263,7 @@ export async function updateLicense(req: Request, res: Response) {
     if (parsed.licenseKey !== undefined) updatePayload.licenseKey = parsed.licenseKey;
     if (parsed.licenseType !== undefined) updatePayload.licenseType = parsed.licenseType;
     if (parsed.vendorId !== undefined) updatePayload.vendorId = parsed.vendorId;
+    if (parsed.locationId !== undefined) updatePayload.locationId = parsed.locationId;
     if (parsed.totalSeats !== undefined) updatePayload.totalSeats = parsed.totalSeats;
     if (parsed.purchaseDate !== undefined) updatePayload.purchaseDate = parsed.purchaseDate;
     if (parsed.expirationDate !== undefined) updatePayload.expirationDate = parsed.expirationDate;

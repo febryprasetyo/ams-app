@@ -54,10 +54,10 @@ export interface ParsedLaptopPcRow {
   employeeName?: string | null;
   assignedDate?: string | null;
   condition: string;
-  cpuName: string;
-  ramSizeGb: number;
-  ramSlotCount: number;
-  disk1SizeGb: number;
+  cpuName?: string | null;
+  ramSizeGb?: number | null;
+  ramSlotCount?: number | null;
+  disk1SizeGb?: number | null;
   disk2SizeGb?: number | null;
   complaintNotes?: string | null;
   raw: Record<string, unknown>;
@@ -191,9 +191,9 @@ export async function buildAssetImportTemplate(): Promise<Buffer> {
 
   guideSheet.addRows([
     { no: 1, section: 'Laptop-PC', description: 'Gunakan sheet ini untuk mendaftarkan aset Komputer / Laptop. Kolom Computer Reference (misal: COMP-01) bersifat unik per komputer dan digunakan pada sheet Accessories untuk menghubungkan aksesoris.' },
-    { no: 2, section: 'Laptop-PC (Wajib)', description: 'Computer Reference, Device Type (LAPTOP / PC), Asset Name, Condition, CPU Name, RAM Size (GB), RAM Slot Count, Disk 1 Size (GB) wajib diisi. Disk 2 Size bersifat opsional.' },
-    { no: 3, section: 'Laptop-PC (Assignment)', description: 'Jika ditugaskan ke karyawan, isi Employee Code (misal: EMP-001) dan Assigned Date. Location Code opsional (akan mengambil lokasi karyawan jika kosong).' },
-    { no: 4, section: 'Other Assets', description: 'Gunakan sheet ini untuk printer, scanner, monitor, proyektor, server, UPS, dll. Assignment Type: EMPLOYEE (jika dipegang staf) atau SHARED (jika dipakai bersama di suatu lokasi).' },
+    { no: 2, section: 'Laptop-PC (Wajib)', description: 'Computer Reference, Device Type (LAPTOP / PC), Asset Name, dan Condition wajib diisi. Semua kolom spesifikasi hardware bersifat opsional; angka yang diisi harus lebih besar dari 0.' },
+    { no: 3, section: 'Laptop-PC (Assignment)', description: 'Isi Employee Code untuk holder resmi HR, atau Employee Name saja untuk holder manual tanpa data HR. Kosongkan keduanya untuk aset yang belum ditugaskan. Assigned Date dan Location Code opsional.' },
+    { no: 4, section: 'Other Assets', description: 'Gunakan sheet ini untuk printer, scanner, monitor, proyektor, server, UPS, dll. Untuk Assignment Type EMPLOYEE, isi Employee Code atau Employee Name; nama saja membuat holder manual. SHARED memerlukan Location Code.' },
     { no: 5, section: 'Accessories', description: 'Gunakan sheet ini untuk mendaftarkan aksesoris yang melekat pada laptop/PC (misal: Mouse, Charger, Tas, Docking, Adaptor). Computer Reference harus cocok dengan yang ada di sheet Laptop-PC.' },
     { no: 6, section: 'Ketentuan Umum', description: 'Jangan mengubah nama sheet atau urutan kolom header. Seluruh rumus/formula Excel dilarang dan akan ditolak validator.' },
   ]);
@@ -315,10 +315,10 @@ export async function parseAssetImportWorkbook(buffer: Buffer): Promise<ParsedAs
     const employeeName = getScalarString(row.getCell(8), 'Laptop-PC');
     const assignedDate = formatDateValue(row.getCell(9).value);
     const condition = getScalarString(row.getCell(10), 'Laptop-PC') ?? 'Good';
-    const cpuName = getScalarString(row.getCell(11), 'Laptop-PC') ?? '';
-    const ramSizeGb = getScalarNumber(row.getCell(12), 'Laptop-PC') ?? 0;
-    const ramSlotCount = getScalarNumber(row.getCell(13), 'Laptop-PC') ?? 0;
-    const disk1SizeGb = getScalarNumber(row.getCell(14), 'Laptop-PC') ?? 0;
+    const cpuName = getScalarString(row.getCell(11), 'Laptop-PC');
+    const ramSizeGb = getScalarNumber(row.getCell(12), 'Laptop-PC');
+    const ramSlotCount = getScalarNumber(row.getCell(13), 'Laptop-PC');
+    const disk1SizeGb = getScalarNumber(row.getCell(14), 'Laptop-PC');
     const disk2SizeGb = getScalarNumber(row.getCell(15), 'Laptop-PC');
     const complaintNotes = getScalarString(row.getCell(16), 'Laptop-PC');
 

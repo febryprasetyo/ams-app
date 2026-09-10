@@ -49,6 +49,20 @@
       "when": 1788313744124,
       "tag": "0006_fluffy_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789016270087,
+      "tag": "0007_asset_custodians",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789017260231,
+      "tag": "0008_optional_computer_specs",
+      "breakpoints": true
     }
   ],
   "version": "7"

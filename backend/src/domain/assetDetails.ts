@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const computerSpecsSchema = z.object({
-  cpuName: z.string().trim().min(1, 'CPU name is required').max(200),
-  ramSizeGb: z.number().int().positive('RAM size must be greater than 0'),
-  ramSlotCount: z.number().int().positive('RAM slot count must be greater than 0'),
-  disk1SizeGb: z.number().int().positive('Disk 1 size must be greater than 0'),
+  cpuName: z.string().trim().max(200).transform(value => value || null).nullable().optional(),
+  ramSizeGb: z.number().int().positive('RAM size must be greater than 0').nullable().optional(),
+  ramSlotCount: z.number().int().positive('RAM slot count must be greater than 0').nullable().optional(),
+  disk1SizeGb: z.number().int().positive('Disk 1 size must be greater than 0').nullable().optional(),
   disk2SizeGb: z.number().int().positive('Disk 2 size must be greater than 0').nullable().optional(),
 });
 

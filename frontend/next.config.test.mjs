@@ -8,6 +8,7 @@ test("allows localhost, loopback, and LAN hosts to load development assets", () 
   assert.ok(nextConfig.allowedDevOrigins?.includes("127.0.0.1"));
   assert.ok(nextConfig.allowedDevOrigins?.includes("localhost"));
   assert.ok(nextConfig.allowedDevOrigins?.includes("192.168.10.212"));
+  assert.ok(nextConfig.allowedDevOrigins?.includes("192.168.20.53"));
 });
 
 test("proxies same-origin API requests to the local backend in development", async () => {

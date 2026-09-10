@@ -30,7 +30,7 @@ export const itTickets = pgTable('it_tickets', {
   status: varchar('status', { length: 30 }).default('Open').notNull(), // Open, In Progress, Pending, Resolved, Closed
   reporterId: bigint('reporter_id', { mode: 'number' }).notNull(),
   assigneeId: bigint('assignee_id', { mode: 'number' }).references(() => users.id),
-  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id, { onDelete: 'set null' }),
   dueAt: timestamp('due_at'),
   resolvedAt: timestamp('resolved_at'),
   resolutionNotes: text('resolution_notes'),
@@ -49,7 +49,7 @@ export const ticketComments = pgTable('ticket_comments', {
 
 export const assetMaintenances = pgTable('asset_maintenances', {
   id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id).notNull(),
+  assetId: bigint('asset_id', { mode: 'number' }).references(() => assets.id, { onDelete: 'cascade' }).notNull(),
   maintenanceType: varchar('maintenance_type', { length: 30 }).notNull(), // Preventive, Corrective
   title: varchar('title', { length: 200 }).notNull(),
   description: text('description'),

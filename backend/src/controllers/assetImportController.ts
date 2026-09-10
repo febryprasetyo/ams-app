@@ -10,6 +10,7 @@ import {
 import { locations } from '../db/schema/master';
 import { auditLogs } from '../db/schema/system';
 import { employees } from '../db/schema/employees';
+import { assetCustodians } from '../db/schema/assetCustodians';
 import { eq, isNotNull, sql, ilike } from 'drizzle-orm';
 import { buildAssetImportTemplate, parseAssetImportWorkbook } from '../services/assetWorkbook';
 import {
@@ -19,9 +20,16 @@ import {
   type AssetImportRepository,
 } from '../services/assetImport';
 import { allocateSequentialCodes } from '../domain/assetCode';
+import { sendCustodianError } from '../domain/assetCustodian';
+import {
+  createManualCustodian,
+  lockCustodianDirectory,
+  requireActiveCustodian,
+  resolveEmployeeCustodian,
+} from '../services/assetCustodian';
 
 async function loadAssetImportLookups(runner: any = db): Promise<AssetImportLookups> {
-  const [empRows, catRows, locRows, codeRows, snRows] = await Promise.all([
+  const [empRows, custodianRows, catRows, locRows, codeRows, snRows] = await Promise.all([
     runner
       .select({
         id: employees.id,
@@ -31,7 +39,23 @@ async function loadAssetImportLookups(runner: any = db): Promise<AssetImportLook
         locationName: locations.name,
       })
       .from(employees)
-      .leftJoin(locations, eq(employees.locationId, locations.id)),
+      .leftJoin(locations, eq(employees.locationId, locations.id))
+      .where(ilike(employees.status, 'active')),
+    runner
+      .select({
+        id: assetCustodians.id,
+        displayName: assetCustodians.displayName,
+        normalizedName: assetCustodians.normalizedName,
+        origin: assetCustodians.origin,
+        verificationStatus: assetCustodians.verificationStatus,
+        employeeId: assetCustodians.employeeId,
+        locationId: assetCustodians.locationId,
+        locationName: locations.name,
+        recordStatus: assetCustodians.recordStatus,
+      })
+      .from(assetCustodians)
+      .leftJoin(locations, eq(assetCustodians.locationId, locations.id))
+      .where(eq(assetCustodians.recordStatus, 'ACTIVE')),
     runner
       .select({
         id: assetCategories.id,
@@ -52,6 +76,7 @@ async function loadAssetImportLookups(runner: any = db): Promise<AssetImportLook
 
   return {
     employees: empRows,
+    custodians: custodianRows,
     categories: catRows,
     locations: locRows,
     existingAssetCodes: new Set(codeRows.map((r: any) => r.code)),
@@ -116,10 +141,34 @@ export async function commitAssetImportUpload(req: Request, res: Response) {
       }
 
       const repository: AssetImportRepository = {
+        resolveEmployeeCustodian: async (employeeId: number) => {
+          const custodian = await resolveEmployeeCustodian(tx, employeeId, userId);
+          return {
+            id: custodian.id,
+            displayName: custodian.displayName,
+            locationId: custodian.locationId,
+          };
+        },
+        createManualCustodian: async (input) => {
+          const custodian = await createManualCustodian(tx, input, userId);
+          return {
+            id: custodian.id,
+            displayName: custodian.displayName,
+            locationId: custodian.locationId,
+          };
+        },
+        requireActiveCustodian: async (custodianId: number) => {
+          const custodian = await requireActiveCustodian(tx, custodianId);
+          return {
+            id: custodian.id,
+            displayName: custodian.displayName,
+            locationId: custodian.locationId,
+          };
+        },
         allocateCodes: async (prefix: string, count: number) => {
           const year = new Date().getFullYear();
           await tx.execute(
-            sql`SELECT pg_advisory_xact_lock(hashtext('asset_code_seq'), hashtext(${prefix + '-' + year}))`
+            sql`SELECT pg_advisory_xact_lock(hashtext('asset_code_seq'), hashtext(${prefix + "-" + year}))`
           );
           const pattern = `${prefix}-${year}-%`;
           const existing = await tx
@@ -138,7 +187,7 @@ export async function commitAssetImportUpload(req: Request, res: Response) {
               name: data.name,
               categoryId: data.categoryId,
               locationId: data.locationId ?? null,
-              assignedToEmployeeId: data.assignedToEmployeeId ?? null,
+              currentCustodianId: data.currentCustodianId ?? null,
               serialNumber: data.serialNumber ?? null,
               status: data.status,
               condition: data.condition,
@@ -148,12 +197,14 @@ export async function commitAssetImportUpload(req: Request, res: Response) {
           return inserted.id;
         },
         insertComputerSpecs: async (data) => {
+          const hasSpec = data.cpuName || data.ramSizeGb || data.ramSlotCount || data.disk1SizeGb || data.disk2SizeGb;
+          if (!hasSpec) return;
           await tx.insert(assetComputerSpecs).values({
             assetId: data.assetId,
-            cpuName: data.cpuName,
-            ramSizeGb: data.ramSizeGb,
-            ramSlotCount: data.ramSlotCount,
-            disk1SizeGb: data.disk1SizeGb,
+            cpuName: data.cpuName ?? null,
+            ramSizeGb: data.ramSizeGb ?? null,
+            ramSlotCount: data.ramSlotCount ?? null,
+            disk1SizeGb: data.disk1SizeGb ?? null,
             disk2SizeGb: data.disk2SizeGb ?? null,
           });
         },
@@ -173,10 +224,12 @@ export async function commitAssetImportUpload(req: Request, res: Response) {
         insertAssignmentHistory: async (data) => {
           await tx.insert(assetAssignmentHistory).values({
             assetId: data.assetId,
-            employeeId: data.employeeId,
+            custodianId: data.custodianId,
+            custodianNameSnapshot: data.custodianNameSnapshot,
+            locationNameSnapshot: data.locationNameSnapshot ?? null,
             assignedAt: data.assignedDate,
             assignedByUserId: data.assignedByUserId,
-            conditionOnAssign: data.conditionOnAssignment ?? 'Good',
+            conditionOnAssign: data.conditionOnAssignment ?? "Good",
             handoverNotes: data.handoverNotes ?? null,
           });
         },
@@ -196,9 +249,10 @@ export async function commitAssetImportUpload(req: Request, res: Response) {
 
     return res.status(200).json(commitResult);
   } catch (err: any) {
-    if (err.message && err.message.startsWith('Validation failed')) {
+    if (sendCustodianError(res, err)) return;
+    if (err.message && err.message.startsWith("Validation failed")) {
       return res.status(400).json({ error: err.message });
     }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: err.message || "Internal server error" });
   }
 }

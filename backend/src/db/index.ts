@@ -12,6 +12,7 @@ import * as ticketsSchema from './schema/tickets';
 import * as licensesSchema from './schema/licenses';
 import * as infrastructureSchema from './schema/infrastructure';
 import * as systemSchema from './schema/system';
+import * as hardwareAuditsSchema from './schema/hardwareAudits';
 
 let poolInstance: Pool | null = null;
 
@@ -43,6 +44,7 @@ export const db = drizzle(getPool(), {
     ...licensesSchema,
     ...infrastructureSchema,
     ...systemSchema,
+    ...hardwareAuditsSchema,
   },
 });
 
@@ -73,4 +75,5 @@ export {
   licensesSchema,
   infrastructureSchema,
   systemSchema,
+  hardwareAuditsSchema,
 };

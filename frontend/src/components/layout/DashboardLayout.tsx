@@ -20,6 +20,7 @@ import {
   Search,
   Bell,
   HardDrive,
+  Cpu,
   Ticket,
   Key,
   Server,
@@ -59,6 +60,7 @@ const navGroups: NavGroup[] = [
     title: 'Asset Lifecycle',
     items: [
       { name: 'IT Inventory', href: '/dashboard/assets', icon: HardDrive },
+      { name: 'Hardware Audits', href: '/dashboard/hardware-audits', icon: Cpu },
       { name: 'Software Licenses', href: '/dashboard/licenses', icon: Key },
     ],
   },

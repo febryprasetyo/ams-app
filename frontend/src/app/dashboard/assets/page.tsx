@@ -642,6 +642,15 @@ export default function AssetsPage() {
                   <span>Template</span>
                 </button>
 
+                <Link
+                  href="/dashboard/hardware-audits"
+                  className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  title="Lihat antrean scan hardware dari portable tool flashdisk"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Hardware Audits</span>
+                </Link>
+
                 <button
                   onClick={handleOpenImportModal}
                   className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"

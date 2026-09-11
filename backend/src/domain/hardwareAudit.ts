@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+export const hardwareAuditPeripheralSchema = z.object({
+  category: z.string().trim().min(1, 'Category is required').max(100),
+  presetCategory: z.string().trim().max(50).nullable().optional(),
+  customCategory: z.string().trim().max(100).transform((v: string | null | undefined) => v || null).nullable().optional(),
+  brandModel: z.string().trim().min(1, 'Brand & Model is required').max(200),
+  serialNumber: z.string().trim().max(100).transform((v: string | null | undefined) => (!v || v === '-' || v.toUpperCase() === 'UNKNOWN' ? null : v)).nullable().optional(),
+});
+
+export type HardwareAuditPeripheral = z.infer<typeof hardwareAuditPeripheralSchema>;
+
 export const hardwareAuditPayloadSchema = z.object({
   custodianName: z.string().trim().min(1, 'Custodian name is required').max(150),
   serialNumber: z.string().trim().max(100).transform(v => v || null).nullable().optional(),
@@ -12,6 +22,11 @@ export const hardwareAuditPayloadSchema = z.object({
   disk2SizeGb: z.number().int().positive().nullable().optional(),
   rawSpecs: z.any().nullable().optional(),
   notes: z.string().trim().transform(v => v || null).nullable().optional(),
+  hasPeripheral: z.boolean().default(false).optional(),
+  peripherals: z.array(hardwareAuditPeripheralSchema).default([]).optional(),
+  osName: z.string().trim().max(100).transform(v => v || null).nullable().optional(),
+  hostname: z.string().trim().max(100).transform(v => v || null).nullable().optional(),
+  macAddresses: z.string().trim().max(255).transform(v => v || null).nullable().optional(),
   scannedAt: z.string().nullable().optional(),
 });
 

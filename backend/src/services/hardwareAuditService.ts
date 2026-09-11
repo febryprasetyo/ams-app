@@ -1,12 +1,18 @@
 import { eq, sql, ilike, and, or, desc, isNull, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { assets, assetCategories, assetComputerSpecs, assetAssignmentHistory } from '../db/schema/assets';
+import { assets, assetCategories, assetComputerSpecs, assetAccessories, assetAssignmentHistory } from '../db/schema/assets';
 import { assetCustodians } from '../db/schema/assetCustodians';
-import { hardwareAuditLogs, type HardwareAuditLog } from '../db/schema/hardwareAudits';
+import {
+  hardwareAuditLogs,
+  hardwareAuditPeripherals,
+  type HardwareAuditLog,
+  type HardwareAuditPeripheralRecord,
+} from '../db/schema/hardwareAudits';
 import { isComputerEquipmentType } from '../domain/assetDetails';
 import { allocateSequentialCodes } from '../domain/assetCode';
 import type {
   HardwareAuditPayload,
+  HardwareAuditPeripheral,
   BatchHardwareAuditPayload,
   LinkAssetAuditInput,
   CreateAssetFromAuditInput,
@@ -85,6 +91,20 @@ export async function processHardwareAuditIngest(
         })
         .returning();
 
+      if (payload.peripherals && payload.peripherals.length > 0) {
+        await runner.insert(hardwareAuditPeripherals).values(
+          payload.peripherals.map((p) => ({
+            auditId: insertedAudit.id,
+            category: p.category,
+            presetCategory: p.presetCategory || null,
+            customCategory: p.customCategory || null,
+            brandModel: p.brandModel,
+            serialNumber: p.serialNumber || null,
+          })),
+        );
+        await syncPeripheralsToAssetAccessories(matchedAsset.id, payload.peripherals, runner);
+      }
+
       return {
         auditId: insertedAudit.id,
         status: 'SYNCED_AUTO',
@@ -121,6 +141,19 @@ export async function processHardwareAuditIngest(
       scannedAt,
     })
     .returning();
+
+  if (payload.peripherals && payload.peripherals.length > 0) {
+    await runner.insert(hardwareAuditPeripherals).values(
+      payload.peripherals.map((p) => ({
+        auditId: insertedAudit.id,
+        category: p.category,
+        presetCategory: p.presetCategory || null,
+        customCategory: p.customCategory || null,
+        brandModel: p.brandModel,
+        serialNumber: p.serialNumber || null,
+      })),
+    );
+  }
 
   return {
     auditId: insertedAudit.id,
@@ -166,7 +199,7 @@ export async function processBatchHardwareAudit(
 export async function getHardwareAudits(
   statusFilter?: string,
   runner: any = db,
-): Promise<Array<HardwareAuditLog & { candidateAssets?: AuditCandidateAsset[]; matchedAsset?: any }>> {
+): Promise<Array<HardwareAuditLog & { candidateAssets?: AuditCandidateAsset[]; matchedAsset?: any; peripherals?: HardwareAuditPeripheralRecord[] }>> {
   let query = runner.select().from(hardwareAuditLogs);
 
   if (statusFilter && statusFilter.toUpperCase() !== 'ALL') {
@@ -174,6 +207,20 @@ export async function getHardwareAudits(
   }
 
   const rows: HardwareAuditLog[] = await query.orderBy(desc(hardwareAuditLogs.scannedAt), desc(hardwareAuditLogs.id));
+
+  const auditIds = rows.map((r) => r.id);
+  const peripheralsMap = new Map<number, HardwareAuditPeripheralRecord[]>();
+  if (auditIds.length > 0) {
+    const allPeripherals: HardwareAuditPeripheralRecord[] = await runner
+      .select()
+      .from(hardwareAuditPeripherals)
+      .where(inArray(hardwareAuditPeripherals.auditId, auditIds));
+    for (const p of allPeripherals) {
+      const list = peripheralsMap.get(p.auditId) || [];
+      list.push(p);
+      peripheralsMap.set(p.auditId, list);
+    }
+  }
 
   // Ambil data pendukung untuk tiap baris
   const enriched = await Promise.all(
@@ -201,6 +248,7 @@ export async function getHardwareAudits(
         ...audit,
         matchedAsset,
         candidateAssets,
+        peripherals: peripheralsMap.get(audit.id) || [],
       };
     }),
   );
@@ -282,9 +330,27 @@ export async function linkAuditToAsset(
     })
     .where(eq(hardwareAuditLogs.id, audit.id));
 
+  // 4. Sinkronkan periferal terkait ke daftar aksesori aset
+  const attachedPeripherals = await runner
+    .select()
+    .from(hardwareAuditPeripherals)
+    .where(eq(hardwareAuditPeripherals.auditId, audit.id));
+
+  if (attachedPeripherals.length > 0) {
+    const accValues = attachedPeripherals.map((p: any) => ({
+      assetId: targetAsset.id,
+      accessoryType: p.category,
+      description: p.brandModel,
+      quantity: 1,
+      condition: 'Good',
+      notes: p.serialNumber ? `S/N: ${p.serialNumber}` : 'Linked from Hardware Audit',
+    }));
+    await runner.insert(assetAccessories).values(accValues);
+  }
+
   return {
     success: true,
-    message: `Spesifikasi hardware berhasil ditautkan ke aset ${targetAsset.assetCode}`,
+    message: `Spesifikasi hardware${attachedPeripherals.length > 0 ? ` dan ${attachedPeripherals.length} periferal` : ''} berhasil ditautkan ke aset ${targetAsset.assetCode}`,
     assetId: targetAsset.id,
   };
 }
@@ -389,6 +455,24 @@ export async function createAssetFromAudit(
   // Simpan specs
   if (isComputerEquipmentType(category.name)) {
     await upsertAssetComputerSpecs(newAsset.id, audit, runner);
+  }
+
+  // Simpan peripherals sebagai accessories
+  const attachedPeripherals = await runner
+    .select()
+    .from(hardwareAuditPeripherals)
+    .where(eq(hardwareAuditPeripherals.auditId, audit.id));
+
+  if (attachedPeripherals.length > 0) {
+    const accValues = attachedPeripherals.map((p: any) => ({
+      assetId: newAsset.id,
+      accessoryType: p.category,
+      description: p.brandModel,
+      quantity: 1,
+      condition: 'Good',
+      notes: p.serialNumber ? `S/N: ${p.serialNumber}` : 'Created from Hardware Audit',
+    }));
+    await runner.insert(assetAccessories).values(accValues);
   }
 
   // Simpan initial assignment history jika ada custodian
@@ -535,3 +619,21 @@ async function findCandidateAssetsForCustodian(
     custodianName: custodianMap.get(a.currentCustodianId) || null,
   }));
 }
+
+async function syncPeripheralsToAssetAccessories(
+  assetId: number,
+  peripherals: HardwareAuditPeripheral[],
+  runner: any,
+): Promise<void> {
+  if (!peripherals || peripherals.length === 0) return;
+  const values = peripherals.map((p) => ({
+    assetId,
+    accessoryType: p.category,
+    description: p.brandModel,
+    quantity: 1,
+    condition: 'Good',
+    notes: p.serialNumber ? `S/N: ${p.serialNumber}` : 'From Hardware Audit',
+  }));
+  await runner.insert(assetAccessories).values(values);
+}
+

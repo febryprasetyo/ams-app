@@ -29,7 +29,21 @@ import {
   X,
   Disc,
   Filter,
+  Printer,
+  Scan,
+  Monitor,
+  Package,
 } from 'lucide-react';
+
+export interface HardwareAuditPeripheral {
+  id?: number;
+  auditId?: number;
+  category: string;
+  presetCategory?: string | null;
+  customCategory?: string | null;
+  brandModel: string;
+  serialNumber?: string | null;
+}
 
 interface CandidateAsset {
   id: number;
@@ -63,6 +77,8 @@ interface HardwareAuditItem {
     serialNumber?: string | null;
   } | null;
   candidateAssets?: CandidateAsset[];
+  peripherals?: HardwareAuditPeripheral[];
+  hasPeripheral?: boolean;
   scannedAt: string;
   createdAt: string;
 }
@@ -583,7 +599,82 @@ export default function HardwareAuditsPage() {
                           </span>
                         </span>
                       )}
+
+                      {item.peripherals && item.peripherals.length > 0 && (
+                        <span className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg border border-sky-200 flex items-center gap-1.5 font-bold">
+                          <Printer className="w-3.5 h-3.5 text-sky-600" />
+                          <span>{item.peripherals.length} Periferal Terhubung</span>
+                        </span>
+                      )}
                     </div>
+
+                    {/* Peripherals Detail Grid */}
+                    {item.peripherals && item.peripherals.length > 0 && (
+                      <div className="mt-2 p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-700">
+                          <div className="flex items-center gap-1.5">
+                            <Printer className="w-3.5 h-3.5 text-sky-600" />
+                            <span>Periferal Terlampir ({item.peripherals.length} unit):</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {item.peripherals.map((p, pIdx) => {
+                            const catLower = p.category.toLowerCase();
+                            const isPrinter = catLower.includes('printer');
+                            const isScanner = catLower.includes('scanner');
+                            const isMonitor = catLower.includes('monitor');
+                            const isCustom = !isPrinter && !isScanner && !isMonitor;
+
+                            return (
+                              <div
+                                key={pIdx}
+                                className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs font-mono flex flex-col justify-between gap-1.5"
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${
+                                      isPrinter
+                                        ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                        : isScanner
+                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                        : isMonitor
+                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    }`}
+                                  >
+                                    {isPrinter && <Printer className="w-2.5 h-2.5" />}
+                                    {isScanner && <Scan className="w-2.5 h-2.5" />}
+                                    {isMonitor && <Monitor className="w-2.5 h-2.5" />}
+                                    {isCustom && <Package className="w-2.5 h-2.5" />}
+                                    <span>{p.category}</span>
+                                    {isCustom && <span className="text-[9px] font-normal text-amber-600">(Manual)</span>}
+                                  </span>
+                                  {p.serialNumber && (
+                                    <button
+                                      onClick={() => copyToClipboard(p.serialNumber!, `sn-p-${item.id}-${pIdx}`)}
+                                      title="Salin S/N Periferal"
+                                      className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5"
+                                    >
+                                      {copiedId === `sn-p-${item.id}-${pIdx}` ? (
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="font-semibold text-slate-800 text-[11px] truncate" title={p.brandModel}>
+                                  {p.brandModel}
+                                </div>
+                                <div className="text-[10px] text-slate-500">
+                                  S/N: <span className="font-semibold text-slate-700">{p.serialNumber || '-'}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Recommendation Box if candidate assets detected */}
                     {item.status === 'PENDING' && item.candidateAssets && item.candidateAssets.length > 0 && (
@@ -705,6 +796,22 @@ export default function HardwareAuditsPage() {
               <div className="text-slate-600">
                 Spesifikasi: {linkModalAudit.cpuName} | RAM {linkModalAudit.ramSizeGb} GB | Disk {linkModalAudit.disk1SizeGb} GB {linkModalAudit.disk2SizeGb ? `+ ${linkModalAudit.disk2SizeGb} GB` : ''}
               </div>
+              {linkModalAudit.peripherals && linkModalAudit.peripherals.length > 0 && (
+                <div className="pt-2 border-t border-slate-200/80 space-y-1">
+                  <div className="font-bold text-sky-800 flex items-center gap-1.5">
+                    <Printer className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Periferal Terkait ({linkModalAudit.peripherals.length} unit akan ditautkan):</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {linkModalAudit.peripherals.map((p, idx) => (
+                      <div key={idx} className="p-1.5 bg-white rounded-lg border border-slate-200 text-[11px] flex items-center justify-between">
+                        <span className="font-semibold text-slate-800">{p.category}: {p.brandModel}</span>
+                        <span className="text-slate-500 font-mono">{p.serialNumber ? `S/N: ${p.serialNumber}` : '(Tanpa S/N)'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Candidate Asset Selector */}
@@ -946,6 +1053,24 @@ export default function HardwareAuditsPage() {
                   </label>
                 </div>
               </div>
+
+              {/* Preview Attached Peripherals if any */}
+              {createModalAudit.peripherals && createModalAudit.peripherals.length > 0 && (
+                <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-xl space-y-1.5">
+                  <div className="font-bold text-sky-900 flex items-center gap-1.5">
+                    <Printer className="w-3.5 h-3.5 text-sky-700" />
+                    <span>Periferal Terkait ({createModalAudit.peripherals.length} unit akan didaftarkan sebagai aksesori):</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {createModalAudit.peripherals.map((p, idx) => (
+                      <div key={idx} className="p-1.5 bg-white rounded-lg border border-sky-200/60 text-[11px] flex items-center justify-between">
+                        <span className="font-semibold text-slate-800">{p.category}: {p.brandModel}</span>
+                        <span className="text-slate-500 font-mono">{p.serialNumber ? `S/N: ${p.serialNumber}` : '(Tanpa S/N)'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

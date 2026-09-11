@@ -23,3 +23,20 @@ export const hardwareAuditLogs = pgTable('hardware_audit_logs', {
 
 export type HardwareAuditLog = typeof hardwareAuditLogs.$inferSelect;
 export type NewHardwareAuditLog = typeof hardwareAuditLogs.$inferInsert;
+
+export const hardwareAuditPeripherals = pgTable('hardware_audit_peripherals', {
+  id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  auditId: bigint('audit_id', { mode: 'number' })
+    .references(() => hardwareAuditLogs.id, { onDelete: 'cascade' })
+    .notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  presetCategory: varchar('preset_category', { length: 50 }),
+  customCategory: varchar('custom_category', { length: 100 }),
+  brandModel: varchar('brand_model', { length: 200 }).notNull(),
+  serialNumber: varchar('serial_number', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type HardwareAuditPeripheralRecord = typeof hardwareAuditPeripherals.$inferSelect;
+export type NewHardwareAuditPeripheralRecord = typeof hardwareAuditPeripherals.$inferInsert;
+

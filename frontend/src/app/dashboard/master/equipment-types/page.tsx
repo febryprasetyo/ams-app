@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
@@ -28,6 +29,9 @@ export default function EquipmentTypesPage() {
   const { user } = useAuth();
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([]);
   const [search, setSearch] = useState('');
+  const [deletingType, setDeletingType] = useState<EquipmentType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -116,14 +120,23 @@ export default function EquipmentTypesPage() {
     }
   };
 
-  const handleDelete = async (equipmentType: EquipmentType) => {
-    if (!window.confirm(`Delete equipment type "${equipmentType.name}"?`)) return;
+  const handleOpenDelete = (equipmentType: EquipmentType) => {
+    setDeletingType(equipmentType);
+    setDeleteError(null);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingType) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await api.delete(`/assets/categories/${equipmentType.id}`);
+      await api.delete(`/assets/categories/${deletingType.id}`);
+      setDeletingType(null);
       await fetchEquipmentTypes();
     } catch (err: unknown) {
-      window.alert(err instanceof Error ? err.message : 'Failed to delete IT equipment type');
+      setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus tipe peralatan');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -258,7 +271,7 @@ export default function EquipmentTypesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void handleDelete(equipmentType)}
+                            onClick={() => handleOpenDelete(equipmentType)}
                             className="rounded-xl border border-transparent p-2 text-slate-400 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                             title="Delete Equipment Type"
                           >
@@ -343,6 +356,29 @@ export default function EquipmentTypesPage() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={!!deletingType}
+        onClose={() => {
+          setDeletingType(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Tipe Peralatan"
+        description="Apakah Anda yakin ingin menghapus tipe peralatan ini? Data yang terhapus tidak dapat dikembalikan."
+        itemName={deletingType?.name}
+        itemDetails={
+          deletingType
+            ? [
+                { label: 'Nama Tipe', value: deletingType.name },
+                { label: 'Prefix Kode', value: deletingType.codePrefix },
+              ]
+            : []
+        }
+        confirmText="Hapus Tipe"
+        cancelText="Batal"
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

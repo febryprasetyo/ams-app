@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   Users,
@@ -53,6 +54,9 @@ export default function EmployeesPage() {
   const [locations, setLocations] = useState<Location[]>([]);
 
   const [search, setSearch] = useState('');
+  const [deletingEmp, setDeletingEmp] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -166,13 +170,18 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to deactivate or delete this employee record?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deletingEmp) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await api.delete(`/employees/${id}`);
+      await api.delete(`/employees/${deletingEmp.id}`);
+      setDeletingEmp(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete employee');
+      setDeleteError(err.message || 'Gagal menghapus karyawan');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -347,7 +356,7 @@ export default function EmployeesPage() {
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(emp.id)}
+                              onClick={() => { setDeletingEmp(emp); setDeleteError(null); }}
                               className="p-2 rounded-xl text-slate-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                               title="Deactivate / Delete"
                             >
@@ -540,6 +549,31 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={!!deletingEmp}
+        onClose={() => {
+          setDeletingEmp(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Hapus / Nonaktifkan Karyawan"
+        description="Apakah Anda yakin ingin menghapus atau menonaktifkan data karyawan ini?"
+        itemName={deletingEmp?.fullName}
+        itemDetails={
+          deletingEmp
+            ? [
+                { label: 'Nama Karyawan', value: deletingEmp.fullName },
+                { label: 'NIK / Kode', value: deletingEmp.employeeCode },
+                { label: 'Email', value: deletingEmp.email },
+                ...(deletingEmp.departmentName ? [{ label: 'Departemen', value: deletingEmp.departmentName }] : []),
+              ]
+            : []
+        }
+        confirmText="Konfirmasi Hapus"
+        cancelText="Batal"
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

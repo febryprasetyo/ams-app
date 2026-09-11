@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -118,6 +119,10 @@ export default function HardwareAuditsPage() {
 
   // Feedback Notification
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [deletingAudit, setDeletingAudit] = useState<HardwareAuditItem | null>(null);
+  const [deleteAuditError, setDeleteAuditError] = useState<string | null>(null);
+  const [isClearingSyncedOpen, setIsClearingSyncedOpen] = useState(false);
+  const [clearSyncedError, setClearSyncedError] = useState<string | null>(null);
 
   const fetchAudits = useCallback(async () => {
     try {
@@ -212,30 +217,43 @@ export default function HardwareAuditsPage() {
   };
 
   // Action: Hapus Audit
-  const handleDeleteAudit = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data audit ini dari daftar? (Data aset di inventaris tetap aman).')) return;
+  const handleOpenDeleteAudit = (audit: HardwareAuditItem) => {
+    setDeletingAudit(audit);
+    setDeleteAuditError(null);
+  };
+
+  const handleConfirmDeleteAudit = async () => {
+    if (!deletingAudit) return;
     try {
       setIsActionLoading(true);
-      await api.delete(`/hardware-audits/${id}`);
+      setDeleteAuditError(null);
+      await api.delete(`/hardware-audits/${deletingAudit.id}`);
       setFeedback({ type: 'success', message: 'Data audit berhasil dihapus dari daftar' });
+      setDeletingAudit(null);
       fetchAudits();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Gagal menghapus audit' });
+      setDeleteAuditError(err.message || 'Gagal menghapus audit');
     } finally {
       setIsActionLoading(false);
     }
   };
 
   // Action: Bersihkan Semua Audit yang Sudah Synced
-  const handleClearSynced = async () => {
-    if (!confirm('Apakah Anda yakin ingin membersihkan semua riwayat audit yang sudah disinkronkan? (Data aset di inventaris tetap aman).')) return;
+  const handleOpenClearSynced = () => {
+    setIsClearingSyncedOpen(true);
+    setClearSyncedError(null);
+  };
+
+  const handleConfirmClearSynced = async () => {
     try {
       setIsActionLoading(true);
-      const res = await api.delete<{ success: boolean; message: string }>('/hardware-audits/clear-synced');
+      setClearSyncedError(null);
+      const res: any = await api.delete('/hardware-audits/clear-synced');
       setFeedback({ type: 'success', message: res.message || 'Riwayat audit yang sudah disinkronkan berhasil dibersihkan' });
+      setIsClearingSyncedOpen(false);
       fetchAudits();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Gagal membersihkan data audit yang sudah disinkronkan' });
+      setClearSyncedError(err.message || 'Gagal membersihkan data audit yang sudah disinkronkan');
     } finally {
       setIsActionLoading(false);
     }
@@ -434,7 +452,7 @@ export default function HardwareAuditsPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {syncedCount > 0 && (
               <button
-                onClick={handleClearSynced}
+                onClick={handleOpenClearSynced}
                 disabled={isActionLoading}
                 className="px-3 py-2 text-xs font-mono font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 disabled:opacity-50"
                 title="Hapus semua log audit yang sudah ditautkan ke inventaris"
@@ -614,7 +632,7 @@ export default function HardwareAuditsPage() {
                         </button>
 
                         <button
-                          onClick={() => handleDeleteAudit(item.id)}
+                          onClick={() => handleOpenDeleteAudit(item)}
                           title="Hapus Data Audit"
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                         >
@@ -633,7 +651,7 @@ export default function HardwareAuditsPage() {
                           </Link>
                         )}
                         <button
-                          onClick={() => handleDeleteAudit(item.id)}
+                          onClick={() => handleOpenDeleteAudit(item)}
                           title="Hapus dari Riwayat Audit"
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                         >
@@ -953,6 +971,49 @@ export default function HardwareAuditsPage() {
           </div>
         </div>
       )}
+      {/* Modal Konfirmasi Hapus Audit */}
+      <ConfirmDeleteModal
+        isOpen={!!deletingAudit}
+        onClose={() => {
+          setDeletingAudit(null);
+          setDeleteAuditError(null);
+        }}
+        onConfirm={handleConfirmDeleteAudit}
+        title="Hapus Data Audit"
+        description="Apakah Anda yakin ingin menghapus data hasil scan audit ini dari daftar? Data aset fisik di inventaris tetap aman."
+        itemName={deletingAudit ? `${deletingAudit.manufacturer || ''} ${deletingAudit.model || 'Perangkat'} - ${deletingAudit.custodianName}`.trim() : undefined}
+        itemDetails={
+          deletingAudit
+            ? [
+                { label: 'Pemegang / User', value: deletingAudit.custodianName },
+                ...(deletingAudit.serialNumber ? [{ label: 'Serial Number', value: deletingAudit.serialNumber }] : []),
+                ...(deletingAudit.cpuName ? [{ label: 'Processor', value: deletingAudit.cpuName }] : []),
+                { label: 'Status', value: deletingAudit.status },
+              ]
+            : []
+        }
+        confirmText="Hapus Data Audit"
+        cancelText="Batal"
+        isLoading={isActionLoading}
+        error={deleteAuditError}
+      />
+
+      {/* Modal Konfirmasi Bersihkan Semua Synced Audits */}
+      <ConfirmDeleteModal
+        isOpen={isClearingSyncedOpen}
+        onClose={() => {
+          setIsClearingSyncedOpen(false);
+          setClearSyncedError(null);
+        }}
+        onConfirm={handleConfirmClearSynced}
+        title="Bersihkan Semua Riwayat Audit yang Tersinkron"
+        description="Apakah Anda yakin ingin membersihkan semua riwayat audit yang statusnya sudah tersinkron (SYNCED)? Tindakan ini hanya membersihkan log audit lama, data aset di inventaris tetap aman."
+        confirmText="Bersihkan Riwayat"
+        cancelText="Batal"
+        variant="warning"
+        isLoading={isActionLoading}
+        error={clearSyncedError}
+      />
     </DashboardLayout>
   );
 }

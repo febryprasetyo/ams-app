@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   Store,
@@ -32,6 +33,9 @@ interface Vendor {
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [search, setSearch] = useState('');
+  const [deletingVendor, setDeletingVendor] = useState<Vendor | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -128,13 +132,18 @@ export default function VendorsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this vendor?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deletingVendor) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await api.delete(`/master/vendors/${id}`);
+      await api.delete(`/master/vendors/${deletingVendor.id}`);
+      setDeletingVendor(null);
       fetchVendors();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete vendor');
+      setDeleteError(err.message || 'Gagal menghapus vendor');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -296,7 +305,7 @@ export default function VendorsPage() {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(v.id)}
+                            onClick={() => { setDeletingVendor(v); setDeleteError(null); }}
                             className="p-2 rounded-xl text-slate-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                             title="Delete Vendor"
                           >
@@ -432,6 +441,30 @@ export default function VendorsPage() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={!!deletingVendor}
+        onClose={() => {
+          setDeletingVendor(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Data Vendor"
+        description="Apakah Anda yakin ingin menghapus vendor ini? Data aset yang terkait dengan vendor ini mungkin terpengaruh."
+        itemName={deletingVendor?.name}
+        itemDetails={
+          deletingVendor
+            ? [
+                { label: 'Nama Vendor', value: deletingVendor.name },
+                ...(deletingVendor.contactName ? [{ label: 'Kontak', value: deletingVendor.contactName }] : []),
+                ...(deletingVendor.email ? [{ label: 'Email', value: deletingVendor.email }] : []),
+              ]
+            : []
+        }
+        confirmText="Hapus Vendor"
+        cancelText="Batal"
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

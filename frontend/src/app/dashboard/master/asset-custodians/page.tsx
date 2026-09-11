@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { VerificationBadge } from '@/components/assets/CustodianPicker';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +47,9 @@ export default function AssetCustodiansPage() {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [reconciliationCount, setReconciliationCount] = useState<number>(0);
   const [search, setSearch] = useState('');
+  const [statusTarget, setStatusTarget] = useState<{ custodian: CustodianSummary; recordStatus: 'ACTIVE' | 'INACTIVE' } | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE' | 'MERGED' | 'ALL'>('ACTIVE');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,18 +178,24 @@ export default function AssetCustodiansPage() {
   };
 
   // Deactivate / Reactivate
-  const setRecordStatus = async (custodian: CustodianSummary, recordStatus: 'ACTIVE' | 'INACTIVE') => {
-    const action = recordStatus === 'ACTIVE' ? 'reactivate' : 'deactivate';
-    if (!window.confirm(`Confirm ${action} for ${custodian.displayName}?`)) return;
-    setBusyId(custodian.id);
-    setError(null);
+  const handleOpenStatusConfirm = (custodian: CustodianSummary, recordStatus: 'ACTIVE' | 'INACTIVE') => {
+    setStatusTarget({ custodian, recordStatus });
+    setStatusError(null);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusTarget) return;
+    const { custodian, recordStatus } = statusTarget;
+    setIsUpdatingStatus(true);
+    setStatusError(null);
     try {
       await api.patch(`/asset-custodians/${custodian.id}`, { recordStatus });
+      setStatusTarget(null);
       await fetchData();
     } catch (err: any) {
-      setError(err.message || `Failed to ${action} holder`);
+      setStatusError(err.message || 'Gagal mengubah status pemegang aset');
     } finally {
-      setBusyId(null);
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -365,7 +375,7 @@ export default function AssetCustodiansPage() {
                               {custodian.recordStatus === 'ACTIVE' && (
                                 <button
                                   type="button"
-                                  onClick={() => setRecordStatus(custodian, 'INACTIVE')}
+                                  onClick={() => handleOpenStatusConfirm(custodian, 'INACTIVE')}
                                   disabled={busyId === custodian.id}
                                   className="rounded-lg px-2 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-50 transition-colors"
                                 >
@@ -375,7 +385,7 @@ export default function AssetCustodiansPage() {
                               {custodian.recordStatus === 'INACTIVE' && (
                                 <button
                                   type="button"
-                                  onClick={() => setRecordStatus(custodian, 'ACTIVE')}
+                                  onClick={() => handleOpenStatusConfirm(custodian, 'ACTIVE')}
                                   disabled={busyId === custodian.id}
                                   className="rounded-lg px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-50 transition-colors"
                                 >
@@ -742,6 +752,37 @@ export default function AssetCustodiansPage() {
           </div>
         </div>
       )}
+          <ConfirmDeleteModal
+        isOpen={!!statusTarget}
+        onClose={() => {
+          setStatusTarget(null);
+          setStatusError(null);
+        }}
+        onConfirm={handleConfirmStatusChange}
+        title={statusTarget?.recordStatus === 'ACTIVE' ? 'Aktifkan Kembali Pemegang Aset' : 'Nonaktifkan Pemegang Aset'}
+        description={
+          statusTarget?.recordStatus === 'ACTIVE'
+            ? 'Pemegang aset ini akan diaktifkan kembali dan dapat dipilih untuk peminjaman/alokasi aset.'
+            : 'Pemegang aset ini akan dinonaktifkan sehingga tidak dapat dipilih untuk alokasi baru.'
+        }
+        itemName={statusTarget?.custodian.displayName}
+        itemDetails={
+          statusTarget
+            ? [
+                { label: 'Nama Pemegang', value: statusTarget.custodian.displayName },
+                ...(statusTarget.custodian.employeeCode ? [{ label: 'NIK / Kode', value: statusTarget.custodian.employeeCode }] : []),
+                ...(statusTarget.custodian.locationName ? [{ label: 'Lokasi', value: statusTarget.custodian.locationName }] : []),
+                ...(statusTarget.custodian.unitText ? [{ label: 'Unit', value: statusTarget.custodian.unitText }] : []),
+                { label: 'Total Aset', value: `${statusTarget.custodian.assignedAssetCount ?? 0} unit` },
+              ]
+            : []
+        }
+        confirmText={statusTarget?.recordStatus === 'ACTIVE' ? 'Aktifkan' : 'Nonaktifkan'}
+        cancelText="Batal"
+        variant={statusTarget?.recordStatus === 'ACTIVE' ? 'primary' : 'warning'}
+        isLoading={isUpdatingStatus}
+        error={statusError}
+      />
     </DashboardLayout>
   );
 }

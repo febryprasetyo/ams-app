@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   Building2,
@@ -28,6 +29,9 @@ interface Department {
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [search, setSearch] = useState('');
+  const [deletingDept, setDeletingDept] = useState<Department | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,13 +110,18 @@ export default function DepartmentsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this department?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deletingDept) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await api.delete(`/master/departments/${id}`);
+      await api.delete(`/master/departments/${deletingDept.id}`);
+      setDeletingDept(null);
       fetchDepartments();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete department');
+      setDeleteError(err.message || 'Gagal menghapus departemen');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -268,7 +277,7 @@ export default function DepartmentsPage() {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(dept.id)}
+                            onClick={() => { setDeletingDept(dept); setDeleteError(null); }}
                             className="p-2 rounded-xl text-slate-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                             title="Delete Department"
                           >
@@ -365,6 +374,29 @@ export default function DepartmentsPage() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={!!deletingDept}
+        onClose={() => {
+          setDeletingDept(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Data Departemen"
+        description="Apakah Anda yakin ingin menghapus departemen ini? Karyawan yang terhubung dengan departemen ini dapat terpengaruh."
+        itemName={deletingDept?.name}
+        itemDetails={
+          deletingDept
+            ? [
+                { label: 'Nama Departemen', value: deletingDept.name },
+                { label: 'Kode Departemen', value: deletingDept.code },
+              ]
+            : []
+        }
+        confirmText="Hapus Departemen"
+        cancelText="Batal"
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   Key,
@@ -127,6 +128,7 @@ export default function LicensesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingLicense, setDeletingLicense] = useState<SoftwareLicense | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Fetch Data
   const fetchData = useCallback(async () => {
@@ -308,6 +310,7 @@ export default function LicensesPage() {
   // Open Delete Modal
   const openDeleteModal = (lic: SoftwareLicense) => {
     setDeletingLicense(lic);
+    setDeleteError(null);
     setIsDeleteModalOpen(true);
   };
 
@@ -316,12 +319,13 @@ export default function LicensesPage() {
     if (!deletingLicense) return;
     try {
       setDeleteSubmitting(true);
+      setDeleteError(null);
       await api.delete(`/licenses/${deletingLicense.id}`);
       setIsDeleteModalOpen(false);
       setDeletingLicense(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete license');
+      setDeleteError(err.message || 'Gagal menghapus lisensi');
     } finally {
       setDeleteSubmitting(false);
     }
@@ -1157,44 +1161,32 @@ export default function LicensesPage() {
       )}
 
       {/* --- DELETE LICENSE CONFIRMATION MODAL --- */}
-      {isDeleteModalOpen && deletingLicense && (
-        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">Delete Software License</h3>
-                <p className="text-xs text-slate-500 font-sans">This action cannot be undone.</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to delete <span className="font-bold text-slate-900">{deletingLicense.name}</span>? All active seat allocation records for this license will also be revoked and removed.
-            </p>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-xl transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteConfirm}
-                disabled={deleteSubmitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {deleteSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Delete License</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen && !!deletingLicense}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingLicense(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Hapus Lisensi Perangkat Lunak"
+        description="Apakah Anda yakin ingin menghapus lisensi ini? Semua data alokasi seat untuk lisensi ini juga akan dicabut dan dihapus secara permanen."
+        itemName={deletingLicense?.name}
+        itemDetails={
+          deletingLicense
+            ? [
+                { label: 'Nama Software', value: deletingLicense.name },
+                { label: 'Tipe Lisensi', value: deletingLicense.licenseType || '-' },
+                { label: 'Total Seat', value: `${deletingLicense.totalSeats} seats` },
+                { label: 'Digunakan', value: `${deletingLicense.usedSeats} seats` },
+              ]
+            : []
+        }
+        confirmText="Hapus Lisensi"
+        cancelText="Batal"
+        isLoading={deleteSubmitting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

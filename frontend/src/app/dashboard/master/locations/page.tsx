@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   MapPin,
@@ -28,6 +29,9 @@ interface Location {
 export default function LocationsPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [search, setSearch] = useState('');
+  const [deletingLoc, setDeletingLoc] = useState<Location | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,13 +116,18 @@ export default function LocationsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this location?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deletingLoc) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await api.delete(`/master/locations/${id}`);
+      await api.delete(`/master/locations/${deletingLoc.id}`);
+      setDeletingLoc(null);
       fetchLocations();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete location');
+      setDeleteError(err.message || 'Gagal menghapus lokasi');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -266,7 +275,7 @@ export default function LocationsPage() {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(loc.id)}
+                            onClick={() => { setDeletingLoc(loc); setDeleteError(null); }}
                             className="p-2 rounded-xl text-slate-400 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
                             title="Delete Location"
                           >
@@ -375,6 +384,30 @@ export default function LocationsPage() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={!!deletingLoc}
+        onClose={() => {
+          setDeletingLoc(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Data Lokasi"
+        description="Apakah Anda yakin ingin menghapus lokasi ini? Data aset yang berada di lokasi ini mungkin terpengaruh."
+        itemName={deletingLoc?.name}
+        itemDetails={
+          deletingLoc
+            ? [
+                { label: 'Nama Lokasi', value: deletingLoc.name },
+                { label: 'Kode Lokasi', value: deletingLoc.code },
+                ...(deletingLoc.address ? [{ label: 'Alamat', value: deletingLoc.address }] : []),
+              ]
+            : []
+        }
+        confirmText="Hapus Lokasi"
+        cancelText="Batal"
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </DashboardLayout>
   );
 }

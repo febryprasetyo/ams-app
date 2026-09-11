@@ -265,7 +265,14 @@ export default function AssetsPage() {
   const handleOpenCreateModal = () => {
     setEditingAsset(null);
     setFormName('');
-    setFormCategoryId(categories[0]?.id || '');
+    const defaultCat = categories.find((c) =>
+      c.name.toLowerCase().trim() === 'laptop'
+    ) || categories.find((c) =>
+      c.name.toLowerCase().includes('laptop')
+    ) || categories.find((c) =>
+      c.name.toLowerCase().includes('notebook')
+    ) || categories[0];
+    setFormCategoryId(defaultCat?.id || '');
     setFormAssetCode('');
     setFormSerialNumber('');
     setFormLocationId(locations[0]?.id || '');

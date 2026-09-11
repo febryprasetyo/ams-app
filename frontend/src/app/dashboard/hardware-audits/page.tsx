@@ -292,8 +292,14 @@ export default function HardwareAuditsPage() {
   const openCreateModal = (audit: HardwareAuditItem) => {
     setCreateModalAudit(audit);
     const defaultCat = categories.find((c) =>
-      c.name.toLowerCase().includes('laptop') || c.name.toLowerCase().includes('pc')
-    );
+      c.name.toLowerCase().trim() === 'laptop'
+    ) || categories.find((c) =>
+      c.name.toLowerCase().includes('laptop')
+    ) || categories.find((c) =>
+      c.name.toLowerCase().includes('notebook')
+    ) || categories.find((c) =>
+      c.name.toLowerCase().includes('desktop') || c.name.toLowerCase().includes('pc')
+    ) || categories[0];
     setCreateCategoryId(defaultCat ? defaultCat.id : (categories[0]?.id || null));
     setCreateLocationId(locations[0]?.id || null);
     setCreateAssetName([audit.manufacturer, audit.model].filter(Boolean).join(' ') || 'Laptop');

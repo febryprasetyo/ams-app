@@ -176,3 +176,19 @@ test('hardware audit payload rejects invalid peripheral without brandModel or ca
   });
 });
 
+test('isGenericOrPlaceholderSerial identifies placeholder BIOS serial numbers correctly', async () => {
+  const { isGenericOrPlaceholderSerial } = await import('../services/hardwareAuditService');
+  assert.equal(isGenericOrPlaceholderSerial('System Serial Number'), true);
+  assert.equal(isGenericOrPlaceholderSerial('Default string'), true);
+  assert.equal(isGenericOrPlaceholderSerial('To be filled by O.E.M.'), true);
+  assert.equal(isGenericOrPlaceholderSerial('unknown'), true);
+  assert.equal(isGenericOrPlaceholderSerial('None'), true);
+  assert.equal(isGenericOrPlaceholderSerial('-'), true);
+  assert.equal(isGenericOrPlaceholderSerial('NA'), true);
+
+  // Real serial numbers
+  assert.equal(isGenericOrPlaceholderSerial('PF2XXXXX'), false);
+  assert.equal(isGenericOrPlaceholderSerial('M4N0CX15S16217F'), false);
+  assert.equal(isGenericOrPlaceholderSerial('5CD1234XYZ'), false);
+});
+

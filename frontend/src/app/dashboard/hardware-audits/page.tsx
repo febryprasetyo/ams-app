@@ -107,6 +107,30 @@ interface AllAssetOption {
   computerSpecs?: any;
 }
 
+function isGenericOrPlaceholderSerial(serial?: string | null): boolean {
+  if (!serial) return true;
+  const s = serial.trim().toLowerCase();
+  const placeholders = [
+    'unknown',
+    'none',
+    'null',
+    '-',
+    '--',
+    'default string',
+    'system serial number',
+    'to be filled by o.e.m.',
+    'to be filled by o.e.m',
+    'chassis serial number',
+    'invalid',
+    'not applicable',
+    'n/a',
+    'na',
+    '0',
+    '123456789',
+  ];
+  return placeholders.includes(s) || s.length < 3;
+}
+
 export default function HardwareAuditsPage() {
   const { user } = useAuth();
   const [audits, setAudits] = useState<HardwareAuditItem[]>([]);
@@ -284,7 +308,7 @@ export default function HardwareAuditsPage() {
     } else {
       setSelectedAssetId(null);
     }
-    setUpdateSerial(true);
+    setUpdateSerial(!isGenericOrPlaceholderSerial(audit.serialNumber));
     setUpdateSpecs(true);
   };
 
@@ -889,14 +913,22 @@ export default function HardwareAuditsPage() {
 
             {/* Checkboxes */}
             <div className="space-y-2 pt-3 border-t border-slate-100 text-xs font-mono text-slate-700">
-              <label className="flex items-center gap-2.5 cursor-pointer">
+              <label className={`flex items-start gap-2.5 ${isGenericOrPlaceholderSerial(linkModalAudit.serialNumber) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                 <input
                   type="checkbox"
+                  disabled={isGenericOrPlaceholderSerial(linkModalAudit.serialNumber)}
                   checked={updateSerial}
                   onChange={(e) => setUpdateSerial(e.target.checked)}
-                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                  className="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer mt-0.5"
                 />
-                <span>Perbarui Serial Number pada aset terpilih ({linkModalAudit.serialNumber || 'N/A'})</span>
+                <div>
+                  <span>Perbarui Serial Number pada aset terpilih ({linkModalAudit.serialNumber || 'N/A'})</span>
+                  {isGenericOrPlaceholderSerial(linkModalAudit.serialNumber) && (
+                    <span className="text-[10px] text-amber-600 block mt-0.5 font-medium">
+                      (S/N Generic/Placeholder BIOS — tidak disinkronkan ke aset agar tidak terjadi tabrakan S/N)
+                    </span>
+                  )}
+                </div>
               </label>
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
@@ -1001,6 +1033,11 @@ export default function HardwareAuditsPage() {
                     value={createModalAudit.serialNumber || '(Tidak terdeteksi)'}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700 text-xs"
                   />
+                  {isGenericOrPlaceholderSerial(createModalAudit.serialNumber) && (
+                    <p className="text-[10px] text-amber-600 mt-1 font-mono leading-tight">
+                      * S/N Generic BIOS: Disimpan sebagai catatan (bukan S/N aset unik) agar tidak bentrok antar PC rakitan.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-slate-700 font-bold block mb-1">Pengguna (Custodian) *</label>

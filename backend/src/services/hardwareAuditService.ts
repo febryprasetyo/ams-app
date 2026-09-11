@@ -410,10 +410,10 @@ export async function linkAuditToAsset(
     throw new Error('Target asset not found');
   }
 
-  // 1. Perbarui serial number aset jika diminta
+  // 1. Perbarui serial number aset jika diminta (hanya jika serial valid/bukan placeholder)
   if (input.updateSerialNumber && audit.serialNumber) {
     const normSerial = audit.serialNumber.trim();
-    if (normSerial.toUpperCase() !== 'UNKNOWN') {
+    if (!isGenericOrPlaceholderSerial(normSerial)) {
       // Pastikan serial tidak bentrok dengan aset lain
       const [existingSerial] = await runner
         .select({ id: assets.id, assetCode: assets.assetCode })
@@ -562,6 +562,15 @@ export async function createAssetFromAudit(
   const brandName = (input.name && input.name.trim()) || [audit.manufacturer, audit.model].filter(Boolean).join(' ').trim() || category.name;
   const effectiveStatus = matchedCustodian ? 'Assigned' : input.status;
 
+  const realSerialNumber = !isGenericOrPlaceholderSerial(audit.serialNumber)
+    ? audit.serialNumber!.trim()
+    : null;
+
+  let initialNotes = input.notes || audit.notes || `Created via Hardware Audit for ${audit.custodianName}`;
+  if (audit.serialNumber && isGenericOrPlaceholderSerial(audit.serialNumber)) {
+    initialNotes += ` (BIOS S/N: ${audit.serialNumber})`;
+  }
+
   const [newAsset] = await runner
     .insert(assets)
     .values({
@@ -570,10 +579,10 @@ export async function createAssetFromAudit(
       categoryId: category.id,
       locationId: input.locationId || null,
       currentCustodianId: matchedCustodian?.id || null,
-      serialNumber: audit.serialNumber && audit.serialNumber.toUpperCase() !== 'UNKNOWN' ? audit.serialNumber : null,
+      serialNumber: realSerialNumber,
       status: effectiveStatus,
       condition: 'Good',
-      notes: input.notes || audit.notes || `Created via Hardware Audit for ${audit.custodianName}`,
+      notes: initialNotes,
     })
     .returning();
 

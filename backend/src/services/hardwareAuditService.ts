@@ -40,6 +40,30 @@ export interface IngestResult {
   candidateAssets?: AuditCandidateAsset[];
 }
 
+export function isGenericOrPlaceholderSerial(serial?: string | null): boolean {
+  if (!serial) return true;
+  const s = serial.trim().toLowerCase();
+  const placeholders = [
+    'unknown',
+    'none',
+    'null',
+    '-',
+    '--',
+    'default string',
+    'system serial number',
+    'to be filled by o.e.m.',
+    'to be filled by o.e.m',
+    'chassis serial number',
+    'invalid',
+    'not applicable',
+    'n/a',
+    'na',
+    '0',
+    '123456789',
+  ];
+  return placeholders.includes(s) || s.length < 3;
+}
+
 export async function processHardwareAuditIngest(
   payload: HardwareAuditPayload,
   runner: any = db,
@@ -52,9 +76,11 @@ export async function processHardwareAuditIngest(
     : null;
 
   const scannedAt = payload.scannedAt ? new Date(payload.scannedAt) : new Date();
+  const isRealSerial = !isGenericOrPlaceholderSerial(normSerial);
+  const cleanCustodian = payload.custodianName.trim();
 
-  // 1. Coba cocokkan berdasarkan Serial Number
-  if (normSerial) {
+  // 1. Coba cocokkan berdasarkan Serial Number (jika serial valid / bukan placeholder OEM)
+  if (isRealSerial && normSerial) {
     const [matchedAsset] = await runner
       .select({
         id: assets.id,
@@ -70,31 +96,67 @@ export async function processHardwareAuditIngest(
       // Perbarui spesifikasi komputer aset yang cocok
       await upsertAssetComputerSpecs(matchedAsset.id, payload, runner);
 
-      // Catat audit log dengan status SYNCED_AUTO
-      const [insertedAudit] = await runner
-        .insert(hardwareAuditLogs)
-        .values({
-          custodianName: payload.custodianName,
-          serialNumber: normSerial,
-          manufacturer: payload.manufacturer || null,
-          model: payload.model || null,
-          cpuName: payload.cpuName || null,
-          ramSizeGb: payload.ramSizeGb || null,
-          ramSlotCount: payload.ramSlotCount || null,
-          disk1SizeGb: payload.disk1SizeGb || null,
-          disk2SizeGb: payload.disk2SizeGb || null,
-          rawSpecs: rawSpecsStr,
-          notes: payload.notes || null,
-          status: 'SYNCED_AUTO',
-          matchedAssetId: matchedAsset.id,
-          scannedAt,
-        })
-        .returning();
+      // Cek apakah sudah ada log audit untuk matchedAssetId ini
+      const [existingAudit] = await runner
+        .select({ id: hardwareAuditLogs.id })
+        .from(hardwareAuditLogs)
+        .where(eq(hardwareAuditLogs.matchedAssetId, matchedAsset.id))
+        .orderBy(desc(hardwareAuditLogs.id))
+        .limit(1);
+
+      let targetAuditId: number;
+      if (existingAudit) {
+        targetAuditId = existingAudit.id;
+        await runner
+          .update(hardwareAuditLogs)
+          .set({
+            custodianName: payload.custodianName,
+            serialNumber: normSerial,
+            manufacturer: payload.manufacturer || null,
+            model: payload.model || null,
+            cpuName: payload.cpuName || null,
+            ramSizeGb: payload.ramSizeGb || null,
+            ramSlotCount: payload.ramSlotCount || null,
+            disk1SizeGb: payload.disk1SizeGb || null,
+            disk2SizeGb: payload.disk2SizeGb || null,
+            rawSpecs: rawSpecsStr,
+            notes: payload.notes || null,
+            status: 'SYNCED_AUTO',
+            scannedAt,
+            updatedAt: new Date(),
+          })
+          .where(eq(hardwareAuditLogs.id, existingAudit.id));
+
+        await runner
+          .delete(hardwareAuditPeripherals)
+          .where(eq(hardwareAuditPeripherals.auditId, existingAudit.id));
+      } else {
+        const [insertedAudit] = await runner
+          .insert(hardwareAuditLogs)
+          .values({
+            custodianName: payload.custodianName,
+            serialNumber: normSerial,
+            manufacturer: payload.manufacturer || null,
+            model: payload.model || null,
+            cpuName: payload.cpuName || null,
+            ramSizeGb: payload.ramSizeGb || null,
+            ramSlotCount: payload.ramSlotCount || null,
+            disk1SizeGb: payload.disk1SizeGb || null,
+            disk2SizeGb: payload.disk2SizeGb || null,
+            rawSpecs: rawSpecsStr,
+            notes: payload.notes || null,
+            status: 'SYNCED_AUTO',
+            matchedAssetId: matchedAsset.id,
+            scannedAt,
+          })
+          .returning();
+        targetAuditId = insertedAudit.id;
+      }
 
       if (payload.peripherals && payload.peripherals.length > 0) {
         await runner.insert(hardwareAuditPeripherals).values(
           payload.peripherals.map((p) => ({
-            auditId: insertedAudit.id,
+            auditId: targetAuditId,
             category: p.category,
             presetCategory: p.presetCategory || null,
             customCategory: p.customCategory || null,
@@ -106,7 +168,7 @@ export async function processHardwareAuditIngest(
       }
 
       return {
-        auditId: insertedAudit.id,
+        auditId: targetAuditId,
         status: 'SYNCED_AUTO',
         message: `Berhasil dicocokkan otomatis dengan aset ${matchedAsset.assetCode} berdasarkan Serial Number`,
         matchedAsset: {
@@ -118,34 +180,93 @@ export async function processHardwareAuditIngest(
     }
   }
 
-  // 2. Jika serial number belum ada, cari kandidat aset berdasarkan Custodian Name
-  const candidates = await findCandidateAssetsForCustodian(payload.custodianName, runner);
+  // 2. Cek apakah sudah ada log audit PENDING untuk mesin yang sama agar tidak duplikat
+  let existingPendingAudit: { id: number } | null = null;
 
-  // Simpan audit log sebagai PENDING untuk direview/ditautkan oleh IT Admin
-  const [insertedAudit] = await runner
-    .insert(hardwareAuditLogs)
-    .values({
-      custodianName: payload.custodianName,
-      serialNumber: normSerial,
-      manufacturer: payload.manufacturer || null,
-      model: payload.model || null,
-      cpuName: payload.cpuName || null,
-      ramSizeGb: payload.ramSizeGb || null,
-      ramSlotCount: payload.ramSlotCount || null,
-      disk1SizeGb: payload.disk1SizeGb || null,
-      disk2SizeGb: payload.disk2SizeGb || null,
-      rawSpecs: rawSpecsStr,
-      notes: payload.notes || null,
-      status: 'PENDING',
-      matchedAssetId: null,
-      scannedAt,
-    })
-    .returning();
+  if (isRealSerial && normSerial) {
+    const [foundBySerial] = await runner
+      .select({ id: hardwareAuditLogs.id })
+      .from(hardwareAuditLogs)
+      .where(
+        and(
+          eq(hardwareAuditLogs.status, 'PENDING'),
+          sql`lower(trim(${hardwareAuditLogs.serialNumber})) = lower(${normSerial})`,
+        ),
+      )
+      .orderBy(desc(hardwareAuditLogs.id))
+      .limit(1);
+    if (foundBySerial) existingPendingAudit = foundBySerial;
+  }
+
+  if (!existingPendingAudit) {
+    // Cari audit PENDING berdasarkan custodian name
+    const [foundByCustodian] = await runner
+      .select({ id: hardwareAuditLogs.id })
+      .from(hardwareAuditLogs)
+      .where(
+        and(
+          eq(hardwareAuditLogs.status, 'PENDING'),
+          sql`lower(trim(${hardwareAuditLogs.custodianName})) = lower(${cleanCustodian})`,
+        ),
+      )
+      .orderBy(desc(hardwareAuditLogs.id))
+      .limit(1);
+    if (foundByCustodian) existingPendingAudit = foundByCustodian;
+  }
+
+  let pendingAuditId: number;
+  if (existingPendingAudit) {
+    pendingAuditId = existingPendingAudit.id;
+    await runner
+      .update(hardwareAuditLogs)
+      .set({
+        custodianName: payload.custodianName,
+        serialNumber: normSerial,
+        manufacturer: payload.manufacturer || null,
+        model: payload.model || null,
+        cpuName: payload.cpuName || null,
+        ramSizeGb: payload.ramSizeGb || null,
+        ramSlotCount: payload.ramSlotCount || null,
+        disk1SizeGb: payload.disk1SizeGb || null,
+        disk2SizeGb: payload.disk2SizeGb || null,
+        rawSpecs: rawSpecsStr,
+        notes: payload.notes || null,
+        status: 'PENDING',
+        scannedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(hardwareAuditLogs.id, existingPendingAudit.id));
+
+    await runner
+      .delete(hardwareAuditPeripherals)
+      .where(eq(hardwareAuditPeripherals.auditId, existingPendingAudit.id));
+  } else {
+    const [insertedAudit] = await runner
+      .insert(hardwareAuditLogs)
+      .values({
+        custodianName: payload.custodianName,
+        serialNumber: normSerial,
+        manufacturer: payload.manufacturer || null,
+        model: payload.model || null,
+        cpuName: payload.cpuName || null,
+        ramSizeGb: payload.ramSizeGb || null,
+        ramSlotCount: payload.ramSlotCount || null,
+        disk1SizeGb: payload.disk1SizeGb || null,
+        disk2SizeGb: payload.disk2SizeGb || null,
+        rawSpecs: rawSpecsStr,
+        notes: payload.notes || null,
+        status: 'PENDING',
+        matchedAssetId: null,
+        scannedAt,
+      })
+      .returning();
+    pendingAuditId = insertedAudit.id;
+  }
 
   if (payload.peripherals && payload.peripherals.length > 0) {
     await runner.insert(hardwareAuditPeripherals).values(
       payload.peripherals.map((p) => ({
-        auditId: insertedAudit.id,
+        auditId: pendingAuditId,
         category: p.category,
         presetCategory: p.presetCategory || null,
         customCategory: p.customCategory || null,
@@ -155,12 +276,16 @@ export async function processHardwareAuditIngest(
     );
   }
 
+  const candidates = await findCandidateAssetsForCustodian(payload.custodianName, runner);
+
   return {
-    auditId: insertedAudit.id,
+    auditId: pendingAuditId,
     status: 'PENDING',
-    message: candidates.length > 0
-      ? `Audit tersimpan (Pending Review). Ditemukan ${candidates.length} kandidat aset milik ${payload.custodianName}`
-      : `Audit tersimpan (Pending Review). Tidak ditemukan aset terdaftar untuk ${payload.custodianName}`,
+    message: existingPendingAudit
+      ? `Audit untuk ${payload.custodianName} berhasil diperbarui (Pending Review)`
+      : (candidates.length > 0
+          ? `Audit tersimpan (Pending Review). Ditemukan ${candidates.length} kandidat aset milik ${payload.custodianName}`
+          : `Audit tersimpan (Pending Review). Tidak ditemukan aset terdaftar untuk ${payload.custodianName}`),
     candidateAssets: candidates,
   };
 }

@@ -973,14 +973,15 @@ export default function AssetsPage() {
 
       {/* --- Create / Edit Asset Modal --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md overflow-y-auto">
-          <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 my-8">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
+          <div className="glass-panel w-full max-w-2xl rounded-3xl shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 shrink-0">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <HardDrive className="w-5 h-5 text-red-600" />
                 <span>{editingAsset ? 'Edit Asset Record' : 'Register New Hardware Inventory'}</span>
               </h3>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
@@ -988,14 +989,14 @@ export default function AssetsPage() {
               </button>
             </div>
 
-            {modalError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{modalError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleModalSubmit} className="space-y-4">
+            <form onSubmit={handleModalSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 overscroll-contain">
+                {modalError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
@@ -1284,11 +1285,13 @@ export default function AssetsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm shrink-0 rounded-b-3xl">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1308,9 +1311,9 @@ export default function AssetsPage() {
 
       {/* --- Assign Asset Modal --- */}
       {isAssignModalOpen && assigningAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
+          <div className="glass-panel w-full max-w-md rounded-3xl shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-blue-600" />
@@ -1319,6 +1322,7 @@ export default function AssetsPage() {
                 <p className="text-xs text-red-600 font-mono font-bold mt-0.5">{assigningAsset.assetCode} — {assigningAsset.name}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsAssignModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
@@ -1326,14 +1330,14 @@ export default function AssetsPage() {
               </button>
             </div>
 
-            {assignModalError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{assignModalError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAssignSubmit} className="space-y-4">
+            <form onSubmit={handleAssignSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 overscroll-contain">
+                {assignModalError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{assignModalError}</span>
+                  </div>
+                )}
               <CustodianPicker
                 label="Target Custodian"
                 value={assignCustodian}
@@ -1376,11 +1380,13 @@ export default function AssetsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm shrink-0 rounded-b-3xl">
                 <button
                   type="button"
                   onClick={() => setIsAssignModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1400,9 +1406,9 @@ export default function AssetsPage() {
 
       {/* --- Unassign Asset Modal --- */}
       {isUnassignModalOpen && unassigningAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
+          <div className="glass-panel w-full max-w-md rounded-3xl shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 shrink-0">
               <div>
                 <h3 className="text-base font-bold text-amber-700 flex items-center gap-2">
                   <UserX className="w-5 h-5 text-amber-600" />
@@ -1411,6 +1417,7 @@ export default function AssetsPage() {
                 <p className="text-xs text-red-600 font-mono font-bold mt-0.5">{unassigningAsset.assetCode} — {unassigningAsset.name}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsUnassignModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
@@ -1418,14 +1425,14 @@ export default function AssetsPage() {
               </button>
             </div>
 
-            {unassignModalError && (
-              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{unassignModalError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleUnassignSubmit} className="space-y-4">
+            <form onSubmit={handleUnassignSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 overscroll-contain">
+                {unassignModalError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{unassignModalError}</span>
+                  </div>
+                )}
               <div>
                 <label className="block text-xs font-mono font-semibold text-slate-700 mb-1">
                   Condition on Return
@@ -1455,11 +1462,13 @@ export default function AssetsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-5 py-3.5 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/90 backdrop-blur-sm shrink-0 rounded-b-3xl">
                 <button
                   type="button"
                   onClick={() => setIsUnassignModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1479,20 +1488,23 @@ export default function AssetsPage() {
 
       {/* --- XLSX Import Modal --- */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md overflow-y-auto">
-          <div className="glass-panel w-full max-w-3xl rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 my-8">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
+          <div className="glass-panel w-full max-w-3xl rounded-3xl shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
                 <h3 className="text-base font-bold text-slate-900">Bulk Import Assets from XLSX</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setIsImportModalOpen(false)}
                 className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
 
             {importSuccess ? (
               <div className="p-8 text-center space-y-4">
@@ -1727,6 +1739,7 @@ export default function AssetsPage() {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
       )}

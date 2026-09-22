@@ -6,9 +6,14 @@ import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import { isComputerCategoryName } from '@/lib/assetForm';
+import { useAuth } from '@/context/AuthContext';
+import { canManageAssets } from '@/lib/assetImport';
+import AssetFormModal from '@/components/assets/AssetFormModal';
+import { CustodianSummary } from '@/lib/assetCustodian';
 import QRCode from 'qrcode';
 import {
   HardDrive,
+  Edit,
   ArrowLeft,
   Wrench,
   UserCheck,
@@ -66,6 +71,8 @@ interface AssetDetail {
   categoryCodePrefix?: string;
   locationId?: number | null;
   locationName?: string | null;
+  currentCustodianId?: number | null;
+  currentCustodian?: CustodianSummary | null;
   assignedToEmployeeId?: number | null;
   assignedEmployeeName?: string | null;
   assignedEmployeeCode?: string | null;
@@ -137,6 +144,9 @@ export default function AssetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const assetId = params?.id as string;
+  const { user } = useAuth();
+  const canManage = canManageAssets(user?.roleName);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
@@ -482,6 +492,17 @@ export default function AssetDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <Edit className="w-4 h-4 text-slate-600" />
+                <span>Edit Asset</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsPrintModalOpen(true)}
               className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
@@ -1006,6 +1027,15 @@ export default function AssetDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Asset Modal */}
+      <AssetFormModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        asset={asset}
+        canManage={canManage}
+        onSuccess={() => fetchAssetData()}
+      />
 
       {/* Dispose Modal */}
       {isDisposeModalOpen && (

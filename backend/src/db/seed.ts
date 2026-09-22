@@ -9,6 +9,12 @@ import { softwareLicenses, licenseAllocations } from './schema/licenses';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
 import { DEFAULT_IT_EQUIPMENT_TYPES, shouldSeedDefaultEquipmentTypes } from '../domain/equipmentTypes';
+import {
+  DEFAULT_TICKET_CATEGORIES,
+  DEFAULT_SLA_POLICIES,
+  shouldSeedDefaultTicketCategories,
+  shouldSeedDefaultSlaPolicies,
+} from '../domain/ticketCategories';
 
 async function seed() {
   console.log('🌱 Starting database seed procedure...');
@@ -161,6 +167,34 @@ async function seed() {
       await db.insert(vendors).values(vnd);
       console.log(`  ✓ Inserted vendor: ${vnd.name}`);
     }
+  }
+
+  // 4c. Seed Ticket Categories
+  const insertedTicketCategories = await db.transaction(async (tx) => {
+    const existingCats = await tx
+      .select({ id: ticketCategories.id })
+      .from(ticketCategories)
+      .limit(1);
+    if (!shouldSeedDefaultTicketCategories(existingCats.length)) return [];
+
+    return tx.insert(ticketCategories).values([...DEFAULT_TICKET_CATEGORIES]).returning();
+  });
+  for (const cat of insertedTicketCategories) {
+    console.log(`  ✓ Inserted ticket category: ${cat.name}`);
+  }
+
+  // 4d. Seed SLA Policies
+  const insertedSlaPolicies = await db.transaction(async (tx) => {
+    const existingPolicies = await tx
+      .select({ id: slaPolicies.id })
+      .from(slaPolicies)
+      .limit(1);
+    if (!shouldSeedDefaultSlaPolicies(existingPolicies.length)) return [];
+
+    return tx.insert(slaPolicies).values([...DEFAULT_SLA_POLICIES]).returning();
+  });
+  for (const sla of insertedSlaPolicies) {
+    console.log(`  ✓ Inserted SLA policy: ${sla.priority}`);
   }
 
   console.log('✅ Database Seed Procedure Completed Successfully!');

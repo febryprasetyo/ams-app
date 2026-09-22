@@ -140,17 +140,23 @@ export default function CreateTicketModal({
             </label>
             <select
               required
+              disabled={categories.length === 0}
               value={formCategoryId}
               onChange={(e) => setFormCategoryId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 disabled:bg-slate-100 disabled:text-slate-400"
             >
-              <option value="">Select Category...</option>
+              <option value="">{categories.length === 0 ? 'No categories available' : 'Select Category...'}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {c.code ? `[${c.code}] ` : ''}{c.name}
                 </option>
               ))}
             </select>
+            {categories.length === 0 && (
+              <p className="text-[11px] text-amber-600 mt-1">
+                Kategori tiket belum tersedia. Silakan hubungi administrator IT.
+              </p>
+            )}
           </div>
 
           <div>

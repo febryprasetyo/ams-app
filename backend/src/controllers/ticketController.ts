@@ -7,6 +7,7 @@ import { assets } from '../db/schema/assets';
 import { eq, ilike, or, and, desc, aliasedTable } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { DEFAULT_TICKET_CATEGORIES, shouldSeedDefaultTicketCategories } from '../domain/ticketCategories';
 
 // Aliased tables for joins
 const reporterUser = aliasedTable(users, 'reporter_user');
@@ -118,10 +119,23 @@ async function calculateSLADueDate(priority: string): Promise<Date> {
  */
 export async function getTicketCategories(req: Request, res: Response) {
   try {
-    const categories = await db
+    let categories = await db
       .select()
       .from(ticketCategories)
       .orderBy(ticketCategories.id);
+
+    if (shouldSeedDefaultTicketCategories(categories.length)) {
+      await db
+        .insert(ticketCategories)
+        .values([...DEFAULT_TICKET_CATEGORIES])
+        .onConflictDoNothing();
+
+      categories = await db
+        .select()
+        .from(ticketCategories)
+        .orderBy(ticketCategories.id);
+    }
+
     return res.status(200).json(categories);
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Internal server error' });

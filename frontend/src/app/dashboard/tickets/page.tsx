@@ -39,13 +39,16 @@ export default function ServiceDeskTicketsPage() {
   const fetchAuxiliaryData = useCallback(async () => {
     try {
       const [cats, asts, emps] = await Promise.all([
-        api.get<TicketCategory[]>('/tickets/categories').catch(() => []),
+        api.get<TicketCategory[]>('/tickets/categories').catch((err) => {
+          console.error('Failed to load ticket categories', err);
+          return [] as TicketCategory[];
+        }),
         api.get<AssetItem[]>('/assets').catch(() => []),
         api.get<EmployeeItem[]>('/employees').catch(() => []),
       ]);
 
-      setCategories(cats);
-      setAssets(asts);
+      setCategories(Array.isArray(cats) ? cats : []);
+      setAssets(Array.isArray(asts) ? asts : []);
 
       const techList = emps.map((e) => ({
         id: e.id,
@@ -90,7 +93,19 @@ export default function ServiceDeskTicketsPage() {
   }, [fetchTickets]);
 
   // Modals Openers
-  const openCreateModal = () => setIsCreateModalOpen(true);
+  const openCreateModal = async () => {
+    if (categories.length === 0) {
+      try {
+        const cats = await api.get<TicketCategory[]>('/tickets/categories');
+        if (Array.isArray(cats) && cats.length > 0) {
+          setCategories(cats);
+        }
+      } catch (err) {
+        console.error('Failed to refresh ticket categories', err);
+      }
+    }
+    setIsCreateModalOpen(true);
+  };
 
   const openAssignModal = (ticket: ITTicket) => {
     setAssigningTicket(ticket);

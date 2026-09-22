@@ -1,200 +1,74 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { api } from '@/lib/api';
-import { isComputerCategoryName } from '@/lib/assetForm';
-import { useAuth } from '@/context/AuthContext';
-import { canManageAssets } from '@/lib/assetImport';
-import AssetFormModal from '@/components/assets/AssetFormModal';
-import { CustodianSummary } from '@/lib/assetCustodian';
 import QRCode from 'qrcode';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import AssetFormModal from '@/components/assets/AssetFormModal';
+import AssetInformationCard from '@/components/assets/AssetInformationCard';
+import ComputerSpecsCard from '@/components/assets/ComputerSpecsCard';
+import AssetAccessoriesCard from '@/components/assets/AssetAccessoriesCard';
+import AssetHistoryTabs, { type AssetHistoryData } from '@/components/assets/AssetHistoryTabs';
+import LogMaintenanceModal from '@/components/assets/LogMaintenanceModal';
+import DisposeAssetModal from '@/components/assets/DisposeAssetModal';
+import PrintAssetTagModal from '@/components/assets/PrintAssetTagModal';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { isComputerCategoryName } from '@/lib/assetForm';
+import { canManageAssets } from '@/lib/assetImport';
 import {
-  HardDrive,
-  Edit,
   ArrowLeft,
+  Edit,
+  Printer,
   Wrench,
-  UserCheck,
   Archive,
   QrCode,
-  Printer,
-  Calendar,
-  Clock,
-  MapPin,
-  User as UserIcon,
-  Tag,
-  AlertCircle,
-  Loader2,
-  CheckCircle2,
-  FileText,
-  DollarSign,
   ShieldCheck,
-  Activity,
-  X,
-  History,
-  Info,
-  ChevronRight,
-  Plus,
-  ArrowRightLeft,
-  UserX,
-  Cpu,
-  Layers,
-  Disc,
-  Headphones
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { AssetDetail } from '@/lib/assets/types';
 
-interface ComputerSpecs {
-  cpuName: string;
-  ramSizeGb: number;
-  ramSlotCount: number;
-  disk1SizeGb: number;
-  disk2SizeGb?: number | null;
-}
-
-interface AssetAccessory {
-  id?: number;
-  accessoryType: string;
-  description?: string | null;
-  quantity: number;
-  condition: 'Good' | 'Fair' | 'Poor' | 'Damaged';
-  notes?: string | null;
-}
-
-interface AssetDetail {
-  id: number;
-  assetCode: string;
-  name: string;
-  categoryId: number;
-  categoryName?: string;
-  categoryCodePrefix?: string;
-  locationId?: number | null;
-  locationName?: string | null;
-  currentCustodianId?: number | null;
-  currentCustodian?: CustodianSummary | null;
-  assignedToEmployeeId?: number | null;
-  assignedEmployeeName?: string | null;
-  assignedEmployeeCode?: string | null;
-  serialNumber?: string | null;
-  status: 'Available' | 'Assigned' | 'Maintenance' | 'Disposed' | 'Lost';
-  condition: 'Good' | 'Fair' | 'Poor' | 'Damaged';
-  notes?: string | null;
-  computerSpecs?: ComputerSpecs | null;
-  accessories?: AssetAccessory[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface AssignmentHistoryRecord {
-  id: number;
-  assetId: number;
-  employeeId?: number | null;
-  employeeCode?: string | null;
-  employeeName?: string | null;
-  employeePosition?: string | null;
-  departmentName?: string | null;
-  assignedByUsername?: string | null;
-  assignedAt: string;
-  returnedAt?: string | null;
-  conditionOnAssign: string;
-  conditionOnReturn?: string | null;
-  handoverNotes?: string | null;
-  returnNotes?: string | null;
-}
-
-interface MaintenanceRecord {
-  id: number;
-  assetId: number;
-  maintenanceType: string;
-  title: string;
-  description?: string | null;
-  cost: number;
-  vendorId?: number | null;
-  scheduledAt?: string | null;
-  completedAt?: string | null;
-  status: string;
-  performedById?: number | null;
-  performedByUsername?: string | null;
-  createdAt: string;
-}
-
-interface AuditLogRecord {
-  id: number;
-  userId?: number | null;
-  username?: string | null;
-  action: string;
-  entity: string;
-  entityId: number;
-  oldValues?: any;
-  newValues?: any;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-  createdAt: string;
-}
-
-interface HistoryData {
-  assetId: number;
-  assignmentHistory: AssignmentHistoryRecord[];
-  maintenanceHistory: MaintenanceRecord[];
-  auditLogs: AuditLogRecord[];
-}
-
-export default function AssetDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const assetId = params?.id as string;
+export default function AssetDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const assetId = Number(resolvedParams.id);
   const { user } = useAuth();
   const canManage = canManageAssets(user?.roleName);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Data States
   const [asset, setAsset] = useState<AssetDetail | null>(null);
-  const [history, setHistory] = useState<HistoryData | null>(null);
+  const [history, setHistory] = useState<AssetHistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'transfers' | 'maintenance' | 'audit'>('transfers');
-
-  // Real Scannable QR Code Data URL
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-  // Print Asset Tag Modal State
+  // Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
-
-  // Maintenance Log Modal State
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
-  const [maintType, setMaintType] = useState('Routine Service');
-  const [maintTitle, setMaintTitle] = useState('');
-  const [maintDescription, setMaintDescription] = useState('');
-  const [maintCost, setMaintCost] = useState<number | ''>(0);
-  const [maintStatus, setMaintStatus] = useState('Completed');
-  const [maintSubmitting, setMaintSubmitting] = useState(false);
-  const [maintError, setMaintError] = useState<string | null>(null);
-
-  // Dispose Modal State
   const [isDisposeModalOpen, setIsDisposeModalOpen] = useState(false);
-  const [disposeReason, setDisposeReason] = useState('');
-  const [disposeSubmitting, setDisposeSubmitting] = useState(false);
-  const [disposeError, setDisposeError] = useState<string | null>(null);
 
-  // Fetch Asset & History
+  // Fetch Asset & History Data
   const fetchAssetData = useCallback(async () => {
-    if (!assetId) return;
+    if (isNaN(assetId)) {
+      setError('Invalid asset ID');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const [assetRes, historyRes] = await Promise.all([
+
+      const [assetData, historyData] = await Promise.all([
         api.get<AssetDetail>(`/assets/${assetId}`),
-        api.get<HistoryData>(`/assets/${assetId}/history`).catch(() => ({
-          assetId: Number(assetId),
-          assignmentHistory: [],
-          maintenanceHistory: [],
-          auditLogs: [],
-        })),
+        api.get<AssetHistoryData>(`/assets/${assetId}/history`).catch(() => null),
       ]);
-      setAsset(assetRes);
-      setHistory(historyRes);
+
+      setAsset(assetData);
+      setHistory(historyData);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch asset details');
+      setError(err.message || 'Failed to load asset details');
     } finally {
       setLoading(false);
     }
@@ -204,9 +78,9 @@ export default function AssetDetailPage() {
     fetchAssetData();
   }, [fetchAssetData]);
 
-  // Generate Real Scannable QR Code Data URL when asset loads
+  // Generate QR Code for on-page preview
   useEffect(() => {
-    if (asset) {
+    if (asset && typeof window !== 'undefined') {
       const qrPayload = `${window.location.origin}/dashboard/assets/${asset.id}`;
       QRCode.toDataURL(qrPayload, {
         width: 300,
@@ -221,200 +95,12 @@ export default function AssetDetailPage() {
     }
   }, [asset]);
 
-  // Dedicated Thermal Sticker Print Handler with Scannable QR Code Image
-  const handlePrintSticker = () => {
-    if (!asset || !qrCodeDataUrl) return;
-
-    const printWindow = window.open('', '_blank', 'width=650,height=520');
-    if (!printWindow) {
-      alert('Please allow popups in your browser to print the asset tag sticker.');
-      return;
-    }
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Asset Tag QR Sticker - ${asset.assetCode}</title>
-          <style>
-            @page {
-              size: 80mm 50mm;
-              margin: 0;
-            }
-            * {
-              box-sizing: border-box;
-            }
-            body {
-              margin: 0;
-              padding: 8px;
-              font-family: 'Courier New', Courier, monospace;
-              background: #ffffff;
-              color: #000000;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-            }
-            .tag-card {
-              width: 78mm;
-              height: 48mm;
-              border: 2.5px solid #000000;
-              border-radius: 6px;
-              padding: 6px 8px;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              background: #ffffff;
-            }
-            .header {
-              font-size: 9px;
-              font-weight: bold;
-              letter-spacing: 1px;
-              border-bottom: 1.5px solid #000000;
-              padding-bottom: 3px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              text-transform: uppercase;
-            }
-            .body-content {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 8px;
-              margin: 4px 0;
-            }
-            .qr-img {
-              width: 26mm;
-              height: 26mm;
-              border: 1px solid #000000;
-              padding: 2px;
-              background: #ffffff;
-            }
-            .asset-info {
-              flex: 1;
-              text-align: left;
-            }
-            .asset-code {
-              font-size: 15px;
-              font-weight: 900;
-              letter-spacing: 1px;
-              margin-bottom: 2px;
-            }
-            .asset-name {
-              font-size: 9.5px;
-              font-weight: bold;
-              line-height: 1.2;
-              word-break: break-word;
-            }
-            .footer-meta {
-              font-size: 8px;
-              border-top: 1px solid #000000;
-              padding-top: 3px;
-              display: flex;
-              justify-content: space-between;
-              font-weight: bold;
-            }
-            .warning {
-              font-size: 7px;
-              font-style: italic;
-              text-align: center;
-              margin-top: 2px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="tag-card">
-            <div class="header">
-              <span>ERP CAHAYA ITSM</span>
-              <span>PROPERTY TAG</span>
-            </div>
-
-            <div class="body-content">
-              <img src="${qrCodeDataUrl}" class="qr-img" alt="Scannable QR Code" />
-              <div class="asset-info">
-                <div class="asset-code">${asset.assetCode}</div>
-                <div class="asset-name">${asset.name}</div>
-                <div style="font-size: 8.5px; margin-top: 3px; color: #333;">CAT: ${asset.categoryName || 'IT EQUIPMENT'}</div>
-              </div>
-            </div>
-
-            <div>
-              <div class="footer-meta">
-                <span>S/N: ${asset.serialNumber || 'N/A'}</span>
-                <span>LOC: ${asset.locationName || 'HEAD OFFICE'}</span>
-              </div>
-              <div class="warning">SCAN QR FOR DEVICE SPECS • DO NOT REMOVE</div>
-            </div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-  };
-
-  // Handle Log Maintenance Submit
-  const handleLogMaintenance = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assetId) return;
-    setMaintError(null);
-    setMaintSubmitting(true);
-
-    try {
-      await api.post(`/assets/${assetId}/maintenance`, {
-        maintenanceType: maintType,
-        title: maintTitle || `${maintType} - ${asset?.name}`,
-        description: maintDescription || null,
-        cost: typeof maintCost === 'number' ? maintCost : 0,
-        status: maintStatus,
-      });
-      setIsMaintenanceModalOpen(false);
-      setMaintTitle('');
-      setMaintDescription('');
-      setMaintCost(0);
-      fetchAssetData();
-    } catch (err: any) {
-      setMaintError(err.message || 'Failed to log maintenance');
-    } finally {
-      setMaintSubmitting(false);
-    }
-  };
-
-  // Handle Dispose Submit
-  const handleDispose = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assetId) return;
-    setDisposeError(null);
-    setDisposeSubmitting(true);
-
-    try {
-      await api.post(`/assets/${assetId}/dispose`, {
-        reason: disposeReason,
-      });
-      setIsDisposeModalOpen(false);
-      setDisposeReason('');
-      fetchAssetData();
-    } catch (err: any) {
-      setDisposeError(err.message || 'Failed to dispose asset');
-    } finally {
-      setDisposeSubmitting(false);
-    }
-  };
-
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-          <span>Loading asset details and tracking logs...</span>
+        <div className="py-24 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600 mx-auto" />
+          <p className="mt-3 text-sm text-slate-500 font-mono">Loading Asset Information...</p>
         </div>
       </DashboardLayout>
     );
@@ -423,16 +109,20 @@ export default function AssetDetailPage() {
   if (error || !asset) {
     return (
       <DashboardLayout>
-        <div className="p-8 max-w-lg mx-auto text-center space-y-4">
-          <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
-          <h2 className="text-xl font-bold text-slate-900">Asset Record Not Found</h2>
-          <p className="text-xs text-slate-500">{error || 'The requested asset does not exist or has been removed.'}</p>
+        <div className="max-w-md mx-auto py-16 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Asset Not Found</h2>
+            <p className="text-xs text-slate-500 mt-1">{error || 'Data could not be retrieved.'}</p>
+          </div>
           <Link
             href="/dashboard/assets"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-xl text-xs"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Return to Asset List</span>
+            <span>Back to Inventory</span>
           </Link>
         </div>
       </DashboardLayout>
@@ -440,35 +130,6 @@ export default function AssetDetailPage() {
   }
 
   const isComputer = isComputerCategoryName(asset.categoryName);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Assigned':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Maintenance':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Disposed':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-      default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-    }
-  };
-
-  const getConditionBadge = (cond: string) => {
-    switch (cond) {
-      case 'Good':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Fair':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Poor':
-      case 'Damaged':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
-      default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-    }
-  };
 
   return (
     <DashboardLayout>
@@ -478,7 +139,7 @@ export default function AssetDetailPage() {
           <div>
             <Link
               href="/dashboard/assets"
-              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-red-600 mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-red-600 mb-2 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Asset Catalog</span>
@@ -491,7 +152,7 @@ export default function AssetDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {canManage && (
               <button
                 type="button"
@@ -533,62 +194,14 @@ export default function AssetDetailPage() {
 
         {/* Top Info Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: Asset Technical Specs */}
-          <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 md:col-span-2">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <HardDrive className="w-4 h-4 text-red-600" />
-                <span>Asset Information</span>
-              </h3>
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(asset.status)}`}>
-                  {asset.status}
-                </span>
-                <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getConditionBadge(asset.condition)}`}>
-                  Condition: {asset.condition}
-                </span>
-              </div>
-            </div>
+          <AssetInformationCard asset={asset} />
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-mono">
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Asset Tag Code</span>
-                <span className="font-bold text-slate-900 text-sm">{asset.assetCode}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Category</span>
-                <span className="font-bold text-slate-800">{asset.categoryName || 'General IT'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Serial Number</span>
-                <span className="font-bold text-slate-800">{asset.serialNumber || 'SN-UNKNOWN'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Primary Location</span>
-                <span className="font-bold text-slate-800">{asset.locationName || 'Unassigned Facility'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Assigned User</span>
-                <span className="font-bold text-red-600">{asset.assignedEmployeeName ? `${asset.assignedEmployeeName} (${asset.assignedEmployeeCode || ''})` : 'Stock / Pool'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase block mb-1">Registered Date</span>
-                <span className="font-bold text-slate-800">{asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : 'N/A'}</span>
-              </div>
-            </div>
-
-            {asset.notes && (
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
-                <span className="font-mono text-[10px] text-slate-400 uppercase block mb-1 font-bold">Notes / Complaints</span>
-                <p className="text-slate-700 whitespace-pre-wrap">{asset.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Asset Real Scannable QR Code Badge Preview */}
+          {/* Asset Scannable QR Code Badge Preview */}
           <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-red-50/20 border border-slate-200 flex flex-col justify-between items-center text-center">
             <div className="w-full border-b border-slate-200 pb-3 flex items-center justify-between">
-              <span className="text-xs font-bold font-mono text-slate-900 uppercase">AMS Property Tag</span>
+              <span className="text-xs font-bold font-mono text-slate-900 uppercase">
+                AMS Property Tag
+              </span>
               <ShieldCheck className="w-4 h-4 text-red-600" />
             </div>
 
@@ -611,7 +224,7 @@ export default function AssetDetailPage() {
 
             <button
               onClick={() => setIsPrintModalOpen(true)}
-              className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-mono font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
+              className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-mono font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Thermal Sticker Preview</span>
@@ -622,468 +235,49 @@ export default function AssetDetailPage() {
         {/* Computer Specific Cards (Specs & Accessories) */}
         {isComputer && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Computer Specs Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-blue-600" />
-                  <span>Hardware & System Specifications</span>
-                </h3>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                  {asset.categoryName?.toUpperCase()}
-                </span>
-              </div>
-
-              {asset.computerSpecs ? (
-                <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                  <div className="col-span-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Processor (CPU)</span>
-                    <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                      <Cpu className="w-3.5 h-3.5 text-slate-500" />
-                      {asset.computerSpecs.cpuName}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] uppercase block mb-1">RAM Memory</span>
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-slate-500" />
-                      {asset.computerSpecs.ramSizeGb} GB ({asset.computerSpecs.ramSlotCount} Slots)
-                    </span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Primary Storage (Disk 1)</span>
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Disc className="w-3.5 h-3.5 text-slate-500" />
-                      {asset.computerSpecs.disk1SizeGb} GB
-                    </span>
-                  </div>
-                  <div className="col-span-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <span className="text-slate-400 text-[10px] uppercase block mb-1">Secondary Storage (Disk 2)</span>
-                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Disc className="w-3.5 h-3.5 text-slate-500" />
-                      {asset.computerSpecs.disk2SizeGb ? `${asset.computerSpecs.disk2SizeGb} GB` : 'None / Not installed'}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 text-center text-slate-400 text-xs font-mono">
-                  No detailed computer specifications registered.
-                </div>
-              )}
-            </div>
-
-            {/* Accessories Card */}
-            <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Headphones className="w-4 h-4 text-purple-600" />
-                  <span>Attached Accessories</span>
-                </h3>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                  {asset.accessories?.length || 0} ITEMS
-                </span>
-              </div>
-
-              {asset.accessories && asset.accessories.length > 0 ? (
-                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                  {asset.accessories.map((acc, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-100 flex items-center justify-between transition-colors text-xs font-mono"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">{acc.accessoryType}</span>
-                          <span className="text-[10px] px-2 py-0.2 rounded-md bg-slate-200 text-slate-700">
-                            Qty: {acc.quantity}
-                          </span>
-                        </div>
-                        {acc.description && (
-                          <p className="text-[11px] text-slate-600 font-sans">{acc.description}</p>
-                        )}
-                        {acc.notes && (
-                          <p className="text-[10px] text-slate-400 italic font-sans">{acc.notes}</p>
-                        )}
-                      </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getConditionBadge(acc.condition)}`}>
-                        {acc.condition}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-slate-400 text-xs font-mono">
-                  No accessories registered for this computer.
-                </div>
-              )}
-            </div>
+            <ComputerSpecsCard asset={asset} />
+            <AssetAccessoriesCard asset={asset} />
           </div>
         )}
 
         {/* History Tabs Navigation */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-            <button
-              onClick={() => setActiveTab('transfers')}
-              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'transfers'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              <span>Assignment & Handover History ({history?.assignmentHistory?.length || 0})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('maintenance')}
-              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'maintenance'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>Maintenance & Servicing ({history?.maintenanceHistory?.length || 0})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'audit'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <History className="w-3.5 h-3.5" />
-              <span>System Audit Logs ({history?.auditLogs?.length || 0})</span>
-            </button>
-          </div>
-
-          {/* Tab 1: Assignment History */}
-          {activeTab === 'transfers' && (
-            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
-              <h3 className="text-sm font-bold text-slate-900">Custody & Transfer Timeline</h3>
-              {history?.assignmentHistory && history.assignmentHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {history.assignmentHistory.map((item, idx) => (
-                    <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-blue-600" />
-                          <span className="font-bold text-slate-900 text-sm">{item.employeeName || 'Unknown Staff'}</span>
-                          <span className="text-[10px] text-slate-400">({item.employeeCode || 'N/A'})</span>
-                        </div>
-                        <p className="text-slate-500 text-[11px]">{item.departmentName || 'General Staff'} • Handed over by {item.assignedByUsername || 'IT Admin'}</p>
-                        {item.handoverNotes && (
-                          <p className="text-slate-700 bg-white p-2 rounded-xl border border-slate-200 text-[11px] font-sans mt-1">
-                            Note: {item.handoverNotes}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="text-left md:text-right space-y-1 shrink-0">
-                        <div className="flex items-center md:justify-end gap-1.5 text-slate-500">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>Assigned: {new Date(item.assignedAt).toLocaleDateString()}</span>
-                        </div>
-                        {item.returnedAt ? (
-                          <div className="flex items-center md:justify-end gap-1.5 text-amber-600 font-bold">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>Returned: {new Date(item.returnedAt).toLocaleDateString()}</span>
-                          </div>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold text-[10px] border border-blue-200">
-                            Current Active Custodian
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 font-mono">No historical assignment records found for this asset.</p>
-              )}
-            </div>
-          )}
-
-          {/* Tab 2: Maintenance History */}
-          {activeTab === 'maintenance' && (
-            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-900">Repair & Servicing Log</h3>
-                <button
-                  onClick={() => setIsMaintenanceModalOpen(true)}
-                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Log Service</span>
-                </button>
-              </div>
-
-              {history?.maintenanceHistory && history.maintenanceHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {history.maintenanceHistory.map((item, idx) => (
-                    <div key={item.id || idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-mono">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Wrench className="w-4 h-4 text-amber-600" />
-                          <span className="font-bold text-slate-900 text-sm">{item.title}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                            {item.maintenanceType}
-                          </span>
-                        </div>
-                        {item.description && <p className="text-slate-600 text-[11px] font-sans">{item.description}</p>}
-                        <p className="text-slate-400 text-[10px]">Logged by: {item.performedByUsername || 'IT Staff'}</p>
-                      </div>
-
-                      <div className="text-left md:text-right space-y-1 shrink-0">
-                        <span className="font-bold text-slate-900 block text-sm">
-                          IDR {Number(item.cost || 0).toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block">
-                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 font-mono">No maintenance records logged for this asset.</p>
-              )}
-            </div>
-          )}
-
-          {/* Tab 3: Audit Logs */}
-          {activeTab === 'audit' && (
-            <div className="glass-panel rounded-3xl p-6 bg-white border border-slate-200 space-y-4">
-              <h3 className="text-sm font-bold text-slate-900">System Activity Audit Trail</h3>
-              {history?.auditLogs && history.auditLogs.length > 0 ? (
-                <div className="space-y-3">
-                  {history.auditLogs.map((item, idx) => (
-                    <div key={item.id || idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs font-mono">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-red-600 uppercase tracking-wider text-[11px]">{item.action}</span>
-                          <span className="text-slate-700">{item.entity} #{item.entityId}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-400">By user: {item.username || `ID ${item.userId || 'system'}`}</p>
-                      </div>
-                      <span className="text-slate-400 text-[10px]">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'N/A'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 font-mono">No system audit records available.</p>
-              )}
-            </div>
-          )}
-        </div>
+        <AssetHistoryTabs
+          history={history}
+          onOpenMaintenanceModal={() => setIsMaintenanceModalOpen(true)}
+        />
       </div>
 
-      {/* --- Print Thermal QR Sticker Modal --- */}
-      {isPrintModalOpen && asset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Printer className="w-5 h-5 text-red-600" />
-                <h3 className="text-base font-bold text-slate-900">Print Asset Tag QR Label</h3>
-              </div>
-              <button
-                onClick={() => setIsPrintModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 mb-4">
-              Preview of standard 80mm x 50mm thermal sticker tag. Scan the QR code to open this asset catalog item on mobile:
-            </p>
-
-            {/* Thermal Label Preview Card */}
-            <div className="border-2 border-slate-900 rounded-2xl p-4 bg-white space-y-3 font-mono shadow-inner my-4">
-              <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[10px] font-bold text-slate-900">
-                <span>ERP CAHAYA ITSM</span>
-                <span>PROPERTY TAG</span>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 py-1">
-                {qrCodeDataUrl ? (
-                  <img src={qrCodeDataUrl} alt="QR Code" className="w-24 h-24 border border-slate-900 p-1 bg-white shrink-0" />
-                ) : (
-                  <div className="w-24 h-24 bg-slate-100 border border-slate-900 flex items-center justify-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                )}
-                <div className="flex-1 text-left">
-                  <p className="font-mono font-black text-base text-red-600 tracking-wider">{asset.assetCode}</p>
-                  <p className="text-xs font-bold text-slate-900 leading-tight line-clamp-2 mt-0.5">{asset.name}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase">CAT: {asset.categoryName || 'IT ASSET'}</p>
-                </div>
-              </div>
-
-              <div className="text-[10px] border-t border-slate-900 pt-1.5 flex justify-between font-bold text-slate-700">
-                <span>S/N: {asset.serialNumber || 'N/A'}</span>
-                <span>LOC: {asset.locationName || 'HO-JKT'}</span>
-              </div>
-              <div className="text-[9px] text-slate-500 italic text-center">SCAN QR FOR DEVICE SPECS • DO NOT REMOVE</div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsPrintModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPrintModalOpen(false);
-                  handlePrintSticker();
-                }}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-red-600/20"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print QR Sticker Label</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Maintenance Modal */}
-      {isMaintenanceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-amber-600" />
-                <span>Log Maintenance Service</span>
-              </h3>
-              <button onClick={() => setIsMaintenanceModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleLogMaintenance} className="space-y-3">
-              <div>
-                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Service Type</label>
-                <select
-                  value={maintType}
-                  onChange={(e) => setMaintType(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                >
-                  <option value="Routine Service">Routine Service</option>
-                  <option value="Hardware Repair">Hardware Repair</option>
-                  <option value="RAM/SSD Upgrade">RAM/SSD Upgrade</option>
-                  <option value="OS Reinstall">OS Reinstall</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Description / Findings</label>
-                <textarea
-                  rows={2}
-                  value={maintDescription}
-                  onChange={(e) => setMaintDescription(e.target.value)}
-                  placeholder="Details of repair..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Cost (IDR)</label>
-                <input
-                  type="number"
-                  value={maintCost}
-                  onChange={(e) => setMaintCost(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsMaintenanceModalOpen(false)}
-                  className="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={maintSubmitting}
-                  className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl text-xs"
-                >
-                  {maintSubmitting ? 'Saving...' : 'Save Log'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Asset Modal */}
+      {/* Edit Asset Modal (Reused existing component!) */}
       <AssetFormModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         asset={asset}
         canManage={canManage}
-        onSuccess={() => fetchAssetData()}
+        onSuccess={fetchAssetData}
       />
 
-      {/* Dispose Modal */}
-      {isDisposeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl relative border border-slate-200 bg-white">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-rose-700 flex items-center gap-2">
-                <Archive className="w-4 h-4 text-rose-600" />
-                <span>Decommission & Dispose Asset</span>
-              </h3>
-              <button onClick={() => setIsDisposeModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Print Thermal QR Sticker Modal */}
+      <PrintAssetTagModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        asset={asset}
+      />
 
-            <form onSubmit={handleDispose} className="space-y-3">
-              <div>
-                <label className="block text-xs font-mono text-slate-700 mb-1 font-semibold">Reason for Disposal</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={disposeReason}
-                  onChange={(e) => setDisposeReason(e.target.value)}
-                  placeholder="e.g. Beyond economical repair, end of life..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
+      {/* Log Maintenance Modal */}
+      <LogMaintenanceModal
+        isOpen={isMaintenanceModalOpen}
+        onClose={() => setIsMaintenanceModalOpen(false)}
+        onSuccess={fetchAssetData}
+        asset={asset}
+      />
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsDisposeModalOpen(false)}
-                  className="px-3 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={disposeSubmitting}
-                  className="px-4 py-2 bg-rose-600 text-white font-bold rounded-xl text-xs"
-                >
-                  {disposeSubmitting ? 'Processing...' : 'Confirm Disposal'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Dispose Asset Modal */}
+      <DisposeAssetModal
+        isOpen={isDisposeModalOpen}
+        onClose={() => setIsDisposeModalOpen(false)}
+        onSuccess={fetchAssetData}
+        asset={asset}
+      />
     </DashboardLayout>
   );
 }

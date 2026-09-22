@@ -22,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await api.post('/auth/login', { email, password });
+      const data = await api.post<{ token: string; user: { id: number; email: string; fullName: string; roleName: string } }>('/auth/login', { email, password });
       
       if (data.token && data.user) {
         login(data.token, data.user);
@@ -30,8 +30,8 @@ export default function LoginPage() {
       } else {
         throw new Error('Invalid response payload from server');
       }
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

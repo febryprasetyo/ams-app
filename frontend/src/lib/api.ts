@@ -27,7 +27,7 @@ function getToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+export async function apiFetch<T = unknown>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const token = getToken();
   const baseUrl = getBaseUrl().replace(/\/+$/, '');
 
@@ -62,34 +62,34 @@ export async function apiFetch<T = any>(endpoint: string, options: ApiOptions = 
 }
 
 export const api = {
-  get: <T = any>(endpoint: string, options?: ApiOptions) =>
+  get: <T = unknown>(endpoint: string, options?: ApiOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'GET' }),
 
-  post: <T = any>(endpoint: string, body?: any, options?: ApiOptions) =>
+  post: <T = unknown>(endpoint: string, body?: unknown, options?: ApiOptions) =>
     apiFetch<T>(endpoint, {
       ...options,
       method: 'POST',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
-  put: <T = any>(endpoint: string, body?: any, options?: ApiOptions) =>
+  put: <T = unknown>(endpoint: string, body?: unknown, options?: ApiOptions) =>
     apiFetch<T>(endpoint, {
       ...options,
       method: 'PUT',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
-  patch: <T = any>(endpoint: string, body?: any, options?: ApiOptions) =>
+  patch: <T = unknown>(endpoint: string, body?: unknown, options?: ApiOptions) =>
     apiFetch<T>(endpoint, {
       ...options,
       method: 'PATCH',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
-  delete: <T = any>(endpoint: string, options?: ApiOptions) =>
+  delete: <T = unknown>(endpoint: string, options?: ApiOptions) =>
     apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),
 
-  upload: <T = any>(endpoint: string, formData: FormData, options?: ApiOptions) =>
+  upload: <T = unknown>(endpoint: string, formData: FormData, options?: ApiOptions) =>
     apiFetch<T>(endpoint, {
       ...options,
       method: 'POST',

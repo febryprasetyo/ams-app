@@ -40,10 +40,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           // Optionally verify token with backend
           try {
-            const meRes = await api.get('/auth/me');
+            const meRes = await api.get<{ user?: { userId?: number; id?: number; email: string; fullName?: string; roleName: string } }>('/auth/me');
             if (meRes?.user) {
               const updatedUser: User = {
-                id: meRes.user.userId || meRes.user.id,
+                id: meRes.user.userId ?? meRes.user.id ?? 0,
                 email: meRes.user.email,
                 fullName: meRes.user.fullName || (storedUser ? JSON.parse(storedUser).fullName : meRes.user.email),
                 roleName: meRes.user.roleName,

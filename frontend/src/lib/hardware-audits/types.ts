@@ -29,7 +29,7 @@ export interface HardwareAuditItem {
   ramSlotCount: number | null;
   disk1SizeGb: number | null;
   disk2SizeGb: number | null;
-  rawSpecs: any;
+  rawSpecs: Record<string, unknown> | null;
   notes: string | null;
   status: 'PENDING' | 'SYNCED_AUTO' | 'SYNCED_MANUAL' | 'DISMISSED';
   matchedAssetId: number | null;
@@ -67,7 +67,7 @@ export interface AllAssetOption {
   assignedEmployeeName?: string | null;
   custodianName?: string | null;
   categoryName?: string;
-  computerSpecs?: any;
+  computerSpecs?: Record<string, unknown>;
 }
 
 export function isGenericOrPlaceholderSerial(serial?: string | null): boolean {

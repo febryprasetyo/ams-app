@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Loader2, RefreshCw, Search } from 'lucide-react';
+import { Database, Laptop, Search } from 'lucide-react';
 import type { AccurateServerMonitoring } from './types';
-import { formatDate } from './utils';
 
 interface MonitoringToolbarProps {
   servers: AccurateServerMonitoring[];
@@ -15,9 +14,7 @@ interface MonitoringToolbarProps {
   onSearchChange: (q: string) => void;
   activeLicenses: number;
   totalLicenses: number;
-  lastSyncedAt: string | null;
-  syncingServer: number | 'all' | null;
-  onSync: (id: number | 'all') => void;
+  databaseCount: number;
 }
 
 export default function MonitoringToolbar({
@@ -30,85 +27,41 @@ export default function MonitoringToolbar({
   onSearchChange,
   activeLicenses,
   totalLicenses,
-  lastSyncedAt,
-  syncingServer,
-  onSync,
+  databaseCount,
 }: MonitoringToolbarProps) {
-  const isSyncing = syncingServer !== null;
-
   return (
-    <section className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Accurate Monitoring</h1>
-          <p className="text-xs text-slate-500">
-            {activeLicenses} aktif · {totalLicenses} total
-            {lastSyncedAt && ` · Sync ${formatDate(lastSyncedAt)}`}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onSync(selectedServerId)}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
-          >
-            {isSyncing && syncingServer === selectedServerId ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
-            )}
-            {selectedServerId === 'all' ? 'Sync Semua' : 'Sync Server'}
-          </button>
-          {selectedServerId !== 'all' && (
-            <button
-              type="button"
-              onClick={() => onSync('all')}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {isSyncing && syncingServer === 'all' ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5" />
-              )}
-              Sync Semua
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs + Filters */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Tabs */}
-        <div className="flex gap-1 rounded-xl bg-slate-100 p-1 text-xs font-bold">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => onTabChange('licenses')}
-            className={`rounded-lg px-3 py-1.5 transition-colors cursor-pointer ${
+            className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'licenses'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-red-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Lisensi
+            <Laptop className="mr-2 inline h-4 w-4" />
+            Accurate 5 Live Users ({activeLicenses}/{totalLicenses})
           </button>
           <button
             type="button"
             onClick={() => onTabChange('database')}
-            className={`rounded-lg px-3 py-1.5 transition-colors cursor-pointer ${
+            className={`rounded-xl px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'database'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Database
+            <Database className="mr-2 inline h-4 w-4" />
+            Accurate Database ({databaseCount})
           </button>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <select
             value={selectedServerId}
             onChange={(event) =>

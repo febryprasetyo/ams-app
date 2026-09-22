@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Clock, Loader2, RefreshCw, Server } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
+import AccurateServerCard from '@/components/infrastructure/AccurateServerCard';
 import MonitoringToolbar from '@/components/infrastructure/MonitoringToolbar';
 import AccurateLicenseTable from '@/components/infrastructure/AccurateLicenseTable';
 import DatabasePanels from '@/components/infrastructure/DatabasePanels';
@@ -14,7 +15,7 @@ import type {
   MonitoringResponse,
   SyncResponse,
 } from '@/components/infrastructure/types';
-import { errorMessage } from '@/components/infrastructure/utils';
+import { errorMessage, formatDate } from '@/components/infrastructure/utils';
 
 export default function InfrastructurePage() {
   const [licenses, setLicenses] = useState<AccurateLicenseLog[]>([]);
@@ -47,7 +48,6 @@ export default function InfrastructurePage() {
   }, []);
 
   useEffect(() => {
-    // Initial remote data load is the external synchronization owned by this effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
@@ -97,18 +97,29 @@ export default function InfrastructurePage() {
     });
   }, [licenses, searchQuery, selectedServerId]);
 
-  const visibleServers =
-    selectedServerId === 'all' ? servers : servers.filter((server) => server.id === selectedServerId);
+  const visibleServers = useMemo(() => {
+    return selectedServerId === 'all'
+      ? servers
+      : servers.filter((server) => server.id === selectedServerId);
+  }, [servers, selectedServerId]);
 
-  const activeLicenses = licenses.filter(
-    (license) =>
-      license.status === 'ACTIVE' &&
-      (selectedServerId === 'all' || license.serverId === selectedServerId),
-  ).length;
+  const activeLicenses = useMemo(() => {
+    return licenses.filter(
+      (license) =>
+        license.status === 'ACTIVE' &&
+        (selectedServerId === 'all' || license.serverId === selectedServerId),
+    ).length;
+  }, [licenses, selectedServerId]);
 
-  const totalLicenses = licenses.filter(
-    (license) => selectedServerId === 'all' || license.serverId === selectedServerId,
-  ).length;
+  const totalLicenses = useMemo(() => {
+    return licenses.filter(
+      (license) => selectedServerId === 'all' || license.serverId === selectedServerId,
+    ).length;
+  }, [licenses, selectedServerId]);
+
+  const totalDatabases = useMemo(() => {
+    return visibleServers.reduce((sum, server) => sum + (server.databases?.length ?? 0), 0);
+  }, [visibleServers]);
 
   return (
     <DashboardLayout>
@@ -124,6 +135,39 @@ export default function InfrastructurePage() {
           </div>
         )}
 
+        {/* Header */}
+        <header className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="absolute inset-y-0 left-0 w-2 bg-red-600" />
+          <div className="flex flex-col gap-5 pl-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600 text-white">
+                  <Server className="h-5 w-5" />
+                </span>
+                Accurate Database
+              </h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Telemetry server, Firebird database, dan lisensi Accurate dari agent yang terdaftar otomatis.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                <Clock className="mr-1.5 inline h-4 w-4" />
+                Sync lisensi terakhir: <strong>{formatDate(lastSyncedAt)}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSync('all')}
+                disabled={syncingServer !== null || servers.length === 0}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncingServer === 'all' ? 'animate-spin' : ''}`} />
+                Sync Semua Lisensi
+              </button>
+            </div>
+          </div>
+        </header>
+
         {/* Error banner */}
         {error && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
@@ -131,12 +175,31 @@ export default function InfrastructurePage() {
           </div>
         )}
 
-        {/* Loading skeleton */}
-        {loading && (
-          <div className="flex h-40 items-center justify-center text-slate-400 text-sm">
-            Memuat data monitoring...
-          </div>
-        )}
+        {/* Server Monitoring Cards Grid */}
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-12 text-slate-500">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Membaca telemetry dari database…
+            </div>
+          ) : servers.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+              <Server className="mx-auto h-10 w-10 text-slate-300" />
+              <h2 className="mt-3 font-bold text-slate-800">Belum ada server Accurate terdaftar</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Jalankan accurate_agent.ps1 pada server pertama untuk mengirim heartbeat.
+              </p>
+            </div>
+          ) : (
+            servers.map((server) => (
+              <AccurateServerCard
+                key={server.id}
+                server={server}
+                isSyncing={syncingServer === server.id}
+                onSync={() => handleSync(server.id)}
+              />
+            ))
+          )}
+        </section>
 
         {!loading && (
           <>
@@ -150,9 +213,7 @@ export default function InfrastructurePage() {
               onSearchChange={setSearchQuery}
               activeLicenses={activeLicenses}
               totalLicenses={totalLicenses}
-              lastSyncedAt={lastSyncedAt}
-              syncingServer={syncingServer}
-              onSync={handleSync}
+              databaseCount={totalDatabases}
             />
 
             {activeTab === 'licenses' ? (

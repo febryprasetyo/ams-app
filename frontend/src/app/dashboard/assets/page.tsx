@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
@@ -72,7 +72,7 @@ export default function AssetsPage() {
     const fetchAuxiliary = async () => {
       try {
         const [cats, locs] = await Promise.all([
-          api.get<CategoryItem[]>('/master/categories').catch(() => []),
+          api.get<CategoryItem[]>('/assets/categories').catch(() => []),
           api.get<LocationItem[]>('/master/locations').catch(() => []),
         ]);
         setCategories(cats || []);
@@ -98,11 +98,22 @@ export default function AssetsPage() {
       params.append('page', String(page));
       params.append('limit', String(limit));
 
-      const res = await api.get<{ assets: AssetItem[]; total: number }>(
+      const res = await api.get<AssetItem[] | { data: AssetItem[]; total?: number } | { assets: AssetItem[]; total?: number }>(
         `/assets?${params.toString()}`
       );
-      setAssets(res.assets || []);
-      setTotalCount(res.total || 0);
+      if (Array.isArray(res)) {
+        setAssets(res);
+        setTotalCount(res.length);
+      } else if (res && 'data' in res && Array.isArray(res.data)) {
+        setAssets(res.data);
+        setTotalCount(res.total ?? res.data.length);
+      } else if (res && 'assets' in res && Array.isArray(res.assets)) {
+        setAssets(res.assets);
+        setTotalCount(res.total ?? res.assets.length);
+      } else {
+        setAssets([]);
+        setTotalCount(0);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load asset inventory');
     } finally {
@@ -175,6 +186,15 @@ export default function AssetsPage() {
       setDownloadingTemplate(false);
     }
   };
+
+  // Client-side window when backend returns full array
+  const displayedAssets = useMemo(() => {
+    if (assets.length > limit) {
+      const start = (page - 1) * limit;
+      return assets.slice(start, start + limit);
+    }
+    return assets;
+  }, [assets, page, limit]);
 
   return (
     <DashboardLayout>
@@ -266,7 +286,7 @@ export default function AssetsPage() {
 
         {/* Asset Inventory Table */}
         <AssetTable
-          assets={assets}
+          assets={displayedAssets}
           loading={loading}
           error={error}
           canManage={canManage}

@@ -10,6 +10,7 @@ import ticketRoutes from './routes/ticketRoutes';
 import licenseRoutes from './routes/licenseRoutes';
 import infrastructureRoutes from './routes/infrastructureRoutes';
 import hardwareAuditRoutes from './routes/hardwareAuditRoutes';
+import roleRoutes from './routes/roleRoutes';
 import { checkDatabase } from './db';
 
 export interface AppOptions {
@@ -52,6 +53,7 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use('/api/v1/licenses', licenseRoutes);
   app.use('/api/v1/infrastructure', infrastructureRoutes);
   app.use('/api/v1/hardware-audits', hardwareAuditRoutes);
+  app.use('/api/v1/roles', roleRoutes);
 
   return app;
 }

@@ -3,12 +3,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { checkUserPermission } from '@/lib/access/permissions';
 
 export interface User {
   id: number;
   email: string;
   fullName: string;
+  roleId?: number;
   roleName: string;
+  permissions?: string[];
 }
 
 export interface AuthContextType {
@@ -17,6 +20,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  hasPermission: (permissionCode: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,15 +42,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (storedUser) {
             setUser(JSON.parse(storedUser));
           }
-          // Optionally verify token with backend
+          // Verify token with backend and sync latest permissions & role
           try {
-            const meRes = await api.get<{ user?: { userId?: number; id?: number; email: string; fullName?: string; roleName: string } }>('/auth/me');
+            const meRes = await api.get<{
+              user?: {
+                userId?: number;
+                id?: number;
+                email: string;
+                fullName?: string;
+                roleId?: number;
+                roleName: string;
+                permissions?: string[];
+              };
+            }>('/auth/me');
+
             if (meRes?.user) {
               const updatedUser: User = {
                 id: meRes.user.userId ?? meRes.user.id ?? 0,
                 email: meRes.user.email,
                 fullName: meRes.user.fullName || (storedUser ? JSON.parse(storedUser).fullName : meRes.user.email),
+                roleId: meRes.user.roleId,
                 roleName: meRes.user.roleName,
+                permissions: meRes.user.permissions || [],
               };
               setUser(updatedUser);
               localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -86,8 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
+  const hasPermission = (permissionCode: string): boolean => {
+    return checkUserPermission(user, permissionCode);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

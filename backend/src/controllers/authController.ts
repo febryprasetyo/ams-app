@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest, getUserPermissions } from '../middleware/auth';
 import { db } from '../db';
 import { users } from '../db/schema/users';
 import { eq } from 'drizzle-orm';
@@ -38,12 +38,15 @@ export async function login(req: AuthenticatedRequest, res: Response) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    const effectiveRoleId = user.roleId ?? user.id;
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      roleId: user.id,
+      roleId: effectiveRoleId,
       roleName: user.role,
     });
+
+    const userPermissions = await getUserPermissions(user.roleId ?? undefined, user.role);
 
     return res.status(200).json({
       message: 'Login successful',
@@ -52,7 +55,9 @@ export async function login(req: AuthenticatedRequest, res: Response) {
         id: user.id,
         email: user.email,
         fullName: user.username,
+        roleId: user.roleId,
         roleName: user.role,
+        permissions: userPermissions,
       },
     });
   } catch (err: any) {
@@ -67,5 +72,11 @@ export async function me(req: AuthenticatedRequest, res: Response) {
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  return res.status(200).json({ user: req.user });
+  const userPermissions = await getUserPermissions(req.user.roleId, req.user.roleName);
+  return res.status(200).json({
+    user: {
+      ...req.user,
+      permissions: userPermissions,
+    },
+  });
 }

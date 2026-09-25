@@ -1,5 +1,5 @@
 import { db } from './index';
-import { roles, users } from './schema/users';
+import { roles, users, permissions, rolePermissions } from './schema/users';
 import { departments, locations } from './schema/master';
 import { vendors } from './schema/vendors';
 import { employees } from './schema/employees';
@@ -15,6 +15,7 @@ import {
   shouldSeedDefaultTicketCategories,
   shouldSeedDefaultSlaPolicies,
 } from '../domain/ticketCategories';
+import { DEFAULT_PERMISSIONS } from '../domain/rbac';
 
 async function seed() {
   console.log('🌱 Starting database seed procedure...');
@@ -67,6 +68,22 @@ async function seed() {
       allocated_at timestamp DEFAULT now() NOT NULL,
       notes text
     );
+
+    CREATE TABLE IF NOT EXISTS permissions (
+      id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      code varchar(100) NOT NULL UNIQUE,
+      name varchar(150) NOT NULL,
+      module varchar(50) NOT NULL,
+      description varchar(255),
+      created_at timestamp DEFAULT now() NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      role_id bigint NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+      permission_id bigint NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+      assigned_at timestamp DEFAULT now() NOT NULL,
+      PRIMARY KEY (role_id, permission_id)
+    );
   `);
 
   await db.execute(`
@@ -75,16 +92,19 @@ async function seed() {
     ALTER TABLE it_tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
     ALTER TABLE ticket_comments ADD COLUMN IF NOT EXISTS is_internal boolean DEFAULT false NOT NULL;
     ALTER TABLE software_licenses ADD COLUMN IF NOT EXISTS vendor_id bigint REFERENCES vendors(id);
+    ALTER TABLE roles ADD COLUMN IF NOT EXISTS is_system boolean DEFAULT false NOT NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id bigint REFERENCES roles(id);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id bigint REFERENCES employees(id) ON DELETE SET NULL;
   `);
   console.log('  ✓ Verified table columns in database');
 
   // 1. Seed Roles
   const defaultRoles = [
-    { code: 'super_admin', name: 'SuperAdmin', description: 'Full system access and security administration' },
-    { code: 'it_admin', name: 'ITAdmin', description: 'IT asset, ticket, and infrastructure management' },
-    { code: 'it_staff', name: 'ITStaff', description: 'IT service desk technician and maintenance staff' },
-    { code: 'employee', name: 'Employee', description: 'Standard employee user for submitting IT tickets' },
-    { code: 'management', name: 'Management', description: 'Read-only executive dashboard and reporting access' },
+    { code: 'super_admin', name: 'SuperAdmin', description: 'Full system access and security administration', isSystem: true },
+    { code: 'it_admin', name: 'ITAdmin', description: 'IT asset, ticket, and infrastructure management', isSystem: true },
+    { code: 'it_staff', name: 'ITStaff', description: 'IT service desk technician and maintenance staff', isSystem: true },
+    { code: 'employee', name: 'Employee', description: 'Standard employee user for submitting IT tickets', isSystem: true },
+    { code: 'management', name: 'Management', description: 'Read-only executive dashboard and reporting access', isSystem: true },
   ];
 
   for (const role of defaultRoles) {
@@ -92,6 +112,30 @@ async function seed() {
     if (existing.length === 0) {
       await db.insert(roles).values(role);
       console.log(`  ✓ Inserted role: ${role.name}`);
+    } else {
+      await db.update(roles).set({ isSystem: role.isSystem }).where(eq(roles.id, existing[0].id));
+    }
+  }
+
+  // 1b. Seed Permissions Catalog
+  for (const perm of DEFAULT_PERMISSIONS) {
+    const existing = await db.select().from(permissions).where(eq(permissions.code, perm.code));
+    if (existing.length === 0) {
+      await db.insert(permissions).values(perm);
+    }
+  }
+  console.log('  ✓ Verified permissions catalog');
+
+  // 1c. Seed Role Permissions for SuperAdmin
+  const superAdminRole = (await db.select().from(roles).where(eq(roles.code, 'super_admin')))[0];
+  if (superAdminRole) {
+    const allPerms = await db.select().from(permissions);
+    for (const p of allPerms) {
+      await db.execute(`
+        INSERT INTO role_permissions (role_id, permission_id)
+        VALUES (${superAdminRole.id}, ${p.id})
+        ON CONFLICT (role_id, permission_id) DO NOTHING
+      `);
     }
   }
 
@@ -105,10 +149,13 @@ async function seed() {
       email: 'admin@company.com',
       passwordHash,
       role: 'SuperAdmin',
+      roleId: superAdminRole?.id,
       status: 'active',
     }).returning();
     superAdminUser = inserted;
     console.log('  ✓ Created SuperAdmin User (admin@company.com / Admin123!)');
+  } else if (superAdminRole && !superAdminUser.roleId) {
+    await db.update(users).set({ roleId: superAdminRole.id }).where(eq(users.id, superAdminUser.id));
   }
 
   // 3. Seed Departments
@@ -142,7 +189,7 @@ async function seed() {
     }
   }
 
-  // 4a. Seed the initial catalog; ongoing maintenance happens in the web app.
+  // 4a. Seed IT Equipment Types
   const insertedEquipmentTypes = await db.transaction(async (tx) => {
     const existingEquipmentTypes = await tx
       .select({ id: assetCategories.id })

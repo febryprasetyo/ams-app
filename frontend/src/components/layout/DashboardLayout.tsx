@@ -92,6 +92,12 @@ const navGroups: NavGroup[] = [
       { name: 'Accurate & Servers', href: '/dashboard/infrastructure', icon: Server },
     ],
   },
+  {
+    title: 'Administration',
+    items: [
+      { name: 'Access Control', href: '/dashboard/access', icon: ShieldCheck, adminOnly: true },
+    ],
+  },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -119,10 +125,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const visibleNavGroups = navGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => !item.adminOnly || canManageCustodians(user.roleName)),
-  }));
+  const visibleNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.adminOnly) return true;
+        if (item.href === '/dashboard/access') {
+          const normRole = (user.roleName || '').toLowerCase().replace(/_/g, '');
+          return (
+            normRole === 'superadmin' ||
+            Boolean(
+              user.permissions &&
+                (user.permissions.includes('access.users.view') ||
+                  user.permissions.includes('access.roles.manage'))
+            )
+          );
+        }
+        return canManageCustodians(user.roleName);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   // Get active item name for breadcrumb
   const currentNavItem = visibleNavGroups

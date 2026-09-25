@@ -19,7 +19,7 @@ export function Status({ status, dayOff = false }: { status: AttendanceStatus; d
   return <span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-medium ${color}`}>{dayOff ? 'Libur' : statusLabels[status]}</span>;
 }
 export function EmployeeName({ employee, detail }: { employee: Employee; detail?: string }) {
-  return <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" aria-hidden="true">{employee.fullName.split(' ').slice(0, 2).map(n => n[0]).join('')}</span><div><Link className="font-semibold text-slate-800 hover:text-red-700 hover:underline" href={`/dashboard/attendance/employees/${employee.id}`}>{employee.fullName}</Link><p className="mt-1 text-[10px] text-slate-500">{employee.employeeCode || 'Tanpa kode'}{detail ? ` · ${detail}` : ''}</p></div></div>;
+  return <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" aria-hidden="true">{employee.fullName.split(' ').slice(0, 2).map(n => n[0]).join('')}</span><div><Link className="font-semibold text-slate-800 hover:text-red-700 hover:underline" href={`/dashboard/attendance/employees/${employee.id}`}>{employee.fullName}</Link><p className="mt-1 text-[10px] text-slate-500">{employee.employeeCode ? `No. ID: ${employee.employeeCode}` : 'Tanpa No. ID'}{detail ? ` · ${detail}` : ''}</p></div></div>;
 }
 export function Pagination({ total, page, onChange, pageSize = 10 }: { total: number; page: number; onChange: (p: number) => void; pageSize?: number }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));

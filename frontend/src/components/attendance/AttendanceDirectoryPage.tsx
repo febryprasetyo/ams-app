@@ -29,7 +29,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   let fields: Field[];
   if (mode === 'employees') fields = [
     { name: 'fullName', label: 'Nama lengkap', value: existingEmployee?.fullName, required: true },
-    { name: 'employeeCode', label: 'Kode karyawan', value: existingEmployee?.employeeCode },
+    { name: 'employeeCode', label: 'No. ID / Kode karyawan', value: existingEmployee?.employeeCode, hint: 'Rujukan unique ID karyawan dari mesin absensi (No. ID)' },
     { name: 'email', label: 'Email', type: 'email', value: existingEmployee?.email },
     { name: 'departmentId', label: 'Departemen absensi', type: 'select', required: true, value: existingEmployee?.departmentId ?? '', options: [{ value: '', label: 'Pilih departemen' }, ...data.departments.map(d => ({ value: d.id, label: d.name }))] },
     { name: 'locationId', label: 'Lokasi absensi', type: 'select', value: existingEmployee?.locationId ?? '', options: [{ value: '', label: 'Belum ditentukan' }, ...data.locations.map(l => ({ value: l.id, label: l.name }))] },
@@ -37,7 +37,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   ];
   else if (mode === 'identities') fields = [
     { name: 'sourceId', label: 'Sumber', type: 'select', value: existingIdentity?.sourceId ?? data.sources[0]?.id, required: true, options: data.sources.map(s => ({ value: s.id, label: s.name })) },
-    { name: 'externalNoId', label: 'No. ID mesin', value: existingIdentity?.externalNoId, required: true, hint: 'Teks, bukan angka. Contoh: 001 berbeda dengan 1.' },
+    { name: 'externalNoId', label: 'No. ID mesin (Unique ID)', value: existingIdentity?.externalNoId, required: true, hint: 'Rujukan unique ID karyawan pada mesin absensi (contoh: 2018). Teks, bukan angka.' },
     { name: 'employeeId', label: 'Karyawan absensi', type: 'select', value: existingIdentity?.employeeId ?? '', required: true, options: [{ value: '', label: 'Pilih karyawan' }, ...data.employees.map(e => ({ value: e.id, label: `${e.employeeCode || 'Tanpa kode'} · ${e.fullName}` }))] },
   ];
   else if (mode === 'access') fields = [
@@ -60,7 +60,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     {mode === 'sources' && <Link className="hr-btn" href="/dashboard/attendance/identities">Pemetaan identitas</Link>}
     {mode !== 'cards' && allowed && <button className="hr-btn-primary" onClick={() => setEditing(null)}><Plus size={16} />{mode === 'identities' ? 'Tambah pemetaan' : mode === 'access' ? 'Tambah akses' : 'Tambah data'}</button>}
   </Heading>
-  <div className="flex flex-wrap items-center justify-between gap-3"><SearchInput value={q} onChange={value => { setQ(value); setPage(1); }} placeholder={mode === 'employees' || mode === 'cards' ? 'Cari nama atau ID karyawan' : 'Cari kode atau nama'} /><span className="text-xs text-slate-500">{filtered.length} data</span></div>
+  <div className="flex flex-wrap items-center justify-between gap-3"><SearchInput value={q} onChange={value => { setQ(value); setPage(1); }} placeholder={mode === 'employees' || mode === 'cards' ? 'Cari nama atau No. ID karyawan' : 'Cari kode atau nama'} /><span className="text-xs text-slate-500">{filtered.length} data</span></div>
   <div className="hr-panel"><div className="hr-table-wrap"><table className="hr-table"><thead><tr><th>{mode === 'identities' ? 'No. ID mesin' : 'Nama'}</th><th>{mode === 'identities' ? 'Sumber' : mode === 'access' ? 'Akun / peran' : 'Kode / departemen'}</th><th>{mode === 'identities' ? 'Karyawan absensi' : 'Status / lokasi'}</th><th>Aksi</th></tr></thead><tbody>{filtered.slice((currentPage - 1) * 10, currentPage * 10).map(entry => <tr key={entry.id}>
     <td>{'fullName' in entry ? <EmployeeName employee={entry} detail={entry.position} /> : <span className="font-medium">{'externalNoId' in entry ? entry.externalNoId : titleOf(entry)}</span>}</td>
     <td>{'fullName' in entry ? data.departments.find(d => d.id === entry.departmentId)?.name : 'externalNoId' in entry ? data.sources.find(s => s.id === entry.sourceId)?.name : 'principalKey' in entry ? <><span>{entry.principalKey}</span><p className="mt-1 text-slate-500">{roleLabels[entry.role]}</p></> : entry.code}</td>

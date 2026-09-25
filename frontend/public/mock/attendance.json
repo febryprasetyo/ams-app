@@ -30,7 +30,7 @@
   "employees": [
     {
       "id": 1,
-      "employeeCode": "58",
+      "employeeCode": "2018",
       "fullName": "SABRIAN SOPARI",
       "email": "",
       "departmentId": 1,
@@ -40,7 +40,7 @@
     },
     {
       "id": 2,
-      "employeeCode": "47",
+      "employeeCode": "2349",
       "fullName": "AZIZ YULFI ASWIDAN",
       "email": "",
       "departmentId": 1,
@@ -50,7 +50,7 @@
     },
     {
       "id": 3,
-      "employeeCode": "102",
+      "employeeCode": "2515",
       "fullName": "DIO SETIAWAN",
       "email": "",
       "departmentId": 1,
@@ -60,7 +60,7 @@
     },
     {
       "id": 4,
-      "employeeCode": "12",
+      "employeeCode": "20029",
       "fullName": "M NURHIDAYAT",
       "email": "",
       "departmentId": 1,
@@ -70,7 +70,7 @@
     },
     {
       "id": 5,
-      "employeeCode": "14",
+      "employeeCode": "20101",
       "fullName": "LUKMANUL KARIM",
       "email": "",
       "departmentId": 1,
@@ -80,7 +80,7 @@
     },
     {
       "id": 6,
-      "employeeCode": "46",
+      "employeeCode": "20108",
       "fullName": "MUHAMMAD AFFAN",
       "email": "",
       "departmentId": 1,
@@ -90,7 +90,7 @@
     },
     {
       "id": 7,
-      "employeeCode": "18",
+      "employeeCode": "20113",
       "fullName": "ANDIKA SAPUTRA",
       "email": "",
       "departmentId": 1,
@@ -100,7 +100,7 @@
     },
     {
       "id": 8,
-      "employeeCode": "13",
+      "employeeCode": "20154",
       "fullName": "HERRY SUBARI",
       "email": "",
       "departmentId": 1,
@@ -110,7 +110,7 @@
     },
     {
       "id": 9,
-      "employeeCode": "26",
+      "employeeCode": "20277",
       "fullName": "ADI SUCOFINDO",
       "email": "",
       "departmentId": 1,
@@ -120,7 +120,7 @@
     },
     {
       "id": 10,
-      "employeeCode": "115",
+      "employeeCode": "20289",
       "fullName": "Supriyono",
       "email": "",
       "departmentId": 1,
@@ -130,7 +130,7 @@
     },
     {
       "id": 11,
-      "employeeCode": "20",
+      "employeeCode": "20348",
       "fullName": "RIZKY ADITYA EFENDI",
       "email": "",
       "departmentId": 1,
@@ -140,7 +140,7 @@
     },
     {
       "id": 12,
-      "employeeCode": "28",
+      "employeeCode": "20367",
       "fullName": "HENDRIANSYAH",
       "email": "",
       "departmentId": 1,
@@ -150,7 +150,7 @@
     },
     {
       "id": 13,
-      "employeeCode": "17",
+      "employeeCode": "20395",
       "fullName": "BAGUS RAHARDIYANTO",
       "email": "",
       "departmentId": 1,
@@ -160,7 +160,7 @@
     },
     {
       "id": 14,
-      "employeeCode": "25",
+      "employeeCode": "20412",
       "fullName": "ANDRI",
       "email": "",
       "departmentId": 1,
@@ -170,7 +170,7 @@
     },
     {
       "id": 15,
-      "employeeCode": "15",
+      "employeeCode": "20465",
       "fullName": "RAMA RIFKI AL FARIS",
       "email": "",
       "departmentId": 1,
@@ -180,7 +180,7 @@
     },
     {
       "id": 16,
-      "employeeCode": "16",
+      "employeeCode": "20508",
       "fullName": "RIANTO NURHAMID",
       "email": "",
       "departmentId": 1,
@@ -190,7 +190,7 @@
     },
     {
       "id": 17,
-      "employeeCode": "135",
+      "employeeCode": "20542",
       "fullName": "Riza Saputra",
       "email": "",
       "departmentId": 1,
@@ -200,7 +200,7 @@
     },
     {
       "id": 18,
-      "employeeCode": "64",
+      "employeeCode": "22815",
       "fullName": "Geraldo Rifqi",
       "email": "",
       "departmentId": 1,
@@ -210,7 +210,7 @@
     },
     {
       "id": 19,
-      "employeeCode": "62",
+      "employeeCode": "22816",
       "fullName": "Oki Pratama",
       "email": "",
       "departmentId": 1,
@@ -220,7 +220,7 @@
     },
     {
       "id": 20,
-      "employeeCode": "65",
+      "employeeCode": "22817",
       "fullName": "Muhammad Avi",
       "email": "",
       "departmentId": 1,
@@ -230,7 +230,7 @@
     },
     {
       "id": 21,
-      "employeeCode": "136",
+      "employeeCode": "30054",
       "fullName": "Martin Surya Susanto",
       "email": "",
       "departmentId": 1,
@@ -240,7 +240,7 @@
     },
     {
       "id": 22,
-      "employeeCode": "103",
+      "employeeCode": "30090",
       "fullName": "SURYA",
       "email": "",
       "departmentId": 1,

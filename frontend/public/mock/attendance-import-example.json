@@ -1,0 +1,20 @@
+[
+  {
+    "externalNoId": "001",
+    "workDate": "2026-09-27",
+    "scanIn": "08:10",
+    "scanOut": "17:00",
+    "lateMinutes": 10,
+    "earlyMinutes": 0,
+    "overtimeMinutes": 60
+  },
+  {
+    "externalNoId": "002",
+    "workDate": "2026-09-27",
+    "scanIn": "08:00",
+    "scanOut": "16:00",
+    "lateMinutes": 0,
+    "earlyMinutes": 0,
+    "overtimeMinutes": 0
+  }
+]

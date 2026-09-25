@@ -1,0 +1,40 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import ModalShell from '@/components/ui/ModalShell';
+import { durationLabel, statusLabels } from '@/lib/attendance/domain';
+import type { AttendanceStatus, Employee } from '@/lib/attendance/types';
+
+export function Heading({ title, description, children }: { title: string; description: string; children?: React.ReactNode }) {
+  return <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="mb-1 text-xs font-semibold text-red-700">HR / Absensi</p><h1 className="text-2xl font-bold tracking-tight">{title}</h1><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">{description}</p></div><div className="flex flex-wrap gap-2">{children}</div></div>;
+}
+export function Empty({ text = 'Tidak ada data untuk filter ini.' }: { text?: string }) { return <div className="px-6 py-14 text-center text-sm text-slate-500" role="status">{text}</div>; }
+export function SearchInput({ value, onChange, placeholder = 'Cari nama atau ID karyawan' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return <label className="relative block min-w-0 sm:min-w-60"><span className="sr-only">{placeholder}</span><Search className="absolute left-3 top-3 text-slate-400" size={16} /><input className="hr-input pl-9" value={value} placeholder={placeholder} onChange={e => onChange(e.target.value)} /></label>;
+}
+export function Status({ status, dayOff = false }: { status: AttendanceStatus; dayOff?: boolean }) {
+  const color = dayOff ? 'bg-slate-100 text-slate-600' : status === 'PRESENT' ? 'bg-emerald-50 text-emerald-800' : status === 'ALPHA' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-900';
+  return <span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-medium ${color}`}>{dayOff ? 'Libur' : statusLabels[status]}</span>;
+}
+export function EmployeeName({ employee, detail }: { employee: Employee; detail?: string }) {
+  return <div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600" aria-hidden="true">{employee.fullName.split(' ').slice(0, 2).map(n => n[0]).join('')}</span><div><Link className="font-semibold text-slate-800 hover:text-red-700 hover:underline" href={`/dashboard/attendance/employees/${employee.id}`}>{employee.fullName}</Link><p className="mt-1 text-[10px] text-slate-500">{employee.employeeCode || 'Tanpa kode'}{detail ? ` · ${detail}` : ''}</p></div></div>;
+}
+export function Pagination({ total, page, onChange, pageSize = 10 }: { total: number; page: number; onChange: (p: number) => void; pageSize?: number }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  return <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-xs text-slate-500"><span>{total ? (page - 1) * pageSize + 1 : 0}–{Math.min(total, page * pageSize)} dari {total} data</span><div className="flex items-center gap-2"><button className="hr-btn !px-2" aria-label="Halaman sebelumnya" disabled={page <= 1} onClick={() => onChange(page - 1)}><ChevronLeft size={16} /></button><span>Halaman {page} / {pages}</span><button className="hr-btn !px-2" aria-label="Halaman berikutnya" disabled={page >= pages} onClick={() => onChange(page + 1)}><ChevronRight size={16} /></button></div></div>;
+}
+export interface Field { name: string; label: string; type?: 'text' | 'email' | 'number' | 'date' | 'time' | 'textarea' | 'select'; value?: string | number; required?: boolean; options?: { value: string | number; label: string }[]; disabled?: boolean; hint?: string }
+export function FormDialog({ title, description, fields, onClose, onSubmit, submitLabel = 'Simpan perubahan' }: { title: string; description?: string; fields: Field[]; onClose: () => void; onSubmit: (values: FormData) => Promise<void>; submitLabel?: string }) {
+  const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  return <ModalShell isOpen onClose={onClose} title={title} subtitle={description} isLoading={busy} footer={<><button className="hr-btn" onClick={onClose} disabled={busy}>Batal</button><button type="submit" form="attendance-form" className="hr-btn-primary" disabled={busy}>{busy ? 'Menyimpan…' : submitLabel}</button></>}>
+    <form id="attendance-form" className="space-y-4" onSubmit={async event => { event.preventDefault(); const values = new FormData(event.currentTarget); setBusy(true); setError(''); try { await onSubmit(values); onClose(); } catch (err) { setError(err instanceof Error ? err.message : 'Perubahan gagal disimpan.'); } finally { setBusy(false); } }}>
+      {fields.map(field => <label className="block space-y-1.5 text-xs font-medium text-slate-700" key={field.name}><span>{field.label}{field.required ? ' *' : ''}</span>{field.type === 'select' ? <select className="hr-input" name={field.name} defaultValue={field.value ?? ''} required={field.required} disabled={field.disabled || busy}>{field.options?.map(option => <option value={option.value} key={option.value}>{option.label}</option>)}</select> : field.type === 'textarea' ? <textarea rows={3} className="hr-input" name={field.name} defaultValue={field.value} required={field.required} disabled={busy} /> : <input className="hr-input" name={field.name} type={field.type ?? 'text'} defaultValue={field.value} required={field.required} disabled={field.disabled || busy} min={field.type === 'number' ? 0 : undefined} step={field.type === 'number' ? 1 : undefined} />}{field.hint && <span className="block font-normal text-slate-500">{field.hint}</span>}</label>)}
+      {error && <p role="alert" className="rounded-md bg-red-50 p-3 text-xs text-red-700">{error}</p>}
+    </form>
+  </ModalShell>;
+}
+export function Totals({ late, overtime, count }: { late: number; overtime: number; count: number }) {
+  return <div className="hr-panel grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">{[{ label: 'Total keterlambatan', value: durationLabel(late), color: 'text-red-700' }, { label: 'Total lembur', value: durationLabel(overtime), color: 'text-slate-900' }, { label: 'Catatan final', value: String(count), color: 'text-slate-900' }].map(item => <div className="px-5 py-5" key={item.label}><p className="text-xs text-slate-500">{item.label}</p><p className={`mt-2 text-xl font-semibold tabular-nums ${item.color}`}>{item.value}</p></div>)}</div>;
+}

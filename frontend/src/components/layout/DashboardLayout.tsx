@@ -26,7 +26,13 @@ import {
   Server,
   Shapes,
   UserRoundCog,
-  GitMerge
+  GitMerge,
+  CalendarCheck,
+  FileInput,
+  ClipboardList,
+  FileBarChart,
+  History,
+  Fingerprint
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,6 +60,21 @@ const navGroups: NavGroup[] = [
       { name: 'Employees', href: '/dashboard/master/employees', icon: Users },
       { name: 'Asset Custodians', href: '/dashboard/master/asset-custodians', icon: UserRoundCog, adminOnly: true },
       { name: 'HR Reconciliation', href: '/dashboard/master/asset-custodians/reconciliation', icon: GitMerge, adminOnly: true },
+    ],
+  },
+  {
+    title: 'HR',
+    items: [
+      { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck },
+      { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput },
+      { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList },
+      { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart },
+      { name: 'Aktivitas Absensi', href: '/dashboard/attendance/activity', icon: History },
+      { name: 'Karyawan Absensi', href: '/dashboard/attendance/master/employees', icon: Users },
+      { name: 'Departemen Absensi', href: '/dashboard/attendance/master/departments', icon: Building2 },
+      { name: 'Lokasi Absensi', href: '/dashboard/attendance/master/locations', icon: MapPin },
+      { name: 'Pemetaan Identitas', href: '/dashboard/attendance/identities', icon: Fingerprint },
+      { name: 'Akses Absensi', href: '/dashboard/attendance/access', icon: ShieldCheck },
     ],
   },
   {
@@ -106,7 +127,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Get active item name for breadcrumb
   const currentNavItem = visibleNavGroups
     .flatMap((g) => g.items)
-    .find((item) => item.href === pathname);
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((item) => item.href === pathname || pathname.startsWith(`${item.href}/`));
+  const currentNavGroup = visibleNavGroups.find(group => group.items.some(item => item.href === currentNavItem?.href));
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-red-500/20 selection:text-red-900">
@@ -120,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Crisp White Sidebar with Fresh Red Accent */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 shadow-sm ${
+        className={`fixed md:sticky md:top-0 h-dvh shrink-0 inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 shadow-sm ${
           collapsed ? 'w-20' : 'w-64'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
@@ -153,7 +176,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Mobile Close Button */}
           <button
             onClick={() => setMobileOpen(false)}
-            className="md:hidden text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+            aria-label="Tutup navigasi"
+            className="md:hidden text-slate-400 hover:text-slate-700 p-2 cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
@@ -184,7 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = currentNavItem?.href === item.href;
                 const Icon = item.icon;
 
                 return (
@@ -263,7 +287,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden text-slate-500 hover:text-slate-900 p-1 cursor-pointer"
+              aria-label="Buka navigasi"
+              className="md:hidden text-slate-500 hover:text-slate-900 p-2 cursor-pointer"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -272,7 +297,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="flex items-center gap-2 text-xs font-medium">
               <span className="text-slate-400">Platform</span>
               <span className="text-slate-300">/</span>
-              <span className="text-slate-400">Master Data</span>
+              <span className="text-slate-400">{currentNavGroup?.title || 'Dashboard'}</span>
               <span className="text-slate-300">/</span>
               <span className="text-red-600 font-bold">{currentNavItem?.name || 'Overview'}</span>
             </div>

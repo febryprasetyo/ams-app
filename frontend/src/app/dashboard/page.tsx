@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { getDefaultRedirectForUser } from '@/lib/access/routes';
 import { Loader2 } from 'lucide-react';
 
 export default function DashboardIndexPage() {
@@ -16,26 +17,8 @@ export default function DashboardIndexPage() {
       return;
     }
 
-    const perms = user.permissions || [];
-    const normRole = (user.roleName || (user as { role?: string }).role || '').toLowerCase().replace(/_/g, '');
-
-    if (normRole === 'superadmin' || perms.includes('*') || perms.includes('master.view')) {
-      router.push('/dashboard/master/departments');
-    } else if (perms.includes('attendance.view') || normRole.includes('attendance') || normRole.includes('hr')) {
-      router.push('/dashboard/attendance');
-    } else if (perms.includes('assets.view')) {
-      router.push('/dashboard/assets');
-    } else if (perms.includes('tickets.view')) {
-      router.push('/dashboard/tickets');
-    } else if (perms.includes('licenses.view')) {
-      router.push('/dashboard/licenses');
-    } else if (perms.includes('infrastructure.view')) {
-      router.push('/dashboard/infrastructure');
-    } else if (perms.includes('access.users.view')) {
-      router.push('/dashboard/access');
-    } else {
-      router.push('/dashboard/master/departments');
-    }
+    const redirectUrl = getDefaultRedirectForUser(user);
+    router.push(redirectUrl);
   }, [user, isLoading, router]);
 
   return (

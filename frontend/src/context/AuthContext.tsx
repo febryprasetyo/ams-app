@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (storedToken) {
           setToken(storedToken);
+          document.cookie = `token=${storedToken}; path=/; max-age=86400; SameSite=Lax`;
           if (storedUser) {
             setUser(JSON.parse(storedUser));
           }
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Token might be expired or invalid
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; SameSite=Lax';
             setToken(null);
             setUser(null);
           }
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0; SameSite=Lax';
     router.push('/login');
   };
 

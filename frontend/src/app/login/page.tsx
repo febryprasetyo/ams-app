@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { getDefaultRedirectForUser } from '@/lib/access/routes';
 import { api } from '@/lib/api';
 import { Mail, Lock, ShieldCheck, AlertCircle, Loader2, ArrowRight, Eye, EyeOff, Sparkles, KeyRound } from 'lucide-react';
 

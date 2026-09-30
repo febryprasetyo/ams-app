@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { canAccessRoute, findMatchingRouteRule } from '@/lib/access/routes';
 import { canManageCustodians } from '@/lib/assetCustodian';
 import {
   Building2,
@@ -113,12 +114,18 @@ const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: st
   { prefix: '/dashboard/master', permission: 'master.view', moduleName: 'Master Data' },
 ];
 
+const DashboardLayoutContext = React.createContext<boolean>(false);
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const isNested = React.useContext(DashboardLayoutContext);
   const { user, isLoading, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   const [collapsed, setCollapsed] = useState(false);
+  if (isNested) {
+    return <>{children}</>;
+  }
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -198,6 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentNavGroup = visibleNavGroups.find(group => group.items.some(item => item.href === currentNavItem?.href));
 
   return (
+    <DashboardLayoutContext.Provider value={true}>
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-red-500/20 selection:text-red-900">
       {/* Mobile Backdrop */}
       {mobileOpen && (
@@ -448,5 +456,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
     </div>
+    </DashboardLayoutContext.Provider>
   );
 }

@@ -8,6 +8,7 @@ export interface TokenPayload {
   email: string;
   roleId: number;
   roleName: string;
+  permissions?: string[];
 }
 
 export function generateToken(payload: TokenPayload): string {

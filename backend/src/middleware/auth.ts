@@ -15,13 +15,29 @@ export async function getUserPermissions(roleId?: number, roleName?: string): Pr
     return allPerms.map((p) => p.code);
   }
 
-  if (!roleId) return [];
+  let effectiveRoleId = roleId;
+  if (!effectiveRoleId && roleName) {
+    const roleRecord = await db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(or(
+        eq(roles.name, roleName),
+        eq(roles.code, normRole),
+        eq(roles.code, normRole === "hrd" ? "hr_attendance" : normRole)
+      ))
+      .limit(1);
+    if (roleRecord.length > 0) {
+      effectiveRoleId = roleRecord[0].id;
+    }
+  }
+
+  if (!effectiveRoleId) return [];
 
   const rows = await db
     .select({ code: permissions.code })
     .from(rolePermissions)
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(rolePermissions.roleId, roleId));
+    .where(eq(rolePermissions.roleId, effectiveRoleId));
 
   return rows.map((r) => r.code);
 }

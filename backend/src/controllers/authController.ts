@@ -52,14 +52,15 @@ export async function login(req: AuthenticatedRequest, res: Response) {
       }
     }
 
+    const userPermissions = await getUserPermissions(userRoleId ?? undefined, user.role);
+
     const token = generateToken({
       userId: user.id,
       email: user.email,
       roleId: userRoleId ?? 0,
       roleName: user.role,
+      permissions: userPermissions,
     });
-
-    const userPermissions = await getUserPermissions(userRoleId ?? undefined, user.role);
 
     return res.status(200).json({
       message: 'Login successful',

@@ -20,8 +20,8 @@ const router = Router();
 // Protect all employee routes with authentication
 router.use(authenticateToken);
 
-const viewMaster = requirePermission('master.view');
-const manageMaster = requirePermission('master.manage');
+const viewEmployee = requirePermission(['master.view', 'attendance.view']);
+const manageEmployee = requirePermission(['master.manage', 'attendance.manage', 'attendance.import']);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -29,16 +29,16 @@ const upload = multer({
 });
 
 // --- Employee Import & Export Routes (Must be registered before /:id) ---
-router.get('/import/template', viewMaster, downloadEmployeeTemplate);
-router.post('/import/preview', manageMaster, upload.single('file'), previewEmployeeImport);
-router.post('/import/commit', manageMaster, upload.single('file'), commitEmployeeImport);
-router.get('/export', viewMaster, exportEmployeesToExcel);
+router.get('/import/template', viewEmployee, downloadEmployeeTemplate);
+router.post('/import/preview', manageEmployee, upload.single('file'), previewEmployeeImport);
+router.post('/import/commit', manageEmployee, upload.single('file'), commitEmployeeImport);
+router.get('/export', viewEmployee, exportEmployeesToExcel);
 
 // --- Employee CRUD Routes ---
-router.get('/', viewMaster, getEmployees);
-router.get('/:id', viewMaster, getEmployeeById);
-router.post('/', manageMaster, createEmployee);
-router.put('/:id', manageMaster, updateEmployee);
-router.delete('/:id', manageMaster, deleteEmployee);
+router.get('/', viewEmployee, getEmployees);
+router.get('/:id', viewEmployee, getEmployeeById);
+router.post('/', manageEmployee, createEmployee);
+router.put('/:id', manageEmployee, updateEmployee);
+router.delete('/:id', manageEmployee, deleteEmployee);
 
 export default router;

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt';
 import { db } from '../db';
 import { roles, permissions, rolePermissions } from '../db/schema/users';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, inArray } from 'drizzle-orm';
 
 export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
@@ -79,7 +79,9 @@ export function requireRoles(...allowedRoles: string[]) {
   };
 }
 
-export function requirePermission(permissionCode: string) {
+export function requirePermission(permissionCode: string | string[]) {
+  const codes = Array.isArray(permissionCode) ? permissionCode : [permissionCode];
+
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -102,7 +104,7 @@ export function requirePermission(permissionCode: string) {
           .where(
             and(
               eq(rolePermissions.roleId, effectiveRoleId),
-              eq(permissions.code, permissionCode)
+              inArray(permissions.code, codes)
             )
           )
           .limit(1);
@@ -122,7 +124,7 @@ export function requirePermission(permissionCode: string) {
             .where(
               and(
                 eq(rolePermissions.roleId, roleByCode[0].id),
-                eq(permissions.code, permissionCode)
+                inArray(permissions.code, codes)
               )
             )
             .limit(1);
@@ -130,16 +132,16 @@ export function requirePermission(permissionCode: string) {
       }
 
       if (match.length === 0) {
-        if (normRole === 'itadmin' && (permissionCode.startsWith('assets.') || permissionCode.startsWith('tickets.') || permissionCode.startsWith('licenses.') || permissionCode.startsWith('infrastructure.') || permissionCode.startsWith('hardware_audits.') || permissionCode.startsWith('master.'))) {
+        if (normRole === 'itadmin' && codes.some((c) => c.startsWith('assets.') || c.startsWith('tickets.') || c.startsWith('licenses.') || c.startsWith('infrastructure.') || c.startsWith('hardware_audits.') || c.startsWith('master.'))) {
           return next();
         }
-        if (normRole === 'itstaff' && (permissionCode === 'assets.view' || permissionCode === 'assets.assign' || permissionCode.startsWith('tickets.') || permissionCode === 'licenses.view' || permissionCode === 'hardware_audits.view' || permissionCode === 'master.view')) {
+        if (normRole === 'itstaff' && codes.some((c) => c === 'assets.view' || c === 'assets.assign' || c.startsWith('tickets.') || c === 'licenses.view' || c === 'hardware_audits.view' || c === 'master.view')) {
           return next();
         }
       }
 
       if (match.length === 0) {
-        return res.status(403).json({ error: 'Forbidden: Missing permission ' + permissionCode });
+        return res.status(403).json({ error: 'Forbidden: Missing permission ' + codes.join(' or ') });
       }
 
       return next();

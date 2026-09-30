@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
-import EmployeeTable, {
-  type DepartmentOption,
-  type LocationOption,
-  type EmployeeItem,
-} from '@/components/master/EmployeeTable';
+import EmployeeTable, { DepartmentOption, LocationOption, EmployeeItem } from '@/components/master/EmployeeTable';
 import EmployeeFormModal from '@/components/master/EmployeeFormModal';
+import EmployeeImportModal from '@/components/master/EmployeeImportModal';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { api } from '@/lib/api';
 import {
   Users,
   Plus,
   Search,
-  AlertCircle,
   Building2,
   MapPin,
   UserCheck,
+  AlertCircle,
+  Download,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 
 export default function EmployeesPage() {
@@ -35,6 +35,8 @@ export default function EmployeesPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmp, setEditingEmp] = useState<EmployeeItem | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -67,6 +69,27 @@ export default function EmployeesPage() {
   const openEditModal = (emp: EmployeeItem) => {
     setEditingEmp(emp);
     setIsModalOpen(true);
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      const blob = await api.download('/employees/export');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `ams-karyawan-aktif-${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Gagal mengekspor data karyawan ke Excel');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -106,13 +129,34 @@ export default function EmployeesPage() {
               Enterprise human resources directory for asset custody assignments and ticketing context.
             </p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Employee</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={handleExport}
+              disabled={isExporting || employees.length === 0}
+              className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 disabled:opacity-50 rounded-xl text-xs font-mono font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+              ) : (
+                <Download className="w-4 h-4 text-emerald-600" />
+              )}
+              <span>Export Excel</span>
+            </button>
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-mono font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+            >
+              <Upload className="w-4 h-4 text-blue-600" />
+              <span>Import Excel</span>
+            </button>
+            <button
+              onClick={openCreateModal}
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Employee</span>
+            </button>
+          </div>
         </div>
 
         {/* Bento Stat Header Cards */}
@@ -194,6 +238,13 @@ export default function EmployeesPage() {
         employee={editingEmp}
         departments={departments}
         locations={locations}
+        onSuccess={fetchData}
+      />
+
+      {/* Import Employees Modal */}
+      <EmployeeImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
         onSuccess={fetchData}
       />
 

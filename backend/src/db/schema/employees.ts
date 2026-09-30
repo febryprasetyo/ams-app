@@ -1,7 +1,8 @@
-import { pgTable, bigint, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, bigint, varchar, text, date, timestamp } from 'drizzle-orm/pg-core';
 import { departments, locations } from './master';
 
 export const employees = pgTable('employees', {
+  // Existing Columns
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
   employeeCode: varchar('employee_number', { length: 50 }).notNull().unique(),
   fullName: varchar('full_name', { length: 150 }).notNull(),
@@ -13,4 +14,34 @@ export const employees = pgTable('employees', {
   status: varchar('status', { length: 30 }).default('Active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+  // New Columns for 33 Talenta Fields Compatibility
+  barcode: varchar('barcode', { length: 100 }),
+  jobLevel: varchar('job_level', { length: 100 }),
+  joinDate: date('join_date'),
+  employmentStatus: varchar('employment_status', { length: 50 }),
+  birthDate: date('birth_date'),
+  age: varchar('age', { length: 50 }),
+  birthPlace: varchar('birth_place', { length: 100 }),
+  citizenIdAddress: text('citizen_id_address'),
+  residentialAddress: text('residential_address'),
+  npwp: varchar('npwp', { length: 50 }),
+  ptkpStatus: varchar('ptkp_status', { length: 20 }),
+  employeeTaxStatus: varchar('employee_tax_status', { length: 50 }),
+  bankName: varchar('bank_name', { length: 50 }),
+  bankAccount: varchar('bank_account', { length: 50 }),
+  bankAccountHolder: varchar('bank_account_holder', { length: 150 }),
+  bpjsKetenagakerjaan: varchar('bpjs_ketenagakerjaan', { length: 50 }),
+  bpjsKesehatan: varchar('bpjs_kesehatan', { length: 50 }),
+  nikKtp: varchar('nik_ktp', { length: 50 }),
+  mobilePhone: varchar('mobile_phone', { length: 50 }),
+  secondaryPhone: varchar('secondary_phone', { length: 50 }),
+  religion: varchar('religion', { length: 30 }),
+  gender: varchar('gender', { length: 20 }),
+  maritalStatus: varchar('marital_status', { length: 30 }),
+  bloodType: varchar('blood_type', { length: 10 }),
+  nationalityCode: varchar('nationality_code', { length: 20 }),
+  currency: varchar('currency', { length: 10 }).default('IDR'),
+  lengthOfService: varchar('length_of_service', { length: 100 }),
+  npwp16Digit: varchar('npwp_16_digit', { length: 50 }),
 });

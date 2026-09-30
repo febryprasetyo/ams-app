@@ -3,7 +3,12 @@ import type { AttendanceDataset, AttendanceRepository, Employee, MasterItem } fr
 import { api } from '@/lib/api';
 
 export function createAttendanceRepository(accountId: number): AttendanceRepository {
-  const storageKey = `ams:attendance-demo:v1:${accountId}`;
+  // v2: data demo lama di v1 tidak dipakai; key lama dibersihkan saat init
+  const storageKey = `ams:attendance-demo:v2:${accountId}`;
+  const legacyKey = `ams:attendance-demo:v1:${accountId}`;
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(legacyKey);
+  }
   let current: AttendanceDataset | null = null;
   async function load(signal?: AbortSignal): Promise<AttendanceDataset> {
     if (current) return structuredClone(current);

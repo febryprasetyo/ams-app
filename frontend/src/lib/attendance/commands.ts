@@ -9,7 +9,7 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
   if (row.reviewStatus === 'SKIPPED') return row;
   if (row.issues?.length) return { ...row, reviewStatus: 'BLOCKED', note: row.issues[0] };
   if (row.reviewStatus === 'BLOCKED' && /Durasi|Scan atau jadwal|No\. ID/.test(row.note)) return row;
-  const identity = data.identities.find(i => i.sourceId === batch.sourceId && i.externalNoId === row.externalNoId);
+  const identity = data.identities.find(i => (i.sourceId === batch.sourceId || !i.sourceId) && i.externalNoId === row.externalNoId) ?? data.identities.find(i => i.externalNoId === row.externalNoId);
   const employeeId = identity?.employeeId ?? null;
   if (!row.scanIn && !row.scanOut) return { ...row, employeeId, reviewStatus: 'SKIPPED', note: 'Kedua scan kosong; tidak disimpulkan alpha.' };
   if (!employeeId) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Nomor mesin belum dipetakan.' };
@@ -85,16 +85,20 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       action = command.locked ? 'Data dikunci' : 'Kunci dibuka'; detail = `${command.workDate} · ${command.reason.trim()}`; break;
     }
     case 'import': {
-      if (!data.sources.some(s => s.id === command.sourceId && s.isActive)) throw new Error('Pilih sumber aktif.');
+      const activeSource = (command.sourceId ? data.sources.find(s => s.id === command.sourceId && s.isActive) : null)
+        ?? data.sources.find(s => s.isActive)
+        ?? data.sources[0];
+      const sourceId = activeSource?.id ?? command.sourceId ?? 1;
+      if (data.sources.length > 0 && !activeSource && command.sourceId) throw new Error('Pilih sumber aktif.');
       if (command.fileHash) {
-        const existing = data.batches.find(b => b.sourceId === command.sourceId && b.fileHash === command.fileHash);
+        const existing = data.batches.find(b => b.sourceId === sourceId && b.fileHash === command.fileHash);
         if (existing) {
           action = 'Impor ditemukan kembali';
           detail = `${command.filename} · batch ${existing.id}`;
           break;
         }
       }
-      const batch: ImportBatch = { id: nextId(data.batches), filename: command.filename, sourceId: command.sourceId, fileHash: command.fileHash, createdAt: now, status: 'DRAFT', rows: command.rows };
+      const batch: ImportBatch = { id: nextId(data.batches), filename: command.filename, sourceId, fileHash: command.fileHash, createdAt: now, status: 'DRAFT', rows: command.rows };
       batch.rows = batch.rows.map(r => resolveRow(data, batch, r));
       data.batches.push(batch); action = 'Impor dibuat'; detail = `${batch.filename} · ${batch.rows.length} baris`; break;
     }

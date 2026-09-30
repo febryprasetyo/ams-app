@@ -53,7 +53,7 @@ export type AttendanceCommand =
   | { type: 'identity'; value: Identity }
   | { type: 'grant'; value: AttendanceGrant }
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
-  | { type: 'import'; filename: string; sourceId: number; fileHash?: string; rows: ImportRow[] }
+  | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
   | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string }
   | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen' };
 

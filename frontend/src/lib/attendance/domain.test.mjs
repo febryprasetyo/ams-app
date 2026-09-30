@@ -104,3 +104,16 @@ test('same source and content hash reuses existing batch', () => {
   data = applyCommand(data, { ...cmd, filename: 'renamed.xls' });
   assert.equal(data.batches.length, count);
 });
+
+test("import command defaults to active source if sourceId is omitted", () => {
+  let data = fixture();
+  const rows = parseImportRows(JSON.stringify([{ externalNoId: data.identities[0].externalNoId, workDate: "2026-09-26", scanIn: "08:00", scanOut: "16:00", lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0 }]));
+  const countBefore = data.batches.length;
+  // Omit sourceId entirely
+  const cmd = { type: "import", filename: "no-source.xls", rows };
+  data = applyCommand(data, cmd);
+  assert.equal(data.batches.length, countBefore + 1);
+  const createdBatch = data.batches.at(-1);
+  assert.ok(createdBatch.sourceId > 0, "Batch should have a valid default sourceId");
+  assert.equal(createdBatch.rows[0].employeeId, data.identities[0].employeeId, "Employee should be mapped via externalNoId");
+});

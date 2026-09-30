@@ -6,20 +6,21 @@ import {
   updateEmployee,
   deleteEmployee,
 } from '../controllers/employeeController';
-import { authenticateToken, requireRoles } from '../middleware/auth';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
 // Protect all employee routes with authentication
 router.use(authenticateToken);
 
-const adminOnly = requireRoles('SuperAdmin', 'ITAdmin');
+const viewMaster = requirePermission('master.view');
+const manageMaster = requirePermission('master.manage');
 
 // --- Employee Routes ---
-router.get('/', getEmployees);
-router.get('/:id', getEmployeeById);
-router.post('/', adminOnly, createEmployee);
-router.put('/:id', adminOnly, updateEmployee);
-router.delete('/:id', adminOnly, deleteEmployee);
+router.get('/', viewMaster, getEmployees);
+router.get('/:id', viewMaster, getEmployeeById);
+router.post('/', manageMaster, createEmployee);
+router.put('/:id', manageMaster, updateEmployee);
+router.delete('/:id', manageMaster, deleteEmployee);
 
 export default router;

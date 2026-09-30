@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import { UserItem, RoleItem, PermissionItem, ModuleGroup, UserFormData, RoleFormData } from '@/lib/access/types';
 import UserStatsCard from '@/components/access/UserStatsCard';
 import UserTable from '@/components/access/UserTable';
@@ -180,7 +181,8 @@ export default function AccessManagementPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <DashboardLayout>
+      <div className="space-y-6">
       {/* Toast Feedback */}
       {toastMessage && (
         <div
@@ -358,6 +360,7 @@ export default function AccessManagementPage() {
         onSubmit={handleSaveRole}
         initialData={editingRole}
       />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

@@ -7,21 +7,25 @@ import {
   updateTicket,
   addTicketComment,
 } from '../controllers/ticketController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
 // Protect all ticket routes with authentication
 router.use(authenticateToken);
 
+const viewTickets = requirePermission('tickets.view');
+const createTickets = requirePermission('tickets.create');
+const manageTickets = requirePermission('tickets.manage');
+
 // --- Ticket Categories ---
-router.get('/categories', getTicketCategories);
+router.get('/categories', viewTickets, getTicketCategories);
 
 // --- IT Tickets CRUD & Comments ---
-router.get('/', getTickets);
-router.get('/:id', getTicketById);
-router.post('/', createTicket);
-router.put('/:id', updateTicket);
-router.post('/:id/comments', addTicketComment);
+router.get('/', viewTickets, getTickets);
+router.get('/:id', viewTickets, getTicketById);
+router.post('/', createTickets, createTicket);
+router.put('/:id', manageTickets, updateTicket);
+router.post('/:id/comments', viewTickets, addTicketComment);
 
 export default router;

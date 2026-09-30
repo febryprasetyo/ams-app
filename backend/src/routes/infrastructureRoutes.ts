@@ -9,7 +9,7 @@ import {
   syncAccurateLicenses,
 } from '../controllers/infrastructureController';
 import { createAgentAuthenticator } from '../middleware/agentAuth';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
@@ -21,10 +21,13 @@ router.post(
 
 router.use(authenticateToken);
 
-router.post('/accurate/sync', syncAccurateLicenses);
-router.get('/accurate', getAccurateLicenses);
-router.get('/accurate/database', getAccurateDatabase);
-router.get('/servers', getServers);
-router.get('/backups', getDbBackups);
+const viewInfra = requirePermission('infrastructure.view');
+const manageInfra = requirePermission('infrastructure.manage');
+
+router.post('/accurate/sync', manageInfra, syncAccurateLicenses);
+router.get('/accurate', viewInfra, getAccurateLicenses);
+router.get('/accurate/database', viewInfra, getAccurateDatabase);
+router.get('/servers', viewInfra, getServers);
+router.get('/backups', viewInfra, getDbBackups);
 
 export default router;

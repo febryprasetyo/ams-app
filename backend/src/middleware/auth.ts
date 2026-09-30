@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt';
 import { db } from '../db';
 import { roles, permissions, rolePermissions } from '../db/schema/users';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 
 export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
@@ -74,22 +74,53 @@ export function requirePermission(permissionCode: string) {
       return next();
     }
 
-    if (!req.user.roleId) {
-      return res.status(403).json({ error: 'Forbidden: Missing permission ' + permissionCode });
-    }
+    const effectiveRoleId = req.user.roleId;
 
     try {
-      const match = await db
-        .select({ id: rolePermissions.permissionId })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(
-          and(
-            eq(rolePermissions.roleId, req.user.roleId),
-            eq(permissions.code, permissionCode)
+      let match: { id: number }[] = [];
+      if (effectiveRoleId) {
+        match = await db
+          .select({ id: rolePermissions.permissionId })
+          .from(rolePermissions)
+          .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+          .where(
+            and(
+              eq(rolePermissions.roleId, effectiveRoleId),
+              eq(permissions.code, permissionCode)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
+      }
+
+      if (match.length === 0 && req.user.roleName) {
+        const roleByCode = await db
+          .select({ id: roles.id })
+          .from(roles)
+          .where(or(eq(roles.name, req.user.roleName), eq(roles.code, normRole)))
+          .limit(1);
+        if (roleByCode.length > 0 && roleByCode[0].id !== effectiveRoleId) {
+          match = await db
+            .select({ id: rolePermissions.permissionId })
+            .from(rolePermissions)
+            .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+            .where(
+              and(
+                eq(rolePermissions.roleId, roleByCode[0].id),
+                eq(permissions.code, permissionCode)
+              )
+            )
+            .limit(1);
+        }
+      }
+
+      if (match.length === 0) {
+        if (normRole === 'itadmin' && (permissionCode.startsWith('assets.') || permissionCode.startsWith('tickets.') || permissionCode.startsWith('licenses.') || permissionCode.startsWith('infrastructure.') || permissionCode.startsWith('hardware_audits.') || permissionCode.startsWith('master.'))) {
+          return next();
+        }
+        if (normRole === 'itstaff' && (permissionCode === 'assets.view' || permissionCode === 'assets.assign' || permissionCode.startsWith('tickets.') || permissionCode === 'licenses.view' || permissionCode === 'hardware_audits.view' || permissionCode === 'master.view')) {
+          return next();
+        }
+      }
 
       if (match.length === 0) {
         return res.status(403).json({ error: 'Forbidden: Missing permission ' + permissionCode });

@@ -8,7 +8,7 @@ import {
   deleteHardwareAuditRecord,
   clearSyncedHardwareAuditsRecord,
 } from '../controllers/hardwareAuditController';
-import { authenticateToken, requireRoles } from '../middleware/auth';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 import { createAgentAuthenticator } from '../middleware/agentAuth';
 import { loadEnv } from '../config/env';
 
@@ -41,13 +41,13 @@ router.post('/ingest', agentOrUserAuth, ingestHardwareAudit);
 router.post('/batch-sync', agentOrUserAuth, batchSyncHardwareAudits);
 
 // Management & Reconciliation endpoints (Web UI for IT staff/admins)
-const itStaffRoles = requireRoles('SuperAdmin', 'ITAdmin', 'ITStaff');
-const itAdminOnly = requireRoles('SuperAdmin', 'ITAdmin');
+const viewAudits = requirePermission('hardware_audits.view');
+const manageAudits = requirePermission('hardware_audits.manage');
 
-router.get('/', authenticateToken, itStaffRoles, listHardwareAudits);
-router.post('/:id/link', authenticateToken, itAdminOnly, linkHardwareAudit);
-router.post('/:id/create-asset', authenticateToken, itAdminOnly, createAssetFromHardwareAudit);
-router.delete('/clear-synced', authenticateToken, itAdminOnly, clearSyncedHardwareAuditsRecord);
-router.delete('/:id', authenticateToken, itAdminOnly, deleteHardwareAuditRecord);
+router.get('/', authenticateToken, viewAudits, listHardwareAudits);
+router.post('/:id/link', authenticateToken, manageAudits, linkHardwareAudit);
+router.post('/:id/create-asset', authenticateToken, manageAudits, createAssetFromHardwareAudit);
+router.delete('/clear-synced', authenticateToken, manageAudits, clearSyncedHardwareAuditsRecord);
+router.delete('/:id', authenticateToken, manageAudits, deleteHardwareAuditRecord);
 
 export default router;

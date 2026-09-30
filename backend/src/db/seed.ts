@@ -15,7 +15,7 @@ import {
   shouldSeedDefaultTicketCategories,
   shouldSeedDefaultSlaPolicies,
 } from '../domain/ticketCategories';
-import { DEFAULT_PERMISSIONS } from '../domain/rbac';
+import { DEFAULT_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS } from '../domain/rbac';
 
 async function seed() {
   console.log('🌱 Starting database seed procedure...');
@@ -105,6 +105,7 @@ async function seed() {
     { code: 'it_staff', name: 'ITStaff', description: 'IT service desk technician and maintenance staff', isSystem: true },
     { code: 'employee', name: 'Employee', description: 'Standard employee user for submitting IT tickets', isSystem: true },
     { code: 'management', name: 'Management', description: 'Read-only executive dashboard and reporting access', isSystem: true },
+    { code: 'hr_attendance', name: 'HR Attendance & Time', description: 'HR attendance logs, biometric imports, and time tracking', isSystem: true },
   ];
 
   for (const role of defaultRoles) {
@@ -126,20 +127,39 @@ async function seed() {
   }
   console.log('  ✓ Verified permissions catalog');
 
-  // 1c. Seed Role Permissions for SuperAdmin
-  const superAdminRole = (await db.select().from(roles).where(eq(roles.code, 'super_admin')))[0];
-  if (superAdminRole) {
-    const allPerms = await db.select().from(permissions);
-    for (const p of allPerms) {
-      await db.execute(`
-        INSERT INTO role_permissions (role_id, permission_id)
-        VALUES (${superAdminRole.id}, ${p.id})
-        ON CONFLICT (role_id, permission_id) DO NOTHING
-      `);
+  // 1c. Seed Role Permissions for System Roles
+  const allPerms = await db.select().from(permissions);
+  const permMap = new Map(allPerms.map((p) => [p.code, p.id]));
+
+  for (const roleCode of Object.keys(DEFAULT_ROLE_PERMISSIONS)) {
+    const roleRecord = (await db.select().from(roles).where(eq(roles.code, roleCode)))[0];
+
+    const targetPermCodes = DEFAULT_ROLE_PERMISSIONS[roleCode];
+    if (targetPermCodes.includes('*')) {
+      for (const p of allPerms) {
+        await db.execute(`
+          INSERT INTO role_permissions (role_id, permission_id)
+          VALUES (${roleRecord.id}, ${p.id})
+          ON CONFLICT (role_id, permission_id) DO NOTHING
+        `);
+      }
+    } else {
+      for (const code of targetPermCodes) {
+        const permId = permMap.get(code);
+        if (permId) {
+          await db.execute(`
+            INSERT INTO role_permissions (role_id, permission_id)
+            VALUES (${roleRecord.id}, ${permId})
+            ON CONFLICT (role_id, permission_id) DO NOTHING
+          `);
+        }
+      }
     }
   }
+  console.log('  ✓ Seeded default role permissions matrix');
 
   // 2. Seed SuperAdmin User
+  const superAdminRole = (await db.select().from(roles).where(eq(roles.code, 'super_admin')))[0];
   const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@company.com'));
   let superAdminUser = existingAdmin[0];
   if (!superAdminUser) {

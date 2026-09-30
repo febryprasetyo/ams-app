@@ -13,31 +13,32 @@ import {
   updateVendor,
   deleteVendor,
 } from '../controllers/masterController';
-import { authenticateToken, requireRoles } from '../middleware/auth';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
 
 // Protect all master data routes with authentication
 router.use(authenticateToken);
 
-const adminOnly = requireRoles('SuperAdmin', 'ITAdmin');
+const viewMaster = requirePermission('master.view');
+const manageMaster = requirePermission('master.manage');
 
 // --- Departments ---
-router.get('/departments', getDepartments);
-router.post('/departments', adminOnly, createDepartment);
-router.put('/departments/:id', adminOnly, updateDepartment);
-router.delete('/departments/:id', adminOnly, deleteDepartment);
+router.get('/departments', viewMaster, getDepartments);
+router.post('/departments', manageMaster, createDepartment);
+router.put('/departments/:id', manageMaster, updateDepartment);
+router.delete('/departments/:id', manageMaster, deleteDepartment);
 
 // --- Locations ---
-router.get('/locations', getLocations);
-router.post('/locations', adminOnly, createLocation);
-router.put('/locations/:id', adminOnly, updateLocation);
-router.delete('/locations/:id', adminOnly, deleteLocation);
+router.get('/locations', viewMaster, getLocations);
+router.post('/locations', manageMaster, createLocation);
+router.put('/locations/:id', manageMaster, updateLocation);
+router.delete('/locations/:id', manageMaster, deleteLocation);
 
 // --- Vendors ---
-router.get('/vendors', getVendors);
-router.post('/vendors', adminOnly, createVendor);
-router.put('/vendors/:id', adminOnly, updateVendor);
-router.delete('/vendors/:id', adminOnly, deleteVendor);
+router.get('/vendors', viewMaster, getVendors);
+router.post('/vendors', manageMaster, createVendor);
+router.put('/vendors/:id', manageMaster, updateVendor);
+router.delete('/vendors/:id', manageMaster, deleteVendor);
 
 export default router;

@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, getUserPermissions } from '../middleware/auth';
 import { db } from '../db';
-import { users } from '../db/schema/users';
-import { eq } from 'drizzle-orm';
+import { users, roles } from '../db/schema/users';
+import { eq, or } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { generateToken } from '../utils/jwt';
 import { z } from 'zod';
@@ -38,15 +38,28 @@ export async function login(req: AuthenticatedRequest, res: Response) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const effectiveRoleId = user.roleId ?? user.id;
+    let userRoleId = user.roleId;
+    if (!userRoleId && user.role) {
+      const norm = user.role.toLowerCase().replace(/_/g, '');
+      const matched = await db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(or(eq(roles.name, user.role), eq(roles.code, norm)))
+        .limit(1);
+      if (matched.length > 0) {
+        userRoleId = matched[0].id;
+        await db.update(users).set({ roleId: userRoleId }).where(eq(users.id, user.id));
+      }
+    }
+
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      roleId: effectiveRoleId,
+      roleId: userRoleId ?? 0,
       roleName: user.role,
     });
 
-    const userPermissions = await getUserPermissions(user.roleId ?? undefined, user.role);
+    const userPermissions = await getUserPermissions(userRoleId ?? undefined, user.role);
 
     return res.status(200).json({
       message: 'Login successful',
@@ -55,7 +68,7 @@ export async function login(req: AuthenticatedRequest, res: Response) {
         id: user.id,
         email: user.email,
         fullName: user.username,
-        roleId: user.roleId,
+        roleId: userRoleId ?? undefined,
         roleName: user.role,
         permissions: userPermissions,
       },

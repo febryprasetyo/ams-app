@@ -44,3 +44,41 @@ export const DEFAULT_PERMISSIONS: PermissionSeed[] = [
   { code: 'access.users.manage', name: 'Manage Users', module: 'access', description: 'Tambah, edit user, reset password' },
   { code: 'access.roles.manage', name: 'Manage Roles & Permissions', module: 'access', description: 'Mengatur peran & matriks hak akses' },
 ];
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
+  super_admin: ['*'],
+  it_admin: [
+    'assets.view', 'assets.create', 'assets.edit', 'assets.delete', 'assets.assign',
+    'tickets.view', 'tickets.create', 'tickets.manage',
+    'licenses.view', 'licenses.manage',
+    'infrastructure.view', 'infrastructure.manage',
+    'hardware_audits.view', 'hardware_audits.manage',
+    'master.view', 'master.manage',
+    'access.users.view',
+  ],
+  it_staff: [
+    'assets.view', 'assets.assign',
+    'tickets.view', 'tickets.create', 'tickets.manage',
+    'licenses.view',
+    'hardware_audits.view',
+    'master.view',
+  ],
+  employee: [
+    'tickets.view', 'tickets.create',
+  ],
+  management: [
+    'assets.view',
+    'tickets.view',
+    'licenses.view',
+    'infrastructure.view',
+    'hardware_audits.view',
+    'attendance.view',
+    'master.view',
+  ],
+  hr_attendance: [
+    'attendance.view',
+    'attendance.import',
+    'attendance.manage',
+    'master.view',
+  ],
+};

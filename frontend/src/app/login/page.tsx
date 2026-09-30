@@ -22,11 +22,25 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await api.post<{ token: string; user: { id: number; email: string; fullName: string; roleName: string } }>('/auth/login', { email, password });
+      const data = await api.post<{ token: string; user: { id: number; email: string; fullName: string; roleName: string; permissions?: string[] } }>('/auth/login', { email, password });
       
       if (data.token && data.user) {
         login(data.token, data.user);
-        router.push('/dashboard/master/departments');
+        const perms = data.user.permissions || [];
+        const normRole = (data.user.roleName || '').toLowerCase().replace(/_/g, '');
+        if (normRole === 'superadmin' || perms.includes('*') || perms.includes('master.view')) {
+          router.push('/dashboard/master/departments');
+        } else if (perms.includes('attendance.view') || normRole.includes('attendance') || normRole.includes('hr')) {
+          router.push('/dashboard/attendance');
+        } else if (perms.includes('assets.view')) {
+          router.push('/dashboard/assets');
+        } else if (perms.includes('tickets.view')) {
+          router.push('/dashboard/tickets');
+        } else if (perms.includes('access.users.view')) {
+          router.push('/dashboard/access');
+        } else {
+          router.push('/dashboard/master/departments');
+        }
       } else {
         throw new Error('Invalid response payload from server');
       }

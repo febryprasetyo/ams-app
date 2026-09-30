@@ -117,3 +117,18 @@ test("import command defaults to active source if sourceId is omitted", () => {
   assert.ok(createdBatch.sourceId > 0, "Batch should have a valid default sourceId");
   assert.equal(createdBatch.rows[0].employeeId, data.identities[0].employeeId, "Employee should be mapped via externalNoId");
 });
+
+test('sync_employees updates employee list and departments in attendance dataset', () => {
+  let data = fixture();
+  const newEmployees = [
+    { id: 101, employeeCode: 'EMP001', fullName: 'Talenta User 1', email: 'user1@company.com', departmentId: 99, locationId: null, position: 'Staff', isActive: true }
+  ];
+  const newDepts = [
+    { id: 99, code: 'HR', name: 'Human Resources', isActive: true }
+  ];
+  data = applyCommand(data, { type: 'sync_employees', employees: newEmployees, departments: newDepts });
+  assert.equal(data.employees.length, 1);
+  assert.equal(data.employees[0].fullName, 'Talenta User 1');
+  assert.equal(data.departments.length, 1);
+  assert.equal(data.departments[0].name, 'Human Resources');
+});

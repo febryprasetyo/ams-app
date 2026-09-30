@@ -55,7 +55,8 @@ export type AttendanceCommand =
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
   | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
   | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string }
-  | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen' };
+  | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen' }
+  | { type: 'sync_employees'; employees: Employee[]; departments?: MasterItem[] };
 
 export interface AttendanceRepository {
   load(signal?: AbortSignal): Promise<AttendanceDataset>;

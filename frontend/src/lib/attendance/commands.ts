@@ -148,6 +148,17 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       }
       action = command.action === 'commit' ? 'Impor disimpan' : command.action === 'cancel' ? 'Impor dibatalkan' : 'Draft dibuka ulang'; detail = batch.filename; break;
     }
+    case 'sync_employees': {
+      if (Array.isArray(command.employees)) {
+        data.employees = command.employees;
+      }
+      if (Array.isArray(command.departments) && command.departments.length > 0) {
+        data.departments = command.departments;
+      }
+      action = 'Sinkronisasi master karyawan';
+      detail = `${data.employees.length} karyawan, ${data.departments.length} departemen`;
+      break;
+    }
   }
   data.audit.push({ id: nextId(data.audit), createdAt: now, actor: data.meta.actor, action, detail });
   return data;

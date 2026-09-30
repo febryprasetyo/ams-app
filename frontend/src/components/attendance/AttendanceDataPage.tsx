@@ -39,7 +39,7 @@ export default function AttendanceDataPage() {
   const visible = employees.slice((actualPage - 1) * 10, actualPage * 10);
   const resetPage = () => { setPage(1); setSelected([]); };
   const exportRows = () => { const ids = new Set((selected.length ? employees.filter(e => selected.includes(e.id)) : employees).map(e => e.id)); downloadText(reportCsv(summarizeEmployees(data, filter).filter(r => ids.has(r.employee.id)), filter), `absensi-${date}.csv`); };
-  return <div className="space-y-5">
+  return <div className="space-y-6">
     <Heading title="Data Absensi" description="Jadwal, catatan kehadiran, dan durasi kerja dalam satu tampilan.">
       <button className="hr-btn" onClick={() => setHelpOpen(true)}><HelpCircle size={15} />Panduan</button>
       <Link className="hr-btn" href="/dashboard/attendance/imports"><Upload size={15} />Impor absensi</Link>
@@ -49,7 +49,24 @@ export default function AttendanceDataPage() {
       <div className="flex flex-wrap items-center gap-2"><label><span className="sr-only">Tanggal absensi</span><input className="hr-input" type="date" value={date} onChange={e => { setDate(e.target.value); resetPage(); }} /></label><button className="hr-btn" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><Filter size={14} />Semua filter{departmentId || locationId ? ' •' : ''}</button>{condition !== 'all' && <button className="hr-btn" onClick={() => { setCondition('all'); resetPage(); }}>Hapus filter status</button>}</div>
       <div className="flex w-full flex-wrap gap-2 sm:w-auto"><SearchInput value={q} onChange={v => { setQ(v); resetPage(); }} /><button className="hr-btn" disabled={!date || !employees.length} onClick={exportRows}><Download size={15} />{selected.length ? `Ekspor ${selected.length} pilihan` : 'Ekspor'}</button></div>
     </div>
-    {filtersOpen && <div className="hr-panel grid gap-3 p-4 sm:grid-cols-2"><label className="space-y-1 text-xs">Departemen<select className="hr-input" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); resetPage(); }}><option value={0}>Semua departemen</option>{data.departments.map(d => <option value={d.id} key={d.id}>{d.name}</option>)}</select></label><label className="space-y-1 text-xs">Lokasi<select className="hr-input" value={locationId} onChange={e => { setLocation(Number(e.target.value)); resetPage(); }}><option value={0}>Semua lokasi</option>{data.locations.map(l => <option value={l.id} key={l.id}>{l.name}</option>)}</select></label></div>}
+    {filtersOpen && (
+      <div className="hr-panel grid gap-4 p-5 sm:grid-cols-2 bg-slate-50/50">
+        <label className="space-y-1.5 text-xs font-medium text-slate-700">
+          <span>Departemen</span>
+          <select className="hr-input" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); resetPage(); }}>
+            <option value={0}>Semua departemen</option>
+            {data.departments.map(d => <option value={d.id} key={d.id}>{d.name}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1.5 text-xs font-medium text-slate-700">
+          <span>Lokasi</span>
+          <select className="hr-input" value={locationId} onChange={e => { setLocation(Number(e.target.value)); resetPage(); }}>
+            <option value={0}>Semua lokasi</option>
+            {data.locations.map(l => <option value={l.id} key={l.id}>{l.name}</option>)}
+          </select>
+        </label>
+      </div>
+    )}
     <div className="hr-panel overflow-x-auto"><div className="grid min-w-[1050px] grid-cols-9 divide-x divide-slate-200">{metrics.map(m => <button key={m.key} aria-pressed={condition === m.key} onClick={() => { setCondition(condition === m.key ? 'all' : m.key); resetPage(); }} className={`px-4 py-5 text-left hover:bg-red-50 ${condition === m.key ? 'bg-red-50 ring-1 ring-inset ring-red-300' : ''}`}><span className="block text-lg font-bold tabular-nums text-red-700">{records.filter(m.test).length}</span><span className="mt-1 block text-[10px] leading-4 text-slate-600">{m.label}</span></button>)}</div></div>
     <div className="flex flex-wrap justify-between gap-2 text-[11px] text-slate-500"><p>{date ? dateLabel(date) : 'Pilih tanggal'} · {records.length} catatan final. Satu catatan bisa masuk beberapa indikator.</p>{locked && <span className="flex items-center gap-1 font-medium text-amber-800"><LockKeyhole size={13} />Tanggal ini dikunci</span>}</div>
     <div className="hr-panel"><div className="hr-table-wrap"><table className="hr-table"><thead><tr><th className="hr-employee-cell"><div className="flex items-center gap-3"><input type="checkbox" aria-label="Pilih semua karyawan di halaman" checked={visible.length > 0 && visible.every(e => selected.includes(e.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...visible.map(e => e.id)])] : selected.filter(id => !visible.some(e => e.id === id)))} /><span>Karyawan</span></div></th>{['Tanggal', 'Shift', 'Jadwal masuk', 'Jadwal pulang', 'Scan masuk', 'Scan pulang', 'Kehadiran', 'Lembur', 'Aksi'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{visible.map(employee => {

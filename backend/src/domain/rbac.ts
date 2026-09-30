@@ -79,6 +79,5 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'attendance.view',
     'attendance.import',
     'attendance.manage',
-    'master.view',
   ],
 };

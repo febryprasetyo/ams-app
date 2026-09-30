@@ -55,12 +55,12 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     else if (mode !== 'cards') await execute({ type: 'master', collection: mode, value: { id, code: text('code'), name: text('name'), isActive } });
   };
   if (mode === 'access' && !data.meta.canManageAccess) return <Empty text="Pengelolaan akses hanya tersedia bagi pengelola grant." />;
-  return <div className="space-y-5"><Heading title={titles[mode]} description={descriptions[mode]}>
+  return <div className="space-y-6"><Heading title={titles[mode]} description={descriptions[mode]}>
     {mode === 'identities' && <Link className="hr-btn" href="/dashboard/attendance/identities/sources">Kelola sumber</Link>}
     {mode === 'sources' && <Link className="hr-btn" href="/dashboard/attendance/identities">Pemetaan identitas</Link>}
     {mode !== 'cards' && allowed && <button className="hr-btn-primary" onClick={() => setEditing(null)}><Plus size={16} />{mode === 'identities' ? 'Tambah pemetaan' : mode === 'access' ? 'Tambah akses' : 'Tambah data'}</button>}
   </Heading>
-  <div className="flex flex-wrap items-center justify-between gap-3"><SearchInput value={q} onChange={value => { setQ(value); setPage(1); }} placeholder={mode === 'employees' || mode === 'cards' ? 'Cari nama atau No. ID karyawan' : 'Cari kode atau nama'} /><span className="text-xs text-slate-500">{filtered.length} data</span></div>
+  <div className="flex flex-wrap items-center justify-between gap-4"><SearchInput value={q} onChange={value => { setQ(value); setPage(1); }} placeholder={mode === "employees" || mode === "cards" ? "Cari nama atau No. ID karyawan" : "Cari kode atau nama"} /><span className="text-xs font-medium text-slate-500">{filtered.length} data</span></div>
   <div className="hr-panel"><div className="hr-table-wrap"><table className="hr-table"><thead><tr><th>{mode === 'identities' ? 'No. ID mesin' : 'Nama'}</th><th>{mode === 'identities' ? 'Sumber' : mode === 'access' ? 'Akun / peran' : 'Kode / departemen'}</th><th>{mode === 'identities' ? 'Karyawan absensi' : 'Status / lokasi'}</th><th>Aksi</th></tr></thead><tbody>{filtered.slice((currentPage - 1) * 10, currentPage * 10).map(entry => <tr key={entry.id}>
     <td>{'fullName' in entry ? <EmployeeName employee={entry} detail={entry.position} /> : <span className="font-medium">{'externalNoId' in entry ? entry.externalNoId : titleOf(entry)}</span>}</td>
     <td>{'fullName' in entry ? data.departments.find(d => d.id === entry.departmentId)?.name : 'externalNoId' in entry ? data.sources.find(s => s.id === entry.sourceId)?.name : 'principalKey' in entry ? <><span>{entry.principalKey}</span><p className="mt-1 text-slate-500">{roleLabels[entry.role]}</p></> : entry.code}</td>

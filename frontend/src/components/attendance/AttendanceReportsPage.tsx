@@ -24,12 +24,35 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
   const currentPage = Math.min(page, Math.max(1, Math.ceil(count / 10)));
   const from = (currentPage - 1) * 10;
   if (employeeId && !employee) return <div className="hr-panel"><Empty text="Karyawan absensi tidak ditemukan." /><Link className="hr-btn m-4" href="/dashboard/attendance/employees">Kembali ke kartu absensi</Link></div>;
-  return <div className="space-y-5">
+  return <div className="space-y-6">
     <Heading title={employee ? employee.fullName : 'Laporan Absensi'} description={employee ? `${employee.employeeCode || 'Tanpa kode'} · ${data.departments.find(d => d.id === employee.departmentId)?.name ?? 'Tanpa departemen'} · Kartu harian dan riwayat koreksi.` : 'Rekap keterlambatan dan lembur berdasarkan catatan final pada periode yang dipilih.'}>
       {employee && <Link className="hr-btn" href="/dashboard/attendance/employees">Semua karyawan</Link>}
       <button className="hr-btn-primary" disabled={!!error || !reports.length} onClick={() => downloadText(reportCsv(reports, filter, anonymous), `rekap-absensi-${startDate}-${endDate}.csv`)}><Download size={15} />Ekspor CSV</button>
     </Heading>
-    <div className="hr-panel flex flex-wrap items-end gap-3 p-4"><label className="space-y-1 text-xs text-slate-600">Dari tanggal<input className="hr-input" type="date" value={startDate} onChange={e => { setStart(e.target.value); setPage(1); }} /></label><label className="space-y-1 text-xs text-slate-600">Sampai tanggal<input className="hr-input" type="date" value={endDate} onChange={e => { setEnd(e.target.value); setPage(1); }} /></label>{!employee && !anonymous && <><label className="space-y-1 text-xs text-slate-600">Departemen<select className="hr-input" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}><option value={0}>Semua departemen</option>{data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label><SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} /></>}</div>
+    <div className="hr-panel flex flex-wrap items-end gap-4 p-5">
+      <label className="space-y-1.5 text-xs font-medium text-slate-700 w-44">
+        <span>Dari tanggal</span>
+        <input className="hr-input" type="date" value={startDate} onChange={e => { setStart(e.target.value); setPage(1); }} />
+      </label>
+      <label className="space-y-1.5 text-xs font-medium text-slate-700 w-44">
+        <span>Sampai tanggal</span>
+        <input className="hr-input" type="date" value={endDate} onChange={e => { setEnd(e.target.value); setPage(1); }} />
+      </label>
+      {!employee && !anonymous && (
+        <>
+          <label className="space-y-1.5 text-xs font-medium text-slate-700 min-w-48">
+            <span>Departemen</span>
+            <select className="hr-input" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}>
+              <option value={0}>Semua departemen</option>
+              {data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </label>
+          <div className="ml-auto w-full sm:w-72">
+            <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} />
+          </div>
+        </>
+      )}
+    </div>
     {error ? <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p> : <>
       <Totals late={reports.reduce((n, r) => n + r.lateMinutes, 0)} overtime={reports.reduce((n, r) => n + r.overtimeMinutes, 0)} count={reports.reduce((n, r) => n + r.recordCount, 0)} />
       <p className="text-xs text-slate-500">{dateLabel(startDate)} – {dateLabel(endDate)} · Total mencakup seluruh hasil filter. Durasi ditampilkan dalam jam dan menit.</p>

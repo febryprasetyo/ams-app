@@ -25,7 +25,7 @@ test('SuperAdmin can access all routes', () => {
   assert.equal(getDefaultRedirectForUser(superAdmin), '/dashboard/master/departments');
 });
 
-test('HRD / HR Attendance user is strictly restricted to HR and allowed master data', () => {
+test('HRD / HR Attendance user is strictly restricted to HR and blocked from IT master data', () => {
   const hrdUser = {
     roleName: 'HR Attendance & Time',
     role: 'HR Attendance & Time',
@@ -33,17 +33,21 @@ test('HRD / HR Attendance user is strictly restricted to HR and allowed master d
       'attendance.view',
       'attendance.import',
       'attendance.manage',
-      'master.view',
     ],
   };
 
-  // ALLOWED
+  // ALLOWED (HR module and HR master data)
   assert.equal(canAccessRoute('/dashboard/attendance', hrdUser), true);
   assert.equal(canAccessRoute('/dashboard/attendance/imports', hrdUser), true);
   assert.equal(canAccessRoute('/dashboard/attendance/reports', hrdUser), true);
-  assert.equal(canAccessRoute('/dashboard/master/departments', hrdUser), true);
-  assert.equal(canAccessRoute('/dashboard/master/employees', hrdUser), true);
-  assert.equal(canAccessRoute('/dashboard/master/locations', hrdUser), true);
+  assert.equal(canAccessRoute('/dashboard/attendance/master/departments', hrdUser), true);
+  assert.equal(canAccessRoute('/dashboard/attendance/master/employees', hrdUser), true);
+  assert.equal(canAccessRoute('/dashboard/attendance/master/locations', hrdUser), true);
+
+  // BLOCKED (IT Master Data)
+  assert.equal(canAccessRoute('/dashboard/master/departments', hrdUser), false);
+  assert.equal(canAccessRoute('/dashboard/master/employees', hrdUser), false);
+  assert.equal(canAccessRoute('/dashboard/master/locations', hrdUser), false);
 
   // BLOCKED (Forbidden)
   assert.equal(canAccessRoute('/dashboard/assets', hrdUser), false, 'HRD must not access IT Assets');

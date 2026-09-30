@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import {
   getEmployees,
   getEmployeeById,
@@ -6,6 +7,11 @@ import {
   updateEmployee,
   deleteEmployee,
 } from '../controllers/employeeController';
+import {
+  downloadEmployeeTemplate,
+  previewEmployeeImport,
+  commitEmployeeImport,
+} from '../controllers/employeeImportController';
 import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
@@ -16,7 +22,17 @@ router.use(authenticateToken);
 const viewMaster = requirePermission('master.view');
 const manageMaster = requirePermission('master.manage');
 
-// --- Employee Routes ---
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
+
+// --- Employee Import Routes (Must be before /:id) ---
+router.get('/import/template', viewMaster, downloadEmployeeTemplate);
+router.post('/import/preview', manageMaster, upload.single('file'), previewEmployeeImport);
+router.post('/import/commit', manageMaster, upload.single('file'), commitEmployeeImport);
+
+// --- Employee CRUD Routes ---
 router.get('/', viewMaster, getEmployees);
 router.get('/:id', viewMaster, getEmployeeById);
 router.post('/', manageMaster, createEmployee);

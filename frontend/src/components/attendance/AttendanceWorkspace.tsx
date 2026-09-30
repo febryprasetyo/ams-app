@@ -3,9 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, RotateCcw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ModalShell from '@/components/ui/ModalShell';
 import { useAuth } from '@/context/AuthContext';
 import { createAttendanceRepository } from '@/lib/attendance/repository';
 import type { AttendanceCommand, AttendanceDataset } from '@/lib/attendance/types';
@@ -32,8 +31,6 @@ function Provider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AttendanceDataset | null>(null);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -55,39 +52,10 @@ function Provider({ children }: { children: React.ReactNode }) {
     return next;
   }, [repository]);
 
-  const reset = async () => {
-    setBusy(true);
-    try {
-      setData(await repository.reset());
-      setError('');
-      setResetOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset gagal.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const restricted = data?.meta.role === 'REPORT_VIEWER' && pathname !== '/dashboard/attendance/reports';
 
   return (
     <div className="attendance-ui space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-xs text-amber-900 shadow-2xs">
-        <p className="flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <strong>Mode Demo HR</strong>
-          <span className="text-amber-400">·</span>
-          <span>Data contoh. Perubahan hanya tersimpan di browser ini.</span>
-        </p>
-        <button
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 font-semibold text-amber-900 shadow-2xs hover:bg-amber-100 transition-colors"
-          onClick={() => setResetOpen(true)}
-        >
-          <RotateCcw size={13} />
-          Reset Demo
-        </button>
-      </div>
-
       {error ? (
         <div className="hr-panel p-6" role="alert">
           <p className="mb-4 text-sm font-medium text-red-700">{error}</p>
@@ -113,23 +81,6 @@ function Provider({ children }: { children: React.ReactNode }) {
           {children}
         </AttendanceContext.Provider>
       )}
-
-      <ModalShell
-        isOpen={resetOpen}
-        onClose={() => setResetOpen(false)}
-        title="Reset data demo?"
-        isLoading={busy}
-        footer={
-          <>
-            <button className="hr-btn" onClick={() => setResetOpen(false)} disabled={busy}>Batal</button>
-            <button className="hr-btn-primary" onClick={reset} disabled={busy}>{busy ? 'Mereset…' : 'Reset data demo'}</button>
-          </>
-        }
-      >
-        <p className="text-sm text-slate-600 leading-relaxed">
-          Koreksi, impor, dan perubahan master demo di browser ini akan dihapus. Data awal dari file JSON dimuat kembali.
-        </p>
-      </ModalShell>
     </div>
   );
 }

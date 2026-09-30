@@ -47,7 +47,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     { name: 'employeeId', label: 'Karyawan absensi', type: 'select', value: existingIdentity?.employeeId ?? '', required: true, options: [{ value: '', label: 'Pilih karyawan' }, ...data.employees.map(e => ({ value: e.id, label: `${e.employeeCode || 'Tanpa kode'} · ${e.fullName}` }))] },
   ];
   else if (mode === 'access') fields = [
-    { name: 'principalKey', label: 'Identitas akun demo', value: existingGrant?.principalKey, required: true, hint: 'Grant contoh tidak membuat akun login AMS.' },
+    { name: 'principalKey', label: 'Identitas akun', value: existingGrant?.principalKey, required: true, hint: 'Contoh: email atau username. Grant ini tidak membuat akun login AMS.' },
     { name: 'displayName', label: 'Nama tampilan', value: existingGrant?.displayName, required: true },
     { name: 'role', label: 'Peran absensi', type: 'select', value: existingGrant?.role ?? 'HR_STAFF', options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })) }, activeField,
   ];

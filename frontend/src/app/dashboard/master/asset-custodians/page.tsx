@@ -166,7 +166,7 @@ export default function AssetCustodiansPage() {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-extrabold text-slate-900">
-              <UserRoundCog className="h-6 w-6 text-red-600" /> Asset Custodians
+              <UserRoundCog className="h-6 w-6 text-emerald-600" /> Asset Custodians
             </h1>
             <p className="mt-1 text-xs text-slate-500">
               Manage equipment holders, track assigned assets, and review HR directory linkages.
@@ -188,7 +188,7 @@ export default function AssetCustodiansPage() {
             <button
               type="button"
               onClick={openCreate}
-              className="flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" /> New Custodian
             </button>

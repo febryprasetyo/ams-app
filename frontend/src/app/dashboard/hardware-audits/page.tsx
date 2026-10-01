@@ -157,7 +157,7 @@ export default function HardwareAuditsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <Cpu className="w-6 h-6 text-red-600" />
+              <Cpu className="w-6 h-6 text-emerald-600" />
               <span>Hardware Audits & Collector Sync</span>
               {pendingCount > 0 && (
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-mono font-bold">
@@ -176,7 +176,7 @@ export default function HardwareAuditsPage() {
               disabled={isLoading}
               className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-red-600' : 'text-slate-500'}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
               <span>Refresh</span>
             </button>
 
@@ -230,7 +230,7 @@ export default function HardwareAuditsPage() {
         <div className="glass-panel rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-sm">
           {isLoading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
-              <Loader2 className="w-7 h-7 animate-spin text-red-600" />
+              <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
               <p className="text-xs font-mono font-medium text-slate-600">Memuat data hasil audit hardware...</p>
             </div>
           ) : filteredAudits.length === 0 ? (

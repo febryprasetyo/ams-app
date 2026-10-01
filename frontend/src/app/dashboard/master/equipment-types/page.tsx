@@ -90,7 +90,7 @@ export default function EquipmentTypesPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="flex items-center gap-2.5 text-2xl font-extrabold tracking-tight text-slate-900">
-              <Shapes className="h-6 w-6 text-red-600" />
+              <Shapes className="h-6 w-6 text-emerald-600" />
               <span>IT Equipment Types</span>
             </h1>
             <p className="mt-1 font-mono text-xs text-slate-500">
@@ -100,7 +100,7 @@ export default function EquipmentTypesPage() {
           {canManage && (
             <button
               onClick={openCreateModal}
-              className="flex w-fit items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 font-mono text-xs font-bold text-white shadow-sm transition-all hover:bg-red-700 cursor-pointer"
+              className="flex w-fit items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 font-mono text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               <span>New Equipment Type</span>

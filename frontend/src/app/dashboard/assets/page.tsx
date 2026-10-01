@@ -203,7 +203,7 @@ export default function AssetsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <HardDrive className="w-6 h-6 text-red-600" />
+              <HardDrive className="w-6 h-6 text-emerald-600" />
               <span>IT Asset & Hardware Inventory</span>
             </h1>
             <p className="text-xs text-slate-500 font-mono mt-1">

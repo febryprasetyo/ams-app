@@ -83,7 +83,7 @@ export default function LocationsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <MapPin className="w-6 h-6 text-red-600" />
+              <MapPin className="w-6 h-6 text-emerald-600" />
               <span>Office Locations</span>
             </h1>
             <p className="text-xs text-slate-500 font-mono mt-1">
@@ -102,7 +102,7 @@ export default function LocationsPage() {
         {/* Bento Stat Header Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200">
-            <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center font-mono">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-mono">
               <Building className="w-5 h-5" />
             </div>
             <div>

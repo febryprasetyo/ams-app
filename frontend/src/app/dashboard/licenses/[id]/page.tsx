@@ -145,7 +145,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
     return (
       <DashboardLayout>
         <div className="py-24 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-red-600 mx-auto" />
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
           <p className="mt-3 text-sm text-slate-500 font-mono">Loading License Details...</p>
         </div>
       </DashboardLayout>
@@ -184,7 +184,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard/licenses"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors group cursor-pointer"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-emerald-600 transition-colors group cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Software Catalog</span>
@@ -270,7 +270,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
                   setDeleteError(null);
                   setIsDeleteModalOpen(true);
                 }}
-                className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
                 title="Delete License"
               >
                 <Trash2 className="w-5 h-5" />

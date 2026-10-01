@@ -238,7 +238,7 @@ export default function AccessManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -269,7 +269,7 @@ export default function AccessManagementPage() {
           onClick={() => setActiveTab('users')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === 'users'
-              ? 'border-red-600 text-red-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -285,7 +285,7 @@ export default function AccessManagementPage() {
           onClick={() => setActiveTab('roles')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === 'roles'
-              ? 'border-red-600 text-red-600'
+              ? 'border-emerald-600 text-emerald-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -300,7 +300,7 @@ export default function AccessManagementPage() {
       {/* Content based on Active Tab */}
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200 shadow-xs">
-          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
           <p className="text-xs text-slate-500 font-medium">Loading access control configuration...</p>
         </div>
       ) : activeTab === 'users' ? (

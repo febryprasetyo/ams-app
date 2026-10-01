@@ -140,7 +140,7 @@ export default function LicensesPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
                 <Key className="w-5.5 h-5.5" />
               </div>
               <span>Software License Catalog</span>
@@ -157,7 +157,7 @@ export default function LicensesPage() {
               className="p-2.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80 rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
               title="Refresh Data"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-red-600' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
             </button>
 
             <button

@@ -7,7 +7,8 @@ import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Status, Pagination, FormDialog, Empty } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
-import { dateLabel, durationLabel, filterEmployees, filterRecords, reportCsv, summarizeEmployees, downloadText, validDate, getJakartaToday } from '@/lib/attendance/domain';
+import { dateLabel, durationLabel, filterEmployees, filterRecords, summarizeEmployees, validDate, getJakartaToday } from '@/lib/attendance/domain';
+import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceDataPage() {
@@ -45,7 +46,14 @@ export default function AttendanceDataPage() {
   const actualPage = Math.min(page, Math.max(1, Math.ceil(employees.length / 10)));
   const visible = employees.slice((actualPage - 1) * 10, actualPage * 10);
   const resetPage = () => { setPage(1); setSelected([]); };
-  const exportRows = () => { const ids = new Set((selected.length ? employees.filter(e => selected.includes(e.id)) : employees).map(e => e.id)); downloadText(reportCsv(summarizeEmployees(data, filter).filter(r => ids.has(r.employee.id)), filter), `absensi-${date}.csv`); };
+  const exportRows = () => {
+    const ids = new Set((selected.length ? employees.filter(e => selected.includes(e.id)) : employees).map(e => e.id));
+    const targetReports = summarizeEmployees(data, filter).filter(r => ids.has(r.employee.id));
+    exportAttendanceReportToExcel(targetReports, filter, {
+      departmentLookup: id => data.departments.find(d => d.id === id)?.name,
+      filename: `absensi-${date}.xlsx`,
+    });
+  };
   return <div className="space-y-6">
     <Heading title="Data Absensi" description="Jadwal, catatan kehadiran, dan durasi kerja dalam satu tampilan.">
       <button className="hr-btn" onClick={() => setHelpOpen(true)}><HelpCircle size={15} />Panduan</button>

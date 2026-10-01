@@ -6,7 +6,8 @@ import { Download } from 'lucide-react';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Pagination, Empty, Totals, Status } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
-import { dateLabel, durationLabel, summarizeEmployees, filterRecords, validatePeriod, reportCsv, downloadText, getDefaultAttendancePeriod, sortRecordsDescending } from '@/lib/attendance/domain';
+import { dateLabel, durationLabel, summarizeEmployees, filterRecords, validatePeriod, getDefaultAttendancePeriod, sortRecordsDescending } from '@/lib/attendance/domain';
+import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceReportsPage({ employeeId }: { employeeId?: number }) {
@@ -35,7 +36,16 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
   return <div className="space-y-6">
     <Heading title={employee ? employee.fullName : 'Laporan Absensi'} description={employee ? `${employee.employeeCode || 'Tanpa kode'} · ${data.departments.find(d => d.id === employee.departmentId)?.name ?? 'Tanpa departemen'} · Kartu harian dan riwayat koreksi.` : 'Rekap keterlambatan dan lembur berdasarkan catatan final pada periode yang dipilih.'}>
       {employee && <Link className="hr-btn" href="/dashboard/attendance/employees">Semua karyawan</Link>}
-      <button className="hr-btn-primary" disabled={!!error || !reports.length} onClick={() => downloadText(reportCsv(reports, filter, anonymous), `rekap-absensi-${startDate}-${endDate}.csv`)}><Download size={15} />Ekspor CSV</button>
+      <button className="hr-btn-primary" disabled={!!error || !reports.length} onClick={() => {
+        exportAttendanceReportToExcel(reports, filter, {
+          anonymous,
+          departmentLookup: id => data.departments.find(d => d.id === id)?.name,
+          dailyRecords: employee ? records : undefined,
+          filename: employee
+            ? `rekap-absensi-${employee.employeeCode || employee.id}-${startDate}-${endDate}.xlsx`
+            : `rekap-absensi-payroll-${startDate}-${endDate}.xlsx`,
+        });
+      }}><Download size={15} />Ekspor Excel (.xlsx)</button>
     </Heading>
     <div className="hr-panel flex flex-wrap items-end gap-4 p-5">
       <label className="space-y-1.5 text-xs font-medium text-slate-700 w-44">

@@ -66,14 +66,14 @@ export default function AssignTechnicianModal({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-red-600" />
+          <UserCheck className="w-5 h-5 text-emerald-600" />
           <span>Assign IT Specialist</span>
         </div>
       }
       maxWidthClass="max-w-md"
     >
-      <div className="mb-4 p-3 bg-red-50/50 rounded-xl border border-red-100 font-mono text-xs">
-        <p className="font-bold text-red-600">{ticket.ticketCode}</p>
+      <div className="mb-4 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 font-mono text-xs">
+        <p className="font-bold text-emerald-600">{ticket.ticketCode}</p>
         <p className="text-slate-700 truncate mt-0.5">{ticket.subject}</p>
       </div>
 

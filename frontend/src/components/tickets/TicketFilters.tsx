@@ -91,7 +91,7 @@ export default function TicketFilters({
           {hasActiveFilters && (
             <button
               onClick={onClearFilters}
-              className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs border border-red-200 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-semibold text-xs border border-emerald-200 transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <X className="w-3.5 h-3.5" />
               <span>Reset</span>

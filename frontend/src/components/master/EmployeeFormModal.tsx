@@ -99,9 +99,9 @@ export default function EmployeeFormModal({
       title={isEdit ? 'Edit Employee Details' : 'Register New Employee'}
       icon={
         isEdit ? (
-          <Pencil className="w-5 h-5 text-red-600" />
+          <Pencil className="w-5 h-5 text-emerald-600" />
         ) : (
-          <Plus className="w-5 h-5 text-red-600" />
+          <Plus className="w-5 h-5 text-emerald-600" />
         )
       }
       maxWidthClass="max-w-xl"

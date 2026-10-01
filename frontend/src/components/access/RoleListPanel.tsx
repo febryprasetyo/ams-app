@@ -51,17 +51,17 @@ export default function RoleListPanel({
               onClick={() => onSelectRole(role)}
               className={`p-3.5 rounded-xl transition-all cursor-pointer relative group flex items-start justify-between gap-3 ${
                 isSelected
-                  ? 'bg-red-50/80 border border-red-200 shadow-xs'
+                  ? 'bg-emerald-50/80 border border-emerald-200 shadow-xs'
                   : 'hover:bg-slate-50 border border-transparent'
               }`}
             >
               {isSelected && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-red-600" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-emerald-600" />
               )}
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold truncate ${isSelected ? 'text-red-700' : 'text-slate-900'}`}>
+                  <span className={`text-xs font-bold truncate ${isSelected ? 'text-emerald-700' : 'text-slate-900'}`}>
                     {role.name}
                   </span>
                   {role.isSystem ? (
@@ -84,7 +84,7 @@ export default function RoleListPanel({
 
                 <div className="mt-2 flex items-center gap-2 text-[10px] font-mono">
                   {isSuperAdmin ? (
-                    <span className="text-red-600 font-semibold">Full Access (Wildcard *)</span>
+                    <span className="text-emerald-600 font-semibold">Full Access (Wildcard *)</span>
                   ) : (
                     <span className="text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
                       {role.permissionCount ?? role.permissionIds?.length ?? 0} permissions granted
@@ -114,7 +114,7 @@ export default function RoleListPanel({
                       onDeleteRole(role);
                     }}
                     title="Delete custom role"
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

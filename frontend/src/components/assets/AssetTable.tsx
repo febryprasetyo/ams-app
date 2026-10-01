@@ -87,7 +87,7 @@ export default function AssetTable({
     <div className="glass-panel rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-sm">
       {loading ? (
         <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-          <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           <span>Loading inventory registry...</span>
         </div>
       ) : error ? (
@@ -102,7 +102,7 @@ export default function AssetTable({
           {canManage && (
             <button
               onClick={onRegisterFirst}
-              className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold inline-flex items-center gap-2 text-xs transition-colors cursor-pointer"
+              className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold inline-flex items-center gap-2 text-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Register First Asset</span>
@@ -129,13 +129,13 @@ export default function AssetTable({
                 const isComputer = isComputerCategoryName(asset.categoryName);
                 return (
                   <tr key={asset.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-4 py-3 font-mono font-bold text-red-600 whitespace-nowrap">
+                    <td className="px-4 py-3 font-mono font-bold text-emerald-600 whitespace-nowrap">
                       <Link
                         href={`/dashboard/assets/${asset.id}`}
                         className="hover:underline flex items-center gap-1.5"
                       >
                         <span>{asset.assetCode}</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-red-600" />
+                        <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-emerald-600" />
                       </Link>
                     </td>
 
@@ -252,7 +252,7 @@ export default function AssetTable({
                           <>
                             <button
                               onClick={() => onEdit(asset)}
-                              className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                               title="Edit Asset"
                             >
                               <Edit className="w-3.5 h-3.5" />

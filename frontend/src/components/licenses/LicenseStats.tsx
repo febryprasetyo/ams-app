@@ -29,7 +29,7 @@ export default function LicenseStats({ licenses }: LicenseStatsProps) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Card 1: Total Software */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600 rounded-l-2xl" />
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 rounded-l-2xl" />
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
@@ -39,12 +39,12 @@ export default function LicenseStats({ licenses }: LicenseStatsProps) {
               {totalLicensesCount}
             </h3>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Key className="w-6 h-6" />
           </div>
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <span className="text-red-600 font-semibold font-mono">Cataloged</span> across systems
+          <span className="text-emerald-600 font-semibold font-mono">Cataloged</span> across systems
         </div>
       </div>
 

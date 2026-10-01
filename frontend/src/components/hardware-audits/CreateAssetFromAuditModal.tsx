@@ -103,7 +103,7 @@ export default function CreateAssetFromAuditModal({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
             <Plus className="w-4 h-4" />
           </div>
           <div>

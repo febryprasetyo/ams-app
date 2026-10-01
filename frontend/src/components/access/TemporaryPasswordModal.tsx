@@ -94,7 +94,7 @@ export default function TemporaryPasswordModal({
               Temporary Password
             </span>
             <div className="flex items-center gap-2">
-              <div className="flex-1 px-3.5 py-2.5 bg-white border-2 border-red-200 rounded-xl font-mono text-sm font-bold text-red-600 tracking-wider select-all break-all shadow-inner">
+              <div className="flex-1 px-3.5 py-2.5 bg-white border-2 border-emerald-200 rounded-xl font-mono text-sm font-bold text-emerald-600 tracking-wider select-all break-all shadow-inner">
                 {data.temporaryPassword}
               </div>
               <button
@@ -103,7 +103,7 @@ export default function TemporaryPasswordModal({
                 className={`px-3.5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
                   copied
                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
                 }`}
               >
                 {copied ? (

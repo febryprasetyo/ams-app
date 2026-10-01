@@ -29,7 +29,7 @@ export default function VendorTable({
   if (loading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-        <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
         <span>Fetching vendor directory...</span>
       </div>
     );
@@ -61,9 +61,9 @@ export default function VendorTable({
         </thead>
         <tbody className="divide-y divide-slate-100">
           {vendors.map((vendor) => (
-            <tr key={vendor.id} className="hover:bg-red-50/30 transition-colors group">
+            <tr key={vendor.id} className="hover:bg-emerald-50/30 transition-colors group">
               <td className="py-4 px-5">
-                <p className="font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                <p className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
                   {vendor.name}
                 </p>
                 <p className="text-[10px] font-mono text-slate-400 mt-0.5">
@@ -97,7 +97,7 @@ export default function VendorTable({
                 <div className="flex items-center justify-end gap-2">
                   <button
                     onClick={() => onEdit(vendor)}
-                    className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
+                    className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                     title="Edit Vendor"
                   >
                     <Pencil className="w-4 h-4" />

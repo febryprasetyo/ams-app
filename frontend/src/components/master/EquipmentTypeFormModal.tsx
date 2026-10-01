@@ -71,9 +71,9 @@ export default function EquipmentTypeFormModal({
       title={isEdit ? 'Edit Equipment Type' : 'New Equipment Type'}
       icon={
         isEdit ? (
-          <Pencil className="w-5 h-5 text-red-600" />
+          <Pencil className="w-5 h-5 text-emerald-600" />
         ) : (
-          <Plus className="w-5 h-5 text-red-600" />
+          <Plus className="w-5 h-5 text-emerald-600" />
         )
       }
       maxWidthClass="max-w-lg"

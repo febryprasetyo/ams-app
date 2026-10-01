@@ -162,7 +162,7 @@ export default function TicketTable({
   if (loading) {
     return (
       <div className="glass-panel rounded-2xl overflow-hidden shadow-sm bg-white border border-slate-200 w-full p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-        <Loader2 className="w-7 h-7 animate-spin text-red-600" />
+        <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
         <span>Fetching IT Service Desk ticket queue...</span>
       </div>
     );
@@ -223,7 +223,7 @@ export default function TicketTable({
               return (
                 <tr
                   key={ticket.id}
-                  className="hover:bg-red-50/30 transition-colors group"
+                  className="hover:bg-emerald-50/30 transition-colors group"
                 >
                   {/* Ticket Code */}
                   <td className="py-4 px-5 whitespace-nowrap">
@@ -232,7 +232,7 @@ export default function TicketTable({
                       className={`font-mono font-bold px-2.5 py-1 rounded-md border transition-colors inline-flex items-center gap-1 group/code ${
                         isReq
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300'
-                          : 'bg-red-50 text-red-600 border-red-200 hover:border-red-300'
+                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300'
                       }`}
                     >
                       <span>{ticket.ticketCode}</span>
@@ -245,7 +245,7 @@ export default function TicketTable({
                     <div className="flex flex-col max-w-xs">
                       <Link
                         href={`/dashboard/tickets/${ticket.id}`}
-                        className="font-bold text-slate-900 group-hover:text-red-600 transition-colors text-xs truncate"
+                        className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors text-xs truncate"
                         title={ticket.subject}
                       >
                         {ticket.subject}
@@ -291,7 +291,7 @@ export default function TicketTable({
                     {ticket.assetId && ticket.assetCode ? (
                       <Link
                         href={`/dashboard/assets/${ticket.assetId}`}
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 font-mono text-[11px] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-600 border border-slate-200 font-mono text-[11px] transition-colors"
                         title={ticket.assetName || 'Associated IT Asset'}
                       >
                         <HardDrive className="w-3 h-3 text-slate-500" />

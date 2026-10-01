@@ -71,9 +71,9 @@ export default function DepartmentFormModal({
       title={isEdit ? 'Edit Department' : 'Register New Department'}
       icon={
         isEdit ? (
-          <Pencil className="w-5 h-5 text-red-600" />
+          <Pencil className="w-5 h-5 text-emerald-600" />
         ) : (
-          <Plus className="w-5 h-5 text-red-600" />
+          <Plus className="w-5 h-5 text-emerald-600" />
         )
       }
       maxWidthClass="max-w-lg"

@@ -92,9 +92,9 @@ export default function CustodianMetadataModal({
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isEdit ? (
-              <Pencil className="h-5 w-5 text-red-600" />
+              <Pencil className="h-5 w-5 text-emerald-600" />
             ) : (
-              <UserRound className="h-5 w-5 text-red-600" />
+              <UserRound className="h-5 w-5 text-emerald-600" />
             )}
             <div>
               <h2 className="font-bold text-slate-900">
@@ -186,7 +186,7 @@ export default function CustodianMetadataModal({
             <button
               type="submit"
               disabled={submitting || !name.trim()}
-              className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-40 cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-40 cursor-pointer"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

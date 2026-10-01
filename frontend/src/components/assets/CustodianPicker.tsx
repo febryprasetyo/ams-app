@@ -291,7 +291,7 @@ export default function CustodianPicker({
 
           {manualOpen && (
             <div className="space-y-3 p-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900"><UserRound className="h-4 w-4 text-red-600" /> New manual holder</div>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900"><UserRound className="h-4 w-4 text-emerald-600" /> New manual holder</div>
               <input value={manualName} onChange={(event) => { setManualName(event.target.value); setSearch(event.target.value); setDuplicateAcknowledged(false); }} placeholder="Display name *" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none" />
               <select value={manualLocationId} onChange={(event) => setManualLocationId(event.target.value ? Number(event.target.value) : '')} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none">
                 <option value="">Unknown / no location</option>
@@ -307,7 +307,7 @@ export default function CustodianPicker({
               )}
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setManualOpen(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">Back</button>
-                <button type="button" onClick={chooseManual} disabled={loading || !manualName.trim() || (hasCandidates && !duplicateAcknowledged)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40">Use new holder</button>
+                <button type="button" onClick={chooseManual} disabled={loading || !manualName.trim() || (hasCandidates && !duplicateAcknowledged)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40">Use new holder</button>
               </div>
             </div>
           )}

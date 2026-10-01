@@ -99,7 +99,7 @@ function Provider({ children }: { children: React.ReactNode }) {
         </div>
       ) : !data ? (
         <div className="hr-panel flex items-center justify-center gap-3 p-12 text-slate-600 font-medium" role="status">
-          <Loader2 className="animate-spin text-red-600" size={20} />
+          <Loader2 className="animate-spin text-emerald-600" size={20} />
           Memuat data absensi…
         </div>
       ) : restricted ? (

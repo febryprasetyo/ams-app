@@ -39,7 +39,7 @@ export default function LicenseCredentialCard({ license }: LicenseCredentialCard
     <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4 lg:col-span-2">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-          <Key className="w-4 h-4 text-red-600" />
+          <Key className="w-4 h-4 text-emerald-600" />
           <span>License Credentials & Keys</span>
         </h2>
         <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
@@ -50,7 +50,7 @@ export default function LicenseCredentialCard({ license }: LicenseCredentialCard
       {/* Key Preview Badge Box */}
       <div className="bg-slate-900 text-white p-4 rounded-xl font-mono text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-800 text-red-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-slate-800 text-emerald-400 flex items-center justify-center shrink-0">
             <Key className="w-4 h-4" />
           </div>
           <div className="min-w-0">
@@ -137,7 +137,7 @@ export default function LicenseCredentialCard({ license }: LicenseCredentialCard
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-xs space-y-1">
           <p className="font-semibold text-slate-700 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-red-600" />
+            <Building2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Office Location / Entity (PT / Site):</span>
           </p>
           <p className="text-slate-900 font-bold font-sans">

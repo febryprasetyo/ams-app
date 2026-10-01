@@ -72,7 +72,7 @@ export default function RoleFormModal({
       onClose={onClose}
       title={isEdit ? 'Edit Role Details' : 'Create Custom Role'}
       subtitle={isEdit ? 'Update display name and description' : 'Define a new role and configure its permission matrix'}
-      icon={<Shield className="w-5 h-5 text-red-600" />}
+      icon={<Shield className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-md"
       isLoading={isLoading}
       footer={
@@ -89,7 +89,7 @@ export default function RoleFormModal({
             type="submit"
             form="role-form"
             disabled={isLoading}
-            className="px-4 py-2 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{isEdit ? 'Save Changes' : 'Create Role'}</span>

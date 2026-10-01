@@ -181,7 +181,7 @@ export default function PrintAssetTagModal({
       onClose={onClose}
       title="Print Asset Tag QR Label"
       subtitle="Standard 80mm x 50mm thermal sticker tag with scannable QR code"
-      icon={<Printer className="w-5 h-5 text-red-600" />}
+      icon={<Printer className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-md"
     >
       <div className="space-y-4 font-mono">
@@ -210,7 +210,7 @@ export default function PrintAssetTagModal({
               </div>
             )}
             <div className="flex-1 text-left">
-              <p className="font-mono font-black text-base text-red-600 tracking-wider">
+              <p className="font-mono font-black text-base text-emerald-600 tracking-wider">
                 {asset.assetCode}
               </p>
               <p className="text-xs font-bold text-slate-900 leading-tight line-clamp-2 mt-0.5">

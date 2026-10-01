@@ -25,7 +25,7 @@ export default function TicketWorkflowBar({
     <div className="glass-panel p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       {/* Technician Reassign Select */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
           <UserCheck className="w-4 h-4" />
         </div>
         <div>

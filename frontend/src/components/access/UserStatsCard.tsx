@@ -48,9 +48,9 @@ export default function UserStatsCard({ users, roles }: UserStatsCardProps) {
       value: totalRoles,
       desc: 'System & custom roles',
       icon: Shield,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-100',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
+      borderColor: 'border-emerald-100',
     },
   ];
 

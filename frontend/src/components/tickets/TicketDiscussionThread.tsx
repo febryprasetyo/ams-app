@@ -47,10 +47,10 @@ export default function TicketDiscussionThread({
     <div className="glass-panel p-6 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-6">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-red-600" />
+          <MessageSquare className="w-4 h-4 text-emerald-600" />
           <span>Work Log & Discussion Thread</span>
         </h3>
-        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
           {comments.length} Messages
         </span>
       </div>
@@ -77,7 +77,7 @@ export default function TicketDiscussionThread({
                     className={`w-7 h-7 rounded-full font-mono font-bold text-xs flex items-center justify-center ${
                       comment.isInternal
                         ? 'bg-amber-200 text-amber-900 border border-amber-300'
-                        : 'bg-red-600 text-white shadow-xs'
+                        : 'bg-emerald-600 text-white shadow-xs'
                     }`}
                   >
                     {comment.userName ? comment.userName[0].toUpperCase() : 'U'}

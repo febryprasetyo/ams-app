@@ -1,25 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Download, Filter, HelpCircle, LockKeyhole, UnlockKeyhole, Upload, ChevronDown } from 'lucide-react';
+import { Download, HelpCircle, LockKeyhole, UnlockKeyhole, Upload, ChevronDown } from 'lucide-react';
 import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Status, Pagination, FormDialog, Empty } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
-import { dateLabel, durationLabel, filterEmployees, filterRecords, reportCsv, summarizeEmployees, downloadText } from '@/lib/attendance/domain';
+import { dateLabel, durationLabel, filterEmployees, filterRecords, reportCsv, summarizeEmployees, downloadText, validDate, getJakartaToday } from '@/lib/attendance/domain';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceDataPage() {
   const { data, execute, canWrite } = useAttendance();
-  const [date, setDate] = useState(data.meta.defaultDate);
-  const [q, setQ] = useState(''); const [departmentId, setDepartment] = useState(0); const [locationId, setLocation] = useState(0);
-  const [condition, setCondition] = useState('all'); const [filtersOpen, setFiltersOpen] = useState(false);
+  const defaultDate = useMemo(() => {
+    if (data.meta.defaultDate && validDate(data.meta.defaultDate)) return data.meta.defaultDate;
+    if (data.records.length > 0) {
+      return data.records.reduce((max, r) => r.workDate > max ? r.workDate : max, data.records[0].workDate);
+    }
+    return getJakartaToday();
+  }, [data]);
+  const [date, setDate] = useState(defaultDate);
+  const [q, setQ] = useState(''); const [departmentId, setDepartment] = useState(0);
+  const [condition, setCondition] = useState('all');
   const [page, setPage] = useState(1); const [selected, setSelected] = useState<number[]>([]);
   const [correcting, setCorrecting] = useState<AttendanceRecord | null>(null); const [detail, setDetail] = useState<AttendanceRecord | null>(null);
   const [lockOpen, setLockOpen] = useState(false); const [helpOpen, setHelpOpen] = useState(false);
   const locked = data.locks.some(l => l.workDate === date);
-  const filter = { startDate: date, endDate: date, q, departmentId, locationId };
+  const filter = { startDate: date, endDate: date, q, departmentId };
   const records = date ? filterRecords(data, filter) : [];
   const lookup = new Map(records.map(r => [r.employeeId, r]));
   const metrics: { key: string; label: string; test: (r: AttendanceRecord) => boolean }[] = [
@@ -46,27 +53,26 @@ export default function AttendanceDataPage() {
       {canWrite && <button className={locked ? 'hr-btn' : 'hr-btn-primary'} disabled={!date} onClick={() => setLockOpen(true)}>{locked ? <UnlockKeyhole size={15} /> : <LockKeyhole size={15} />}{locked ? 'Buka kunci' : 'Kunci data'}</button>}
     </Heading>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-2"><label><span className="sr-only">Tanggal absensi</span><input className="hr-input" type="date" value={date} onChange={e => { setDate(e.target.value); resetPage(); }} /></label><button className="hr-btn" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}><Filter size={14} />Semua filter{departmentId || locationId ? ' •' : ''}</button>{condition !== 'all' && <button className="hr-btn" onClick={() => { setCondition('all'); resetPage(); }}>Hapus filter status</button>}</div>
-      <div className="flex w-full flex-wrap gap-2 sm:w-auto"><SearchInput value={q} onChange={v => { setQ(v); resetPage(); }} /><button className="hr-btn" disabled={!date || !employees.length} onClick={exportRows}><Download size={15} />{selected.length ? `Ekspor ${selected.length} pilihan` : 'Ekspor'}</button></div>
-    </div>
-    {filtersOpen && (
-      <div className="hr-panel grid gap-4 p-5 sm:grid-cols-2 bg-slate-50/50">
-        <label className="space-y-1.5 text-xs font-medium text-slate-700">
-          <span>Departemen</span>
-          <select className="hr-input" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); resetPage(); }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <label>
+          <span className="sr-only">Tanggal absensi</span>
+          <input className="hr-input" type="date" value={date} onChange={e => { setDate(e.target.value); resetPage(); }} />
+        </label>
+        <label>
+          <span className="sr-only">Departemen</span>
+          <select className="hr-input cursor-pointer" value={departmentId} onChange={e => { setDepartment(Number(e.target.value)); resetPage(); }}>
             <option value={0}>Semua departemen</option>
             {data.departments.map(d => <option value={d.id} key={d.id}>{d.name}</option>)}
           </select>
         </label>
-        <label className="space-y-1.5 text-xs font-medium text-slate-700">
-          <span>Lokasi</span>
-          <select className="hr-input" value={locationId} onChange={e => { setLocation(Number(e.target.value)); resetPage(); }}>
-            <option value={0}>Semua lokasi</option>
-            {data.locations.map(l => <option value={l.id} key={l.id}>{l.name}</option>)}
-          </select>
-        </label>
+        {condition !== 'all' && <button className="hr-btn" onClick={() => { setCondition('all'); resetPage(); }}>Hapus filter status</button>}
       </div>
-    )}
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <SearchInput value={q} onChange={v => { setQ(v); resetPage(); }} />
+        <button className="hr-btn" disabled={!date || !employees.length} onClick={exportRows}>
+          <Download size={15} />{selected.length ? `Ekspor ${selected.length} pilihan` : 'Ekspor'}</button>
+      </div>
+    </div>
     <div className="hr-panel overflow-x-auto"><div className="grid min-w-[1050px] grid-cols-9 divide-x divide-slate-200">{metrics.map(m => <button key={m.key} aria-pressed={condition === m.key} onClick={() => { setCondition(condition === m.key ? 'all' : m.key); resetPage(); }} className={`px-4 py-5 text-left hover:bg-red-50 ${condition === m.key ? 'bg-red-50 ring-1 ring-inset ring-red-300' : ''}`}><span className="block text-lg font-bold tabular-nums text-red-700">{records.filter(m.test).length}</span><span className="mt-1 block text-[10px] leading-4 text-slate-600">{m.label}</span></button>)}</div></div>
     <div className="flex flex-wrap justify-between gap-2 text-[11px] text-slate-500"><p>{date ? dateLabel(date) : 'Pilih tanggal'} · {records.length} catatan final. Satu catatan bisa masuk beberapa indikator.</p>{locked && <span className="flex items-center gap-1 font-medium text-amber-800"><LockKeyhole size={13} />Tanggal ini dikunci</span>}</div>
     <div className="hr-panel"><div className="hr-table-wrap"><table className="hr-table"><thead><tr><th className="hr-employee-cell"><div className="flex items-center gap-3"><input type="checkbox" aria-label="Pilih semua karyawan di halaman" checked={visible.length > 0 && visible.every(e => selected.includes(e.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...visible.map(e => e.id)])] : selected.filter(id => !visible.some(e => e.id === id)))} /><span>Karyawan</span></div></th>{['Tanggal', 'Shift', 'Jadwal masuk', 'Jadwal pulang', 'Scan masuk', 'Scan pulang', 'Kehadiran', 'Lembur', 'Aksi'].map(h => <th key={h}>{h}</th>)}</tr></thead><tbody>{visible.map(employee => {

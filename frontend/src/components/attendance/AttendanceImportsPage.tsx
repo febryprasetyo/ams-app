@@ -102,16 +102,16 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
         {
           name: 'scanIn',
           label: 'Jam Masuk',
-          type: 'text',
+          type: 'time',
           value: review.scanIn ?? '',
-          hint: 'Format HH:mm (contoh: 08:00)',
+          hint: 'Pilih jam masuk menggunakan time picker (HH:mm)',
         },
         {
           name: 'scanOut',
           label: 'Jam Pulang',
-          type: 'text',
+          type: 'time',
           value: review.scanOut ?? '',
-          hint: 'Format HH:mm (contoh: 17:00)',
+          hint: 'Pilih jam pulang menggunakan time picker (HH:mm)',
         },
         {
           name: 'lateMinutes',

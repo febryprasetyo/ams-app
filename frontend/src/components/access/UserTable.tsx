@@ -174,6 +174,11 @@ export default function UserTable({
                                   You
                                 </span>
                               )}
+                              {u.mustChangePassword && (
+                                <span className="px-1.5 py-0.2 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-medium" title="Temporary password active: user must change password upon next login">
+                                  Temp Password
+                                </span>
+                              )}
                             </div>
                             <p className="text-[11px] text-slate-400 truncate">{u.email}</p>
                           </div>

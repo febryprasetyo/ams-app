@@ -9,6 +9,7 @@ import UserStatsCard from '@/components/access/UserStatsCard';
 import UserTable from '@/components/access/UserTable';
 import UserFormModal from '@/components/access/UserFormModal';
 import ResetPasswordModal from '@/components/access/ResetPasswordModal';
+import TemporaryPasswordModal from '@/components/access/TemporaryPasswordModal';
 import RoleListPanel from '@/components/access/RoleListPanel';
 import RoleFormModal from '@/components/access/RoleFormModal';
 import PermissionMatrixPanel from '@/components/access/PermissionMatrixPanel';
@@ -43,6 +44,12 @@ export default function AccessManagementPage() {
 
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
+  const [temporaryPasswordData, setTemporaryPasswordData] = useState<{
+    username: string;
+    email: string;
+    temporaryPassword: string;
+    isReset?: boolean;
+  } | null>(null);
 
   const showToast = (type: 'success' | 'error', text: string) => {
     setToastMessage({ type, text });
@@ -98,8 +105,16 @@ export default function AccessManagementPage() {
         await api.put(`/users/${editingUser.id}`, formData);
         showToast('success', `User account ${formData.username} successfully updated`);
       } else {
-        await api.post('/users', formData);
+        const res = await api.post<any>('/users', formData);
         showToast('success', `User account ${formData.username} successfully created`);
+        if (res?.temporaryPassword) {
+          setTemporaryPasswordData({
+            username: formData.username,
+            email: formData.email,
+            temporaryPassword: res.temporaryPassword,
+            isReset: false,
+          });
+        }
       }
       await loadData();
     } catch (err: any) {
@@ -118,10 +133,20 @@ export default function AccessManagementPage() {
     }
   };
 
-  const handleResetPassword = async (userId: number, newPassword: string) => {
+  const handleResetPassword = async (userId: number) => {
     try {
-      await api.post(`/users/${userId}/reset-password`, { newPassword });
+      const res = await api.post<any>(`/users/${userId}/reset-password`, {});
       showToast('success', 'User password has been successfully reset');
+      const targetUser = users.find((u) => u.id === userId);
+      if (res?.temporaryPassword && targetUser) {
+        setTemporaryPasswordData({
+          username: targetUser.username,
+          email: targetUser.email,
+          temporaryPassword: res.temporaryPassword,
+          isReset: true,
+        });
+      }
+      await loadData();
     } catch (err: any) {
       showToast('error', err?.message || 'Failed to reset password');
       throw err;
@@ -359,6 +384,13 @@ export default function AccessManagementPage() {
         }}
         onSubmit={handleSaveRole}
         initialData={editingRole}
+      />
+
+      {/* Temporary Password Modal */}
+      <TemporaryPasswordModal
+        isOpen={Boolean(temporaryPasswordData)}
+        onClose={() => setTemporaryPasswordData(null)}
+        data={temporaryPasswordData}
       />
       </div>
     </DashboardLayout>

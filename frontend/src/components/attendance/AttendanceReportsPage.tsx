@@ -1,25 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Pagination, Empty, Totals, Status } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
-import { dateLabel, durationLabel, summarizeEmployees, filterRecords, validatePeriod, reportCsv, downloadText } from '@/lib/attendance/domain';
+import { dateLabel, durationLabel, summarizeEmployees, filterRecords, validatePeriod, reportCsv, downloadText, getDefaultAttendancePeriod, sortRecordsDescending } from '@/lib/attendance/domain';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceReportsPage({ employeeId }: { employeeId?: number }) {
   const { data, canWrite } = useAttendance();
-  const [startDate, setStart] = useState(data.meta.periodStart), [endDate, setEnd] = useState(data.meta.defaultDate);
+  const defaultPeriod = useMemo(() => getDefaultAttendancePeriod(data, employeeId), [data, employeeId]);
+  const [startDate, setStart] = useState(defaultPeriod.startDate);
+  const [endDate, setEnd] = useState(defaultPeriod.endDate);
   const [q, setQ] = useState(''), [departmentId, setDepartment] = useState(0), [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setStart(defaultPeriod.startDate);
+    setEnd(defaultPeriod.endDate);
+    setPage(1);
+  }, [employeeId, defaultPeriod.startDate, defaultPeriod.endDate]);
   const [correcting, setCorrecting] = useState<AttendanceRecord | null>(null), [detail, setDetail] = useState<AttendanceRecord | null>(null);
   const anonymous = data.meta.role === 'REPORT_VIEWER';
   const employee = data.employees.find(e => e.id === employeeId);
   let error = ''; try { validatePeriod(startDate, endDate); } catch (err) { error = err instanceof Error ? err.message : 'Periode tidak valid.'; }
   const filter = { startDate, endDate, q: anonymous ? '' : q, departmentId: anonymous ? 0 : departmentId, employeeId };
   const reports = error ? [] : summarizeEmployees(data, filter);
-  const records = error || !employeeId ? [] : filterRecords(data, filter).sort((a, b) => b.workDate.localeCompare(a.workDate));
+  const records = error || !employeeId ? [] : sortRecordsDescending(filterRecords(data, filter));
   const count = employeeId ? records.length : reports.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(count / 10)));
   const from = (currentPage - 1) * 10;

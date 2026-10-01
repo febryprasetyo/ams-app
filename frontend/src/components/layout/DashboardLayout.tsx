@@ -95,8 +95,6 @@ export const navGroups: NavGroup[] = [
         children: [
           { name: 'Karyawan Absensi', href: '/dashboard/attendance/master/employees', icon: Users, permission: 'attendance.view' },
           { name: 'Departemen Absensi', href: '/dashboard/attendance/master/departments', icon: Building2, permission: 'attendance.view' },
-          { name: 'Lokasi Absensi', href: '/dashboard/attendance/master/locations', icon: MapPin, permission: 'attendance.view' },
-          { name: 'Pemetaan Identitas', href: '/dashboard/attendance/identities', icon: Fingerprint, permission: 'attendance.manage' },
           { name: 'Akses Absensi', href: '/dashboard/attendance/access', icon: ShieldCheck, permission: 'attendance.manage' },
         ],
       },

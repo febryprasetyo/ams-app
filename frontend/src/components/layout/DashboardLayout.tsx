@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { canManageCustodians } from '@/lib/assetCustodian';
+import { BRAND_NAME } from '@/lib/gajianichBrand';
+import GajianichMascot from '@/components/branding/GajianichMascot';
 import {
   Building2,
   MapPin,
@@ -19,8 +21,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   Loader2,
-  Search,
-  Bell,
   HardDrive,
   Cpu,
   Ticket,
@@ -320,16 +320,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
           <Link href={isHrRole ? '/dashboard/attendance' : '/dashboard/master/departments'} className="flex items-center gap-3 overflow-hidden group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-red-600/20 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 group-hover:scale-105 transition-transform">
+              <GajianichMascot decorative className="w-9 h-9" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">
                 <span className="font-extrabold text-base text-slate-900 tracking-tight leading-none flex items-center gap-1.5">
-                  <span>AMS</span>
-                  <span className="text-red-600 font-mono text-xs">PRO</span>
+                  <span>{BRAND_NAME}</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono mt-1">IT & HR Operations</span>
+                <span className="text-[10px] text-slate-500 mt-1">Biar Kantor Jalan</span>
               </div>
             )}
           </Link>
@@ -353,20 +352,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
 
-        {/* Global Search Shortcut Button */}
-        {!collapsed && (
-          <div className="px-3 pt-4 pb-2">
-            <button className="w-full py-2 px-3 bg-slate-100/80 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 flex items-center justify-between transition-colors cursor-pointer group">
-              <span className="flex items-center gap-2">
-                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-600 transition-colors" />
-                <span>Quick Search...</span>
-              </span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white text-[10px] font-mono text-slate-500 border border-slate-200 shadow-2xs">
-                ⌘K
-              </kbd>
-            </button>
-          </div>
-        )}
 
         {/* Navigation Group Section */}
         <div className="flex-1 py-3 px-3 space-y-6 overflow-y-auto custom-scrollbar">
@@ -563,7 +548,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Breadcrumb Trail */}
             <div className="flex items-center gap-2 text-xs font-medium">
-              <span className="text-slate-400">Platform</span>
+              <span className="text-slate-400">{BRAND_NAME}</span>
               <span className="text-slate-300">/</span>
               <span className="text-slate-400">{currentNavigableItem?.groupTitle || 'Dashboard'}</span>
               {currentNavigableItem?.parentName && (
@@ -578,14 +563,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notification Bell */}
-            <button className="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors cursor-pointer">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-600" />
-            </button>
-
-            <div className="h-4 w-px bg-slate-200" />
-
             {/* User Profile Badge */}
             <div className="flex items-center gap-3 pl-1">
               <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-xs">

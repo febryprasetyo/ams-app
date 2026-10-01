@@ -88,7 +88,7 @@ export default function UserTable({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by username, email, or employee..."
-              className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+              className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
 
@@ -98,7 +98,7 @@ export default function UserTable({
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+              className="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
             >
               <option value="all">All Roles ({roles.length})</option>
               {roles.map((r) => (
@@ -113,7 +113,7 @@ export default function UserTable({
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+            className="px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             <option value="all">All Status</option>
             <option value="active">Active Accounts</option>
@@ -170,7 +170,7 @@ export default function UserTable({
                             <div className="flex items-center gap-1.5">
                               <span className="font-semibold text-slate-900 truncate">{u.username}</span>
                               {isCurrent && (
-                                <span className="px-1.5 py-0.2 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-medium">
+                                <span className="px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-medium">
                                   You
                                 </span>
                               )}
@@ -265,7 +265,7 @@ export default function UserTable({
                             type="button"
                             onClick={() => onEditUser(u)}
                             title="Edit user"
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>

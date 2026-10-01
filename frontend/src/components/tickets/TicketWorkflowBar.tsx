@@ -36,7 +36,7 @@ export default function TicketWorkflowBar({
             value={selectedAssigneeId}
             disabled={updatingStatus}
             onChange={(e) => onAssigneeChange(e.target.value ? Number(e.target.value) : '')}
-            className="mt-0.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-500 cursor-pointer disabled:opacity-50"
+            className="mt-0.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 cursor-pointer disabled:opacity-50"
           >
             <option value="">Unassigned</option>
             {technicians.map((t) => (
@@ -54,9 +54,9 @@ export default function TicketWorkflowBar({
           <button
             onClick={() => onStatusChange('In Progress')}
             disabled={updatingStatus}
-            className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl text-xs border border-purple-200 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-xl text-xs border border-amber-200 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
           >
-            <Clock className="w-3.5 h-3.5 text-purple-600" />
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
             <span>Mark In Progress</span>
           </button>
         )}

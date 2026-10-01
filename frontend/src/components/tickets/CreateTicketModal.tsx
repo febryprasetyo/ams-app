@@ -108,7 +108,7 @@ export default function CreateTicketModal({
             <select
               value={formType}
               onChange={(e) => setFormType(e.target.value as 'Incident' | 'Request')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="Incident">Incident (System Breakdown)</option>
               <option value="Request">Service Request (Hardware/Access)</option>
@@ -122,7 +122,7 @@ export default function CreateTicketModal({
             <select
               value={formPriority}
               onChange={(e) => setFormPriority(e.target.value as 'Low' | 'Medium' | 'High' | 'Critical')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="Low">Low (Routine / Inquiry)</option>
               <option value="Medium">Medium (Standard SLA 24h)</option>
@@ -143,7 +143,7 @@ export default function CreateTicketModal({
               disabled={categories.length === 0}
               value={formCategoryId}
               onChange={(e) => setFormCategoryId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 disabled:bg-slate-100 disabled:text-slate-400"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-400"
             >
               <option value="">{categories.length === 0 ? 'No categories available' : 'Select Category...'}</option>
               {categories.map((c) => (
@@ -166,7 +166,7 @@ export default function CreateTicketModal({
             <select
               value={formAssetId}
               onChange={(e) => setFormAssetId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="">No Specific Asset</option>
               {assets.map((a) => (
@@ -189,7 +189,7 @@ export default function CreateTicketModal({
             placeholder="e.g. Broken Laptop Screen or VPN Access Setup"
             value={formSubject}
             onChange={(e) => setFormSubject(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 font-medium"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-medium"
           />
         </div>
 
@@ -204,7 +204,7 @@ export default function CreateTicketModal({
             placeholder="Describe what happened, error codes, steps to reproduce, or requirements..."
             value={formDescription}
             onChange={(e) => setFormDescription(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
 

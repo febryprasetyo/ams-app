@@ -291,7 +291,7 @@ function AssetFormDialogContent({
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-emerald-500"
                   required
                 >
                   <option value="">-- Select Category --</option>
@@ -312,7 +312,7 @@ function AssetFormDialogContent({
                   value={assetCode}
                   onChange={(e) => setAssetCode(e.target.value)}
                   placeholder="Leave blank for automatic allocation"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -325,7 +325,7 @@ function AssetFormDialogContent({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. ThinkPad T14 Gen 2 / HP LaserJet Pro M404"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-emerald-500"
                   required
                 />
               </div>
@@ -339,7 +339,7 @@ function AssetFormDialogContent({
                   value={serialNumber}
                   onChange={(e) => setSerialNumber(e.target.value)}
                   placeholder="e.g. PF2X9871"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -350,7 +350,7 @@ function AssetFormDialogContent({
                 <select
                   value={condition}
                   onChange={(e) => setCondition(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-emerald-500"
                 >
                   <option value="Good">Good (Working / Clean)</option>
                   <option value="Fair">Fair (Operational with Scuffs)</option>
@@ -366,7 +366,7 @@ function AssetFormDialogContent({
                 <select
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-emerald-500"
                 >
                   <option value="">Unassigned Location</option>
                   {locations.map((loc) => (
@@ -392,7 +392,7 @@ function AssetFormDialogContent({
             {isComputerType && (
               <div className="pt-4 border-t border-slate-200 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-blue-600" />
+                  <Cpu className="w-4 h-4 text-emerald-600" />
                   <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">
                     Computer Hardware Specifications
                   </h4>
@@ -408,7 +408,7 @@ function AssetFormDialogContent({
                       value={cpuName}
                       onChange={(e) => setCpuName(e.target.value)}
                       placeholder="e.g. Intel Core i7-1165G7 @ 2.80GHz"
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -422,7 +422,7 @@ function AssetFormDialogContent({
                       value={ramSizeGb}
                       onChange={(e) => setRamSizeGb(e.target.value ? Number(e.target.value) : '')}
                       placeholder="16"
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -436,7 +436,7 @@ function AssetFormDialogContent({
                       value={ramSlotCount}
                       onChange={(e) => setRamSlotCount(e.target.value ? Number(e.target.value) : '')}
                       placeholder="2"
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -450,7 +450,7 @@ function AssetFormDialogContent({
                       value={disk1SizeGb}
                       onChange={(e) => setDisk1SizeGb(e.target.value ? Number(e.target.value) : '')}
                       placeholder="512"
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -464,7 +464,7 @@ function AssetFormDialogContent({
                       value={disk2SizeGb}
                       onChange={(e) => setDisk2SizeGb(e.target.value ? Number(e.target.value) : '')}
                       placeholder="Leave blank if not installed"
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
@@ -473,7 +473,7 @@ function AssetFormDialogContent({
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Headphones className="w-4 h-4 text-purple-600" />
+                      <Headphones className="w-4 h-4 text-amber-600" />
                       <h4 className="text-xs font-bold text-slate-900 uppercase font-mono">
                         Attached Computer Accessories ({accessories.length})
                       </h4>
@@ -481,7 +481,7 @@ function AssetFormDialogContent({
                     <button
                       type="button"
                       onClick={handleAddAccessory}
-                      className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add Accessory</span>
@@ -573,7 +573,7 @@ function AssetFormDialogContent({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Additional hardware details, complaints, vendor warranty..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-red-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>

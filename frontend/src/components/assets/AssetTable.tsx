@@ -41,7 +41,7 @@ export const getAssetStatusBadge = (status: string) => {
     case 'Available':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     case 'Assigned':
-      return 'bg-blue-50 text-blue-700 border-blue-200';
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     case 'Maintenance':
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'Disposed':
@@ -149,7 +149,7 @@ export default function AssetTable({
                           <span>•</span>
                           <span>{asset.computerSpecs.disk1SizeGb}GB</span>
                           {asset.accessories && asset.accessories.length > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200">
                               +{asset.accessories.length} Acc
                             </span>
                           )}
@@ -230,7 +230,7 @@ export default function AssetTable({
                             {asset.status === 'Available' ? (
                               <button
                                 onClick={() => onAssign(asset)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                                 title="Assign to holder"
                               >
                                 <UserCheck className="w-3.5 h-3.5" />

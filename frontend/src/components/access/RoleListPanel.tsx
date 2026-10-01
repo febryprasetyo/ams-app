@@ -70,7 +70,7 @@ export default function RoleListPanel({
                       System
                     </span>
                   ) : (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Custom
                     </span>
                   )}
@@ -102,7 +102,7 @@ export default function RoleListPanel({
                     onEditRole(role);
                   }}
                   title="Edit role details"
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-lg transition-colors cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>

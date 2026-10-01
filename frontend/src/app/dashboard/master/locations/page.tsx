@@ -111,7 +111,7 @@ export default function LocationsPage() {
             </div>
           </div>
           <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center font-mono">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-mono">
               <MapPin className="w-5 h-5" />
             </div>
             <div>
@@ -132,7 +132,7 @@ export default function LocationsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search location name, code, address..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all font-mono"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
             />
           </div>
           <span className="text-xs text-slate-500 font-mono hidden sm:inline">

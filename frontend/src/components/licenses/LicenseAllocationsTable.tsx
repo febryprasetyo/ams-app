@@ -90,8 +90,8 @@ export default function LicenseAllocationsTable({
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold font-mono text-xs ${
                             isEmployeeTarget
-                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                              : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           }`}
                         >
                           {isEmployeeTarget ? (
@@ -114,12 +114,12 @@ export default function LicenseAllocationsTable({
                     {/* Target Type Badge */}
                     <td className="py-4 px-4 whitespace-nowrap">
                       {isEmployeeTarget ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
                           <UserIcon className="w-3.5 h-3.5" />
                           <span>Employee</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-cyan-50 text-cyan-700 border border-cyan-200 shadow-2xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
                           <Laptop className="w-3.5 h-3.5" />
                           <span>IT Asset</span>
                         </span>

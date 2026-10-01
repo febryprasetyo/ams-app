@@ -50,7 +50,7 @@ export default function LicenseStats({ licenses }: LicenseStatsProps) {
 
       {/* Card 2: Allocated Seats */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600 rounded-l-2xl" />
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 rounded-l-2xl" />
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
@@ -60,12 +60,12 @@ export default function LicenseStats({ licenses }: LicenseStatsProps) {
               {totalAllocatedSeats}
             </h3>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <UserCheck className="w-6 h-6" />
           </div>
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <span className="text-blue-600 font-semibold font-mono">Active</span> employee & asset seats
+          <span className="text-emerald-600 font-semibold font-mono">Active</span> employee & asset seats
         </div>
       </div>
 

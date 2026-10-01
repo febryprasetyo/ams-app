@@ -121,8 +121,8 @@ export default function HardwareAuditCard({
             )}
 
             {item.ramSizeGb && (
-              <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 flex items-center gap-1.5 font-bold">
-                <Layers className="w-3.5 h-3.5 text-blue-600" />
+              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 flex items-center gap-1.5 font-bold">
+                <Layers className="w-3.5 h-3.5 text-emerald-600" />
                 <span>RAM {item.ramSizeGb} GB {item.ramSlotCount ? `(${item.ramSlotCount} slot)` : ''}</span>
               </span>
             )}
@@ -138,8 +138,8 @@ export default function HardwareAuditCard({
             )}
 
             {item.peripherals && item.peripherals.length > 0 && (
-              <span className="px-2.5 py-1 bg-sky-50 text-sky-700 rounded-lg border border-sky-200 flex items-center gap-1.5 font-bold">
-                <Printer className="w-3.5 h-3.5 text-sky-600" />
+              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200 flex items-center gap-1.5 font-bold">
+                <Printer className="w-3.5 h-3.5 text-emerald-600" />
                 <span>{item.peripherals.length} Periferal Terhubung</span>
               </span>
             )}
@@ -224,7 +224,7 @@ export default function HardwareAuditCard({
                 onClick={() => onOpenLink(item)}
                 className="w-full sm:w-auto px-4 py-2.5 text-xs font-mono font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
-                <Link2 className="w-3.5 h-3.5 text-sky-400" />
+                <Link2 className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Tautkan Spesifikasi</span>
               </button>
 

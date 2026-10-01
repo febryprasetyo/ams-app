@@ -219,13 +219,13 @@ export default function AssetCustodiansPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search holder name or employee code..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs focus:border-red-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value as typeof status)}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"
             >
               <option value="ACTIVE">Active Only</option>
               <option value="INACTIVE">Inactive Only</option>

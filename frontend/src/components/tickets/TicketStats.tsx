@@ -22,13 +22,13 @@ export default function TicketStats({
           <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
             Total Open Tickets
           </span>
-          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <Ticket className="w-4 h-4" />
           </div>
         </div>
         <p className="text-2xl font-black font-mono text-slate-900 mt-2">{totalOpenCount}</p>
         <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-500 font-mono">
-          <span className="text-blue-600 font-bold">Active</span> queue
+          <span className="text-emerald-600 font-bold">Active</span> queue
         </div>
       </div>
 

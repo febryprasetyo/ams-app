@@ -99,7 +99,7 @@ export default function AssetHistoryTabs({
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-blue-600" />
+                      <UserCheck className="w-4 h-4 text-emerald-600" />
                       <span className="font-bold text-slate-900 text-sm">
                         {item.employeeName || 'Unknown Staff'}
                       </span>
@@ -129,7 +129,7 @@ export default function AssetHistoryTabs({
                         <span>Returned: {new Date(item.returnedAt).toLocaleDateString()}</span>
                       </div>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold text-[10px] border border-blue-200">
+                      <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px] border border-emerald-200">
                         Current Active Custodian
                       </span>
                     )}

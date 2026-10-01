@@ -230,10 +230,10 @@ export default function AssetsPage() {
 
                 <Link
                   href="/dashboard/hardware-audits"
-                  className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
                   title="Lihat antrean scan hardware dari portable tool flashdisk"
                 >
-                  <Cpu className="w-3.5 h-3.5 text-sky-600" />
+                  <Cpu className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Hardware Audits</span>
                 </Link>
 

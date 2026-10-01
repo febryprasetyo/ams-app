@@ -116,7 +116,7 @@ export default function EquipmentTypesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by prefix code or type name..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 font-mono text-xs text-slate-900 placeholder-slate-400 transition-all focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/20"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 font-mono text-xs text-slate-900 placeholder-slate-400 transition-all focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
           <span className="hidden font-mono text-xs text-slate-500 sm:inline">

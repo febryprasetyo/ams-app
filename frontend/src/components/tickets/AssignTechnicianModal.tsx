@@ -92,7 +92,7 @@ export default function AssignTechnicianModal({
           <select
             value={selectedAssigneeId}
             onChange={(e) => setSelectedAssigneeId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">Unassigned</option>
             {technicians.map((t) => (

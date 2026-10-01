@@ -165,7 +165,7 @@ export default function TicketDetailPage({
                 <span
                   className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-md border ${
                     isReq
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-red-50 text-red-600 border-red-200'
                   }`}
                 >

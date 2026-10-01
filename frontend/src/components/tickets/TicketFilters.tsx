@@ -40,7 +40,7 @@ export default function TicketFilters({
             placeholder="Search tickets by code, subject, user or asset tag..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-red-500 transition-colors"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 transition-colors"
           />
         </div>
 
@@ -50,7 +50,7 @@ export default function TicketFilters({
           <select
             value={selectedPriority}
             onChange={(e) => onPriorityChange(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-red-500 cursor-pointer"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="">All Priorities</option>
             <option value="Critical">Critical</option>
@@ -63,7 +63,7 @@ export default function TicketFilters({
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-red-500 cursor-pointer"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="Open">Open</option>
@@ -77,7 +77,7 @@ export default function TicketFilters({
           <select
             value={selectedCategory}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-red-500 cursor-pointer"
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (

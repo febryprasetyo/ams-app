@@ -79,7 +79,7 @@ export default function UserFormModal({
       onClose={onClose}
       title={isEdit ? "Edit User Account" : "Create New User Account"}
       subtitle={isEdit ? "Update account details, role assignment, and employee mapping" : "Add user details and assign role permissions"}
-      icon={isEdit ? <UserCog className="w-5 h-5 text-blue-600" /> : <UserPlus className="w-5 h-5 text-red-600" />}
+      icon={isEdit ? <UserCog className="w-5 h-5 text-emerald-600" /> : <UserPlus className="w-5 h-5 text-red-600" />}
       maxWidthClass="max-w-lg"
       isLoading={isLoading}
       footer={
@@ -122,7 +122,7 @@ export default function UserFormModal({
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="e.g. john.doe"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
         </div>
 
@@ -137,7 +137,7 @@ export default function UserFormModal({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="john.doe@company.com"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
         </div>
 
@@ -159,7 +159,7 @@ export default function UserFormModal({
           <select
             value={roleId}
             onChange={(e) => setRoleId(Number(e.target.value))}
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             {roles.map((r) => (
               <option key={r.id} value={r.id}>
@@ -177,7 +177,7 @@ export default function UserFormModal({
           <select
             value={employeeId ?? ""}
             onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             <option value="">-- No Linked Employee (System / Independent Account) --</option>
             {employees.map((emp) => (
@@ -204,7 +204,7 @@ export default function UserFormModal({
                 value="active"
                 checked={status === "active"}
                 onChange={() => setStatus("active")}
-                className="text-red-600 focus:ring-red-500"
+                className="text-red-600 focus:ring-emerald-500"
               />
               Active
             </label>
@@ -215,7 +215,7 @@ export default function UserFormModal({
                 value="inactive"
                 checked={status === "inactive"}
                 onChange={() => setStatus("inactive")}
-                className="text-red-600 focus:ring-red-500"
+                className="text-red-600 focus:ring-emerald-500"
               />
               Inactive (Deactivated)
             </label>

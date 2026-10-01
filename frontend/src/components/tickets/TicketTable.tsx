@@ -63,15 +63,15 @@ export function renderStatusBadge(status: string) {
   switch (status) {
     case 'Open':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
           Open
         </span>
       );
     case 'In Progress':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
           In Progress
         </span>
       );
@@ -231,7 +231,7 @@ export default function TicketTable({
                       href={`/dashboard/tickets/${ticket.id}`}
                       className={`font-mono font-bold px-2.5 py-1 rounded-md border transition-colors inline-flex items-center gap-1 group/code ${
                         isReq
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300'
                           : 'bg-red-50 text-red-600 border-red-200 hover:border-red-300'
                       }`}
                     >
@@ -311,7 +311,7 @@ export default function TicketTable({
                   <td className="py-4 px-5 whitespace-nowrap">
                     {ticket.assigneeName ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-mono font-bold text-[10px] flex items-center justify-center border border-blue-200">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-mono font-bold text-[10px] flex items-center justify-center border border-emerald-200">
                           {ticket.assigneeName[0].toUpperCase()}
                         </div>
                         <span className="font-semibold text-slate-800 text-xs">
@@ -344,7 +344,7 @@ export default function TicketTable({
                       {/* Assign Technician */}
                       <button
                         onClick={() => onAssign(ticket)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                         title="Assign / Change Technician"
                       >
                         <UserCheck className="w-4 h-4" />

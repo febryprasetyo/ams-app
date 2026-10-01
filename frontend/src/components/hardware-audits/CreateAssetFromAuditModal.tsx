@@ -135,7 +135,7 @@ export default function CreateAssetFromAuditModal({
             <select
               value={categoryId || ''}
               onChange={(e) => setCategoryId(Number(e.target.value) || null)}
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 shadow-2xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-2xs"
             >
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -154,7 +154,7 @@ export default function CreateAssetFromAuditModal({
               value={assetName}
               onChange={(e) => setAssetName(e.target.value)}
               placeholder="e.g. ThinkPad T14 Gen 2"
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 shadow-2xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-2xs"
             />
           </div>
 
@@ -182,7 +182,7 @@ export default function CreateAssetFromAuditModal({
                 value={custodianName}
                 onChange={(e) => setCustodianName(e.target.value)}
                 placeholder="Nama Pengguna"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-red-600 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 shadow-2xs"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-red-600 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-2xs"
               />
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function CreateAssetFromAuditModal({
             <select
               value={locationId || ''}
               onChange={(e) => setLocationId(Number(e.target.value) || null)}
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 shadow-2xs"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-2xs"
             >
               <option value="">-- Pilih Lokasi --</option>
               {locations.map((loc) => (
@@ -214,7 +214,7 @@ export default function CreateAssetFromAuditModal({
                   name="createStatus"
                   checked={status === 'Assigned'}
                   onChange={() => setStatus('Assigned')}
-                  className="text-red-600 focus:ring-red-500 cursor-pointer"
+                  className="text-red-600 focus:ring-emerald-500 cursor-pointer"
                 />
                 <span>Assigned (Diberikan ke {custodianName || audit.custodianName})</span>
               </label>
@@ -233,9 +233,9 @@ export default function CreateAssetFromAuditModal({
 
           {/* Preview Attached Peripherals if any */}
           {audit.peripherals && audit.peripherals.length > 0 && (
-            <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-xl space-y-1.5">
-              <div className="font-bold text-sky-900 flex items-center gap-1.5">
-                <Printer className="w-3.5 h-3.5 text-sky-700" />
+            <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-1.5">
+              <div className="font-bold text-emerald-900 flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-emerald-700" />
                 <span>
                   Periferal Terkait ({audit.peripherals.length} unit akan didaftarkan sebagai aksesori):
                 </span>
@@ -244,7 +244,7 @@ export default function CreateAssetFromAuditModal({
                 {audit.peripherals.map((p, idx) => (
                   <div
                     key={idx}
-                    className="p-1.5 bg-white rounded-lg border border-sky-200/60 text-[11px] flex items-center justify-between"
+                    className="p-1.5 bg-white rounded-lg border border-emerald-200/60 text-[11px] flex items-center justify-between"
                   >
                     <span className="font-semibold text-slate-800">
                       {p.category}: {p.brandModel}

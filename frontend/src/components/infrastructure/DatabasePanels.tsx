@@ -14,7 +14,7 @@ export default function DatabasePanels({ servers }: DatabasePanelsProps) {
     <section className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 font-extrabold text-slate-900">
-          <Database className="h-5 w-5 text-purple-600" />
+          <Database className="h-5 w-5 text-amber-600" />
           Accurate Database
         </h2>
         <p className="mt-1 text-xs text-slate-500">
@@ -45,7 +45,7 @@ export default function DatabasePanels({ servers }: DatabasePanelsProps) {
               >
                 Firebird {server.isFirebirdActive ? 'aktif' : 'tidak aktif'}
               </span>
-              <span className="rounded-full bg-purple-50 px-2.5 py-1 text-purple-700">
+              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">
                 {server.databases.length} database •{' '}
                 {formatBytes(server.databases.reduce((sum, item) => sum + Number(item.fileSizeBytes), 0))}
               </span>
@@ -74,7 +74,7 @@ export default function DatabasePanels({ servers }: DatabasePanelsProps) {
                   server.databases.map((database) => (
                     <tr key={database.id} className="hover:bg-slate-50">
                       <td className="px-5 py-3 font-bold text-slate-900">
-                        <HardDrive className="mr-2 inline h-4 w-4 text-purple-600" />
+                        <HardDrive className="mr-2 inline h-4 w-4 text-amber-600" />
                         {database.dbName}
                       </td>
                       <td

@@ -87,7 +87,7 @@ export default function ModalShell({
           <div className="shrink-0 flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
             <div className="flex items-center gap-3">
               {icon && (
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                   {icon}
                 </div>
               )}

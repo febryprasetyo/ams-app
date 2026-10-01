@@ -100,7 +100,7 @@ export default function LocationFormModal({
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="e.g. JKT-HQ-01"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 uppercase font-bold"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 uppercase font-bold"
           />
         </div>
 
@@ -114,7 +114,7 @@ export default function LocationFormModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Jakarta Main HQ - 3rd Floor IT Room"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -127,7 +127,7 @@ export default function LocationFormModal({
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="e.g. Menara Palma Lt. 3, Jl. H.R. Rasuna Said, Kuningan"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 resize-none"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 resize-none"
           />
         </div>
 

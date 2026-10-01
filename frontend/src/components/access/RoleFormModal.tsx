@@ -116,7 +116,7 @@ export default function RoleFormModal({
             value={code}
             onChange={(e) => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
             placeholder="e.g. warehouse_officer"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-mono disabled:bg-slate-100 disabled:text-slate-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono disabled:bg-slate-100 disabled:text-slate-500"
           />
           <p className="text-[10px] text-slate-400 mt-1">
             Lowercase alphanumeric and underscore. Cannot be changed once created.
@@ -134,7 +134,7 @@ export default function RoleFormModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Warehouse Officer"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
         </div>
 
@@ -148,7 +148,7 @@ export default function RoleFormModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Explain what access privileges this role is intended for..."
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
           />
         </div>
       </form>

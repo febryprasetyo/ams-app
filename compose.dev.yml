@@ -4,6 +4,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: ams_postgres_dev
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -23,6 +24,7 @@ services:
       context: ./backend
       target: development
     container_name: ams_backend_dev
+    restart: unless-stopped
     ports:
       - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:5000:5000"
     environment:
@@ -49,10 +51,13 @@ services:
       context: ./frontend
       target: development
     container_name: ams_frontend_dev
+    restart: unless-stopped
     ports:
       - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:3000:3000"
     environment:
       NODE_ENV: development
+      HOSTNAME: "0.0.0.0"
+      WATCHPACK_POLLING: "true"
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
       INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:5000/api/v1}
     volumes:

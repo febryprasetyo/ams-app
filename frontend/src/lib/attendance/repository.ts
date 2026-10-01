@@ -2,9 +2,9 @@ import { applyCommand } from './commands';
 import type { AttendanceDataset, AttendanceRepository, Employee, MasterItem } from './types';
 import { api } from '@/lib/api';
 
-export function createAttendanceRepository(accountId: number): AttendanceRepository {
-  // v2: data demo lama di v1 tidak dipakai; key lama dibersihkan saat init
-  const storageKey = `ams:attendance-demo:v2:${accountId}`;
+export function createAttendanceRepository(accountId?: number): AttendanceRepository {
+  const sharedKey = 'ams:attendance-workspace:v2';
+  const accountKey = accountId ? `ams:attendance-demo:v2:${accountId}` : '';
   const legacyKey = `ams:attendance-demo:v1:${accountId}`;
   if (typeof window !== 'undefined') {
     sessionStorage.removeItem(legacyKey);
@@ -12,10 +12,22 @@ export function createAttendanceRepository(accountId: number): AttendanceReposit
   let current: AttendanceDataset | null = null;
   async function load(signal?: AbortSignal): Promise<AttendanceDataset> {
     if (current) return structuredClone(current);
-    const saved = typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) : null;
+    let saved = typeof window !== 'undefined' ? localStorage.getItem(sharedKey) : null;
+    if (!saved && typeof window !== 'undefined' && accountKey) {
+      saved = sessionStorage.getItem(accountKey) || sessionStorage.getItem('ams:attendance-demo:v2:1');
+      if (saved) {
+        localStorage.setItem(sharedKey, saved);
+      }
+    }
     let parsed: unknown;
-    if (saved) parsed = JSON.parse(saved);
-    else {
+    if (saved) {
+      try {
+        parsed = JSON.parse(saved);
+      } catch {
+        parsed = null;
+      }
+    }
+    if (!parsed) {
       const response = await fetch('/mock/attendance.json', { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000), cache: 'no-store' });
       if (!response.ok) throw new Error('Data contoh gagal dimuat. Silakan coba lagi.');
       parsed = await response.json();
@@ -40,7 +52,8 @@ export function createAttendanceRepository(accountId: number): AttendanceReposit
             locationId: e.locationId ? Number(e.locationId) : null,
             position: String(e.jobPosition || e.position || ''),
             isActive: e.isActive !== false,
-          }));
+            barcode: String(e.barcode || ''),
+          } as any));
         }
         if (Array.isArray(deptData) && deptData.length > 0) {
           current.departments = deptData.map((d: any): MasterItem => ({
@@ -65,7 +78,8 @@ export function createAttendanceRepository(accountId: number): AttendanceReposit
         const data = await load();
         const result = applyCommand(data, command);
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem(storageKey, JSON.stringify(result));
+          localStorage.setItem(sharedKey, JSON.stringify(result));
+          if (accountKey) sessionStorage.setItem(accountKey, JSON.stringify(result));
         }
         current = result;
         return structuredClone(result);
@@ -76,7 +90,8 @@ export function createAttendanceRepository(accountId: number): AttendanceReposit
     async reset() {
       await queue;
       if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(storageKey);
+        localStorage.removeItem(sharedKey);
+        if (accountKey) sessionStorage.removeItem(accountKey);
       }
       current = null;
       return load();

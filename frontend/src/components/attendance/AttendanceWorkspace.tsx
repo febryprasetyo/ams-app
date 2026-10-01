@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { createAttendanceRepository } from '@/lib/attendance/repository';
-import type { AttendanceCommand, AttendanceDataset } from '@/lib/attendance/types';
+import type { AttendanceCommand, AttendanceDataset, AttendanceRole } from '@/lib/attendance/types';
 import './attendance.css';
 
 interface AttendanceContextValue {
@@ -52,7 +52,43 @@ function Provider({ children }: { children: React.ReactNode }) {
     return next;
   }, [repository]);
 
-  const restricted = data?.meta.role === 'REPORT_VIEWER' && pathname !== '/dashboard/attendance/reports';
+  const effectiveRole = useMemo((): AttendanceRole => {
+    if (!data || !user) return 'REPORT_VIEWER';
+
+    const username = (user.username || '').trim().toLowerCase();
+    const email = (user.email || '').trim().toLowerCase();
+    const grant = data.grants?.find(
+      g => g.isActive && (
+        (username && g.principalKey.trim().toLowerCase() === username) ||
+        (email && g.principalKey.trim().toLowerCase() === email)
+      )
+    );
+
+    if (grant) return grant.role;
+
+    const isSuperAdmin = user.permissions?.includes('*') || (user.roleName || '').toLowerCase() === 'superadmin';
+    const isHrAdmin = user.permissions?.includes('attendance.manage') || (user.roleName || '').toLowerCase().includes('admin');
+    const isHrStaff = user.permissions?.includes('attendance.view');
+
+    if (isSuperAdmin || isHrAdmin) return 'HR_ADMIN';
+    if (isHrStaff) return 'HR_STAFF';
+    return 'REPORT_VIEWER';
+  }, [data, user]);
+
+  const resolvedData = useMemo(() => {
+    if (!data) return null;
+    return {
+      ...data,
+      meta: {
+        ...data.meta,
+        role: effectiveRole,
+        canManageAccess: effectiveRole === 'HR_ADMIN',
+        actor: user?.fullName || user?.username || data.meta.actor,
+      }
+    };
+  }, [data, effectiveRole, user]);
+
+  const restricted = effectiveRole === 'REPORT_VIEWER' && pathname !== '/dashboard/attendance/reports';
 
   return (
     <div className="attendance-ui space-y-6">
@@ -77,7 +113,7 @@ function Provider({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       ) : (
-        <AttendanceContext.Provider value={{ data, execute, canWrite: data.meta.role === 'HR_ADMIN', canReview: data.meta.role !== 'REPORT_VIEWER' }}>
+        <AttendanceContext.Provider value={{ data: resolvedData!, execute, canWrite: effectiveRole === 'HR_ADMIN', canReview: effectiveRole !== 'REPORT_VIEWER' }}>
           {children}
         </AttendanceContext.Provider>
       )}

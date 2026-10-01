@@ -10,12 +10,13 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
   AlertCircle,
   Loader2,
   Sparkles,
   KeyRound,
 } from 'lucide-react';
+import GajianichMascot from '@/components/branding/GajianichMascot';
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/gajianichBrand';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -85,46 +86,33 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-red-50/40 p-4 relative overflow-hidden font-sans select-none text-slate-900">
-      {/* Radiant Fresh Red Glow Mesh */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-red-500/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Subtle Light Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f080_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f080_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
+    <main className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] p-4 relative overflow-hidden font-sans text-slate-900">
 
       <div className="w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white mb-4 shadow-xl shadow-red-500/25 relative group">
-            <ShieldCheck className="w-9 h-9 transform group-hover:scale-110 transition-transform duration-300" />
-            <div className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
-            </div>
-          </div>
+          <GajianichMascot size="hero" className="w-24 h-24 mx-auto mb-3" />
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center gap-2">
-            <span>AMS</span>
-            <span className="text-red-600 font-mono">Platform</span>
+            <span>{BRAND_NAME}</span>
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Enterprise Asset & Service Management Portal
+            {BRAND_TAGLINE}
           </p>
         </div>
 
         {/* Crisp White Card */}
         <div className="glass-panel glass-panel-hover rounded-3xl p-8 shadow-2xl relative overflow-hidden bg-white/90 border border-slate-200">
           {/* Top border accent line */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 via-rose-600 to-red-700" />
+          <div className="absolute top-0 inset-x-0 h-1 bg-emerald-600" />
 
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Sign In</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Access corporate management portal</p>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Masuk dulu, yuk</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Biar urusan kantor tetap jalan.</p>
             </div>
-            <span className="text-[11px] font-mono font-bold px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-200 flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-red-600" />
-              v2.0 LIGHT
+            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-600" />
+              siap kerja
             </span>
           </div>
 
@@ -199,16 +187,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold font-sans rounded-xl shadow-xl shadow-red-600/25 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm transform hover:-translate-y-0.5"
+            className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold font-sans rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Authenticating Session...</span>
+                  <span>Lagi masukin kamu...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In to Portal</span>
+                  <span>Masuk ke GAJIANICH</span>
                   <ArrowRight className="w-4 h-4 text-white" />
                 </>
               )}

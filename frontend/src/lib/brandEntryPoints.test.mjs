@@ -4,8 +4,9 @@ import test from 'node:test';
 
 test('login presents the GAJIANICH brand instead of AMS', async () => {
   const source = await readFile(new URL('../app/login/page.tsx', import.meta.url), 'utf8');
-  assert.match(source, /GajianichMascot/);
+  assert.match(source, /next\/image/);
+  assert.match(source, /\/branding\/gajianich-cat\.png/);
   assert.match(source, /BRAND_NAME/);
   assert.match(source, /BRAND_TAGLINE/);
-  assert.doesNotMatch(source, /AMS Platform|Enterprise Asset & Service Management Portal|ShieldCheck/);
+  assert.doesNotMatch(source, /AMS Platform|Enterprise Asset & Service Management Portal|ShieldCheck|GajianichMascot/);
 });

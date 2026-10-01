@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { canManageCustodians } from '@/lib/assetCustodian';
 import { BRAND_NAME } from '@/lib/gajianichBrand';
-import GajianichMascot from '@/components/branding/GajianichMascot';
 import {
   Building2,
   MapPin,
@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
           <Link href={isHrRole ? '/dashboard/attendance' : '/dashboard/master/departments'} className="flex items-center gap-3 overflow-hidden group">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 group-hover:scale-105 transition-transform">
-              <GajianichMascot decorative className="w-9 h-9" />
+              <Image src="/branding/gajianich-cat-favicon.png" alt="" width={36} height={36} className="w-9 h-9 object-contain" />
             </div>
             {!collapsed && (
               <div className="flex flex-col">

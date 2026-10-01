@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth, User } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
@@ -15,7 +16,6 @@ import {
   Sparkles,
   KeyRound,
 } from 'lucide-react';
-import GajianichMascot from '@/components/branding/GajianichMascot';
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/gajianichBrand';
 
 export default function LoginPage() {
@@ -91,7 +91,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <GajianichMascot size="hero" className="w-24 h-24 mx-auto mb-3" />
+          <Image src="/branding/gajianich-cat.png" alt="Maskot kucing kopi GAJIANICH" width={112} height={112} priority className="w-28 h-28 object-contain mx-auto mb-3" />
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center gap-2">
             <span>{BRAND_NAME}</span>
           </h1>

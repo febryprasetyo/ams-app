@@ -10,9 +10,30 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
   if (row.issues?.length) return { ...row, reviewStatus: 'BLOCKED', note: row.issues[0] };
   if (row.reviewStatus === 'BLOCKED' && /Durasi|Scan atau jadwal|No\. ID/.test(row.note)) return row;
   const identity = data.identities.find(i => (i.sourceId === batch.sourceId || !i.sourceId) && i.externalNoId === row.externalNoId) ?? data.identities.find(i => i.externalNoId === row.externalNoId);
-  const employeeId = identity?.employeeId ?? null;
+  const employee = identity
+    ? data.employees.find(e => e.id === identity.employeeId)
+    : data.employees.find(e => {
+        const ext = (row.externalNoId || '').trim();
+        const empCode = (e.employeeCode || '').trim();
+        const barcode = ((e as any).barcode || '').trim();
+        const rowCode = (row.employeeCode || '').trim();
+        const rowName = (row.employeeName || '').trim().toLowerCase();
+        const empName = (e.fullName || '').trim().toLowerCase();
+
+        if (empCode && ext && empCode.toLowerCase() === ext.toLowerCase()) return true;
+        if (barcode && ext && barcode.toLowerCase() === ext.toLowerCase()) return true;
+        if (empCode && rowCode && empCode.toLowerCase() === rowCode.toLowerCase()) return true;
+        if (empName && rowName && empName === rowName) return true;
+
+        const numExt = parseInt(ext, 10);
+        const numCode = parseInt(empCode, 10);
+        if (!isNaN(numExt) && !isNaN(numCode) && numExt === numCode) return true;
+
+        return false;
+      });
+  const employeeId = row.employeeId ?? employee?.id ?? null;
   if (!row.scanIn && !row.scanOut) return { ...row, employeeId, reviewStatus: 'SKIPPED', note: 'Kedua scan kosong; tidak disimpulkan alpha.' };
-  if (!employeeId) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Nomor mesin belum dipetakan.' };
+  if (!employeeId) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Karyawan tidak ditemukan di Master Data.' };
   if (data.records.some(r => r.employeeId === employeeId && r.workDate === row.workDate)
     || batch.rows.some(r => r.id !== row.id && r.reviewStatus !== 'SKIPPED' && r.externalNoId === row.externalNoId && r.workDate === row.workDate)) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Catatan duplikat. Lewati baris dan koreksi catatan final jika diperlukan.' };
   if (!row.scanIn || !row.scanOut) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Scan belum lengkap. Lengkapi file; normalisasi BIFF tersedia saat integrasi backend.' };
@@ -109,13 +130,63 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       if (!batch || !row || batch.status !== 'DRAFT') throw new Error('Draft tidak dapat diubah.');
       if (command.skipped) Object.assign(row, { reviewStatus: 'SKIPPED', note: command.reason.trim() });
       else {
-        if (row.issues?.length || (/Durasi|Scan atau jadwal|No\. ID/.test(row.note) && row.reviewStatus === 'BLOCKED')) {
+        if (command.employeeId) {
+          row.employeeId = command.employeeId;
+        }
+
+        if (command.values) {
+          if (command.values.scanIn !== undefined) {
+            const rawIn = (command.values.scanIn || '').trim();
+            const valIn = /^\d:[0-5]\d$/.test(rawIn) ? '0' + rawIn : rawIn.slice(0, 5);
+            row.scanIn = valIn || null;
+          }
+          if (command.values.scanOut !== undefined) {
+            const rawOut = (command.values.scanOut || '').trim();
+            const valOut = /^\d:[0-5]\d$/.test(rawOut) ? '0' + rawOut : rawOut.slice(0, 5);
+            row.scanOut = valOut || null;
+          }
+          if (command.values.lateMinutes !== undefined) {
+            row.lateMinutes = Math.max(0, Math.floor(Number(command.values.lateMinutes) || 0));
+          }
+          if (command.values.overtimeMinutes !== undefined) {
+            row.overtimeMinutes = Math.max(0, Math.floor(Number(command.values.overtimeMinutes) || 0));
+          }
+          row.issues = undefined;
+        }
+
+        if (row.scanIn && !/^([01]\d|2[0-3]):[0-5]\d$/.test(row.scanIn)) {
+          throw new Error('Format jam masuk harus HH:mm (contoh: 08:00)');
+        }
+        if (row.scanOut && !/^([01]\d|2[0-3]):[0-5]\d$/.test(row.scanOut)) {
+          throw new Error('Format jam pulang harus HH:mm (contoh: 17:00)');
+        }
+
+        if (!command.values && (row.issues?.length || (/Durasi|Scan atau jadwal|No\. ID/.test(row.note) && row.reviewStatus === 'BLOCKED'))) {
           throw new Error(row.issues?.[0] || row.note);
         }
+
         const resolved = resolveRow(data, batch, { ...row, reviewStatus: 'NEEDS_REVIEW' });
-        if (resolved.reviewStatus === 'BLOCKED' || resolved.reviewStatus === 'SKIPPED') throw new Error(resolved.note);
-        if (resolved.employeeId !== command.employeeId) throw new Error('Pemetaan berubah. Muat ulang draft.');
-        Object.assign(row, resolved, { reviewStatus: 'READY', note: command.reason.trim() });
+        if (command.employeeId) {
+          resolved.employeeId = command.employeeId;
+        }
+
+        if (resolved.reviewStatus === 'BLOCKED') {
+          if (row.scanIn && row.scanOut && (row.employeeId || resolved.employeeId)) {
+            resolved.reviewStatus = 'READY';
+          } else {
+            throw new Error(resolved.note);
+          }
+        }
+        if (resolved.reviewStatus === 'SKIPPED') throw new Error(resolved.note);
+
+        Object.assign(row, resolved, {
+          scanIn: row.scanIn,
+          scanOut: row.scanOut,
+          lateMinutes: row.lateMinutes,
+          overtimeMinutes: row.overtimeMinutes,
+          reviewStatus: 'READY',
+          note: command.reason.trim(),
+        });
       }
       action = 'Baris impor direview'; detail = `${batch.filename} · baris ${row.id}`; break;
     }

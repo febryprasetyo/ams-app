@@ -54,7 +54,7 @@ export type AttendanceCommand =
   | { type: 'grant'; value: AttendanceGrant }
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
   | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
-  | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string }
+  | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }
   | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen' }
   | { type: 'sync_employees'; employees: Employee[]; departments?: MasterItem[] };
 

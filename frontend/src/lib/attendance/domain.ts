@@ -70,3 +70,73 @@ export function parseImportRows(text: string): ImportRow[] {
     return { id: index + 1, externalNoId: r.externalNoId.trim(), employeeId: null, workDate: r.workDate, scanIn: r.scanIn as string | null, scanOut: r.scanOut as string | null, lateMinutes: r.lateMinutes as number, earlyMinutes: r.earlyMinutes as number, overtimeMinutes: r.overtimeMinutes as number, reviewStatus: 'BLOCKED', note: '' };
   });
 }
+
+export function getJakartaToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+export function subtractOneMonth(dateStr: string): string {
+  if (!validDate(dateStr)) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  let targetYear = y;
+  let targetMonth = m - 1;
+  if (targetMonth === 0) {
+    targetYear -= 1;
+    targetMonth = 12;
+  }
+  const maxDays = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+  const targetDay = Math.min(d, maxDays);
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+}
+
+export function getDefaultAttendancePeriod(data: AttendanceDataset, employeeId?: number): { startDate: string; endDate: string } {
+  const records = employeeId
+    ? data.records.filter(r => r.employeeId === employeeId)
+    : data.records;
+
+  const today = getJakartaToday();
+
+  let latestDate = '';
+  for (const r of records) {
+    if (r.workDate && (!latestDate || r.workDate > latestDate)) {
+      latestDate = r.workDate;
+    }
+  }
+
+  if (!latestDate && employeeId && data.records.length > 0) {
+    for (const r of data.records) {
+      if (r.workDate && (!latestDate || r.workDate > latestDate)) {
+        latestDate = r.workDate;
+      }
+    }
+  }
+
+  if (!latestDate) {
+    latestDate = (data.meta?.defaultDate && validDate(data.meta.defaultDate))
+      ? data.meta.defaultDate
+      : today;
+  }
+
+  let resolvedEnd = latestDate;
+  if (today >= latestDate) {
+    const diffDays = (Date.parse(today) - Date.parse(latestDate)) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 31) {
+      resolvedEnd = today;
+    }
+  }
+
+  const resolvedStart = subtractOneMonth(resolvedEnd);
+  return {
+    startDate: resolvedStart,
+    endDate: resolvedEnd,
+  };
+}
+
+export function sortRecordsDescending(records: AttendanceRecord[]): AttendanceRecord[] {
+  return [...records].sort((a, b) => b.workDate.localeCompare(a.workDate) || (b.id - a.id));
+}

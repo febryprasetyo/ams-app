@@ -250,7 +250,7 @@ export default function LicenseDetailPage({ params }: { params: Promise<{ id: st
                 className={`px-4 py-2.5 rounded-xl font-semibold text-xs md:text-sm shadow-md flex items-center gap-2 transition-all cursor-pointer ${
                   isFull
                     ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                    : 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20 active:scale-[0.98]'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-[0.98]'
                 }`}
               >
                 <UserPlus className="w-4 h-4" />

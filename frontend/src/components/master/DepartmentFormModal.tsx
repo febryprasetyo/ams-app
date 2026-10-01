@@ -126,7 +126,7 @@ export default function DepartmentFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{isEdit ? 'Update Department' : 'Save Department'}</span>

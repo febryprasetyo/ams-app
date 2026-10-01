@@ -272,7 +272,7 @@ export default function CreateAssetFromAuditModal({
           <button
             type="submit"
             disabled={!categoryId || submitting}
-            className="px-5 py-2.5 text-xs font-mono font-bold bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl transition flex items-center gap-2 shadow-md shadow-red-600/20 cursor-pointer"
+            className="px-5 py-2.5 text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-xl transition flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>Daftarkan ke Inventaris</span>

@@ -110,7 +110,7 @@ export default function EmployeeDirectoryPage({ basePath = '/dashboard/attendanc
               <Upload className="w-4 h-4 text-blue-600" /> Import Excel
             </button>
             <Link href={`${basePath}/new`}
-              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
               <Plus className="w-4 h-4" /> Tambah Karyawan
             </Link>
           </div>

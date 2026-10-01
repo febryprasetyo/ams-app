@@ -134,7 +134,7 @@ export default function TicketDetailPage({
             <p className="font-bold text-sm">{error || 'Ticket not found'}</p>
             <button
               onClick={() => router.push('/dashboard/tickets')}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
             >
               Return to Ticket Catalog
             </button>

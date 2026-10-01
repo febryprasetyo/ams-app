@@ -230,7 +230,7 @@ export default function HardwareAuditCard({
 
               <button
                 onClick={() => onOpenCreate(item)}
-                className="w-full sm:w-auto px-4 py-2.5 text-xs font-mono font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-red-600/20 cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Buat Aset Baru</span>

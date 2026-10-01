@@ -245,7 +245,7 @@ export default function PrintAssetTagModal({
               onClose();
               handlePrintSticker();
             }}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-red-600/20 cursor-pointer"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Print QR Sticker Label</span>

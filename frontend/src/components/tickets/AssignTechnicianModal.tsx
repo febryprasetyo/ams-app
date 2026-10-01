@@ -115,7 +115,7 @@ export default function AssignTechnicianModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <>

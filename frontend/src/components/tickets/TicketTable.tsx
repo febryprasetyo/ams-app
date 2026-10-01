@@ -188,7 +188,7 @@ export default function TicketTable({
         ) : (
           <button
             onClick={onCreateFirstTicket}
-            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Create First Ticket</span>

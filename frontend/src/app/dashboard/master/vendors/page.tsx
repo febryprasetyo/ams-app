@@ -94,7 +94,7 @@ export default function VendorsPage() {
           </div>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
           >
             <Plus className="w-4 h-4" />
             <span>New Vendor</span>

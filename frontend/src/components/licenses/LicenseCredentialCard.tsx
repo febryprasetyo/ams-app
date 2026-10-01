@@ -82,7 +82,7 @@ export default function LicenseCredentialCard({ license }: LicenseCredentialCard
 
             <button
               onClick={handleCopyKey}
-              className="p-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
+              className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
               title="Copy Key to Clipboard"
             >
               {copiedKey ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

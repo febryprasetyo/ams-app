@@ -140,7 +140,7 @@ export default function LicensesPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-red-600/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
                 <Key className="w-5.5 h-5.5" />
               </div>
               <span>Software License Catalog</span>
@@ -162,7 +162,7 @@ export default function LicensesPage() {
 
             <button
               onClick={openCreateModal}
-              className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-xs font-bold font-sans rounded-xl shadow-md shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-sans rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Software License</span>

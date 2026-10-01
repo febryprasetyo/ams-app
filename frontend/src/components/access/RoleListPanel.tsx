@@ -32,7 +32,7 @@ export default function RoleListPanel({
         <button
           type="button"
           onClick={onAddRole}
-          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Role</span>

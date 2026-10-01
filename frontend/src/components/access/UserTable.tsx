@@ -124,7 +124,7 @@ export default function UserTable({
         {/* Add User Button */}
         <button
           onClick={onAddUser}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add User</span>

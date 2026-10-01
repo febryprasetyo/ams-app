@@ -220,7 +220,7 @@ export default function EmployeeImportModal({
                 type="button"
                 onClick={handleProcessPreview}
                 disabled={!file || isLoadingPreview}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 {isLoadingPreview ? (
                   <>
@@ -260,7 +260,7 @@ export default function EmployeeImportModal({
                 type="button"
                 onClick={handleConfirmCommit}
                 disabled={!previewData?.valid || isSubmitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 {isSubmitting ? (
                   <>

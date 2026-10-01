@@ -1,4 +1,4 @@
-import type { AttendanceDataset, AttendanceRecord, Employee, MasterItem } from './types';
+import type { AttendanceDataset, AttendanceRecord, Employee } from './types';
 
 export interface OverviewMetrics {
   totalActiveEmployees: number;

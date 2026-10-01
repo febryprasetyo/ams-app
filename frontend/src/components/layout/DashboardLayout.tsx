@@ -31,6 +31,7 @@ import {
   GitMerge,
   LayoutDashboard,
   CalendarCheck,
+  Clock,
   FileInput,
   ClipboardList,
   FileBarChart,
@@ -97,6 +98,7 @@ export const navGroups: NavGroup[] = [
         children: [
           { name: 'Karyawan Absensi', href: '/dashboard/attendance/master/employees', icon: Users, permission: 'attendance.view' },
           { name: 'Departemen Absensi', href: '/dashboard/attendance/master/departments', icon: Building2, permission: 'attendance.view' },
+          { name: 'Shift & Jam Kerja', href: '/dashboard/attendance/master/shifts', icon: Clock, permission: 'attendance.view' },
           { name: 'Akses Absensi', href: '/dashboard/attendance/access', icon: ShieldCheck, permission: 'attendance.manage' },
         ],
       },

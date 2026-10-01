@@ -8,9 +8,10 @@ import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Status, Pagination, FormDialog, Empty } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
+import { RecordAttendanceDialog } from './RecordAttendanceDialog';
 import { dateLabel, durationLabel, filterEmployees, filterRecords, summarizeEmployees, validDate, getJakartaToday } from '@/lib/attendance/domain';
 import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
-import type { AttendanceRecord } from '@/lib/attendance/types';
+import type { AttendanceRecord, Employee } from '@/lib/attendance/types';
 
 export default function AttendanceDataPage() {
   const { data, execute, canWrite } = useAttendance();
@@ -34,6 +35,7 @@ export default function AttendanceDataPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
   const [correcting, setCorrecting] = useState<AttendanceRecord | null>(null);
+  const [recordingEmployee, setRecordingEmployee] = useState<Employee | null>(null);
   const [detail, setDetail] = useState<AttendanceRecord | null>(null);
   const [lockOpen, setLockOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -327,9 +329,21 @@ export default function AttendanceDataPage() {
                           </div>
                         </details>
                       ) : (
-                        <Link className="hr-btn" href={`/dashboard/attendance/employees/${employee.id}`}>
-                          Lihat kartu
-                        </Link>
+                        <div className="flex items-center gap-1">
+                          {canWrite && (
+                            <button
+                              className="hr-btn text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                              disabled={locked}
+                              onClick={() => setRecordingEmployee(employee)}
+                              title="Catat kehadiran manual, sakit, cuti, izin, atau alpha"
+                            >
+                              Catat Absensi
+                            </button>
+                          )}
+                          <Link className="hr-btn text-[11px]" href={`/dashboard/attendance/employees/${employee.id}`}>
+                            Kartu
+                          </Link>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -347,6 +361,13 @@ export default function AttendanceDataPage() {
       </p>
 
       {correcting && <CorrectionDialog record={correcting} onClose={() => setCorrecting(null)} />}
+      {recordingEmployee && (
+        <RecordAttendanceDialog
+          employee={recordingEmployee}
+          date={date}
+          onClose={() => setRecordingEmployee(null)}
+        />
+      )}
       {detail && <RecordDetails record={detail} onClose={() => setDetail(null)} />}
       {lockOpen && (
         <FormDialog

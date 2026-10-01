@@ -1,5 +1,6 @@
 import { applyCommand } from './commands';
 import type { AttendanceDataset, AttendanceRepository, Employee, MasterItem } from './types';
+import { DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT } from './scheduleShift.ts';
 import { api } from '@/lib/api';
 
 export function createAttendanceRepository(accountId?: number): AttendanceRepository {
@@ -34,6 +35,8 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
     }
     if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1 || !('records' in parsed) || !Array.isArray(parsed.records)) throw new Error('Format data demo tidak sesuai. Reset data demo untuk memuat ulang.');
     current = parsed as AttendanceDataset;
+    if (!current.shifts || current.shifts.length === 0) { current.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT]; }
+    if (!current.shiftAssignments) { current.shiftAssignments = []; }
 
     // Live sync with real database employees and departments if available
     if (typeof window !== 'undefined') {

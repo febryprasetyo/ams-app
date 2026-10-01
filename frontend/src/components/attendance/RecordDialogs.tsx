@@ -14,7 +14,7 @@ export function CorrectionDialog({ record, onClose }: { record: AttendanceRecord
     { name: 'scanOut', label: 'Scan pulang', type: 'time', value: record.scanOut ?? '' },
     { name: 'lateMinutes', label: 'Keterlambatan (menit)', type: 'number', value: record.lateMinutes, required: true },
     { name: 'overtimeMinutes', label: 'Lembur (menit)', type: 'number', value: record.overtimeMinutes, required: true },
-    { name: 'reason', label: 'Alasan koreksi', type: 'textarea', required: true },
+    { name: 'reason', label: 'Alasan / Catatan koreksi (opsional)', type: 'textarea', required: false },
   ]} onSubmit={async form => { await execute({ type: 'correct', recordId: record.id, expectedRevision: record.revision, reason: String(form.get('reason')), values: { attendanceStatus: String(form.get('attendanceStatus')) as AttendanceStatus, scanIn: String(form.get('scanIn')) || null, scanOut: String(form.get('scanOut')) || null, lateMinutes: Number(form.get('lateMinutes')), overtimeMinutes: Number(form.get('overtimeMinutes')) } }); }} />;
 }
 export function RecordDetails({ record, onClose }: { record: AttendanceRecord; onClose: () => void }) {

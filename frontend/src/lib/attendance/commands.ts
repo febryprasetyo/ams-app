@@ -1,4 +1,5 @@
 import type { AttendanceCommand, AttendanceDataset, AttendanceRecord, ImportBatch, ImportRow } from './types';
+import { DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT, resolveEmployeeShift, getScheduleForDate } from './scheduleShift.ts';
 
 const nextId = (rows: { id: number }[]) => Math.max(0, ...rows.map(r => r.id)) + 1;
 function requireReason(reason: string) { if (!reason.trim()) throw new Error('Alasan wajib diisi.'); }
@@ -42,13 +43,13 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
 export function applyCommand(input: AttendanceDataset, command: AttendanceCommand): AttendanceDataset {
   const admin = input.meta.role === 'HR_ADMIN';
   if (command.type === 'grant' ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
-  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
+  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
   const data = structuredClone(input);
   const now = new Date().toISOString();
   let action = ''; let detail = '';
   switch (command.type) {
     case 'correct': {
-      requireReason(command.reason);
+      const reasonText = (command.reason || '').trim() || 'Koreksi absensi oleh HR';
       const r = data.records.find(r => r.id === command.recordId);
       if (!r) throw new Error('Catatan tidak ditemukan.');
       unlocked(data, r.workDate);
@@ -58,8 +59,8 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       const before = structuredClone(r);
       Object.assign(r, command.values, { revision: r.revision + 1 });
       if (r.attendanceStatus !== 'PRESENT') Object.assign(r, { scanIn: null, scanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0 });
-      data.revisions.push({ id: nextId(data.revisions), recordId: r.id, reason: command.reason.trim(), createdAt: now, actor: data.meta.actor, before, after: structuredClone(r) });
-      action = 'Koreksi absensi'; detail = `${r.workDate} · ${command.reason.trim()}`; break;
+      data.revisions.push({ id: nextId(data.revisions), recordId: r.id, reason: reasonText, createdAt: now, actor: data.meta.actor, before, after: structuredClone(r) });
+      action = 'Koreksi absensi'; detail = `${r.workDate} · ${reasonText}`; break;
     }
     case 'employee': {
       const v = { ...command.value, fullName: command.value.fullName.trim(), employeeCode: command.value.employeeCode.trim() };
@@ -218,6 +219,156 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         }
       }
       action = command.action === 'commit' ? 'Impor disimpan' : command.action === 'cancel' ? 'Impor dibatalkan' : 'Draft dibuka ulang'; detail = batch.filename; break;
+    }
+        case 'record_attendance': {
+      const emp = data.employees.find(e => e.id === command.employeeId);
+      if (!emp) throw new Error('Karyawan tidak ditemukan.');
+      unlocked(data, command.workDate);
+
+      if (!data.shifts) data.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT];
+      if (!data.shiftAssignments) data.shiftAssignments = [];
+
+      const activeShift = command.shiftId
+        ? data.shifts.find(s => s.id === command.shiftId) || resolveEmployeeShift(emp, data.shifts, data.shiftAssignments)
+        : resolveEmployeeShift(emp, data.shifts, data.shiftAssignments);
+
+      const schedule = getScheduleForDate(command.workDate, activeShift);
+      const isNonPresent = command.attendanceStatus !== 'PRESENT';
+      const scanIn = isNonPresent ? null : (command.scanIn || null);
+      const scanOut = isNonPresent ? null : (command.scanOut || null);
+
+      let lateMinutes = 0;
+      let earlyMinutes = 0;
+      let overtimeMinutes = 0;
+
+      if (!isNonPresent && scanIn && schedule.scheduleIn) {
+        const [inH, inM] = scanIn.split(':').map(Number);
+        const [schedH, schedM] = schedule.scheduleIn.split(':').map(Number);
+        const diff = (inH * 60 + inM) - (schedH * 60 + schedM);
+        if (diff > 0) lateMinutes = diff;
+      }
+
+      if (!isNonPresent && scanOut && schedule.scheduleOut) {
+        const [outH, outM] = scanOut.split(':').map(Number);
+        const [schedH, schedM] = schedule.scheduleOut.split(':').map(Number);
+        const diff = (schedH * 60 + schedM) - (outH * 60 + outM);
+        if (diff > 0) earlyMinutes = diff;
+        else if (diff < 0) overtimeMinutes = -diff;
+      }
+
+      const reasonText = (command.reason || '').trim() || `Pencatatan status ${command.attendanceStatus}`;
+      const r = data.records.find(rec => rec.employeeId === command.employeeId && rec.workDate === command.workDate);
+
+      if (r) {
+        const before = structuredClone(r);
+        r.attendanceStatus = command.attendanceStatus;
+        r.scanIn = scanIn;
+        r.scanOut = scanOut;
+        r.rawScanIn = scanIn;
+        r.rawScanOut = scanOut;
+        r.lateMinutes = lateMinutes;
+        r.earlyMinutes = earlyMinutes;
+        r.overtimeMinutes = overtimeMinutes;
+        r.shift = activeShift.name;
+        r.scheduleIn = schedule.scheduleIn;
+        r.scheduleOut = schedule.scheduleOut;
+        r.isDayOff = isNonPresent ? r.isDayOff : schedule.isDayOff;
+        r.revision = r.revision + 1;
+        data.revisions.push({
+          id: nextId(data.revisions),
+          recordId: r.id,
+          reason: reasonText,
+          createdAt: now,
+          actor: data.meta.actor,
+          before,
+          after: structuredClone(r),
+        });
+      } else {
+        const newRecord: AttendanceRecord = {
+          id: nextId(data.records),
+          employeeId: command.employeeId,
+          workDate: command.workDate,
+          shift: activeShift.name,
+          scheduleIn: schedule.scheduleIn,
+          scheduleOut: schedule.scheduleOut,
+          scanIn,
+          scanOut,
+          rawScanIn: scanIn,
+          rawScanOut: scanOut,
+          lateMinutes,
+          earlyMinutes,
+          overtimeMinutes,
+          attendanceStatus: command.attendanceStatus,
+          isDayOff: schedule.isDayOff,
+          normalized: false,
+          revision: 1,
+          sourceBatchId: null,
+        };
+        data.records.push(newRecord);
+      }
+
+      action = 'Pencatatan absensi';
+      detail = `${emp.fullName} · ${command.workDate} (${command.attendanceStatus})`;
+      break;
+    }
+    case 'shift': {
+      if (!data.shifts) data.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT];
+      const v = { ...command.shift, name: command.shift.name.trim(), code: command.shift.code.trim() };
+      if (!v.name || !v.code) throw new Error('Nama dan kode shift wajib diisi.');
+      if (command.action === 'create') {
+        if (data.shifts.some(s => s.code === v.code)) throw new Error('Kode shift sudah digunakan.');
+        v.id = nextId(data.shifts);
+        data.shifts.push(v);
+        action = 'Shift kerja dibuat';
+        detail = v.name;
+      } else if (command.action === 'update') {
+        const idx = data.shifts.findIndex(s => s.id === v.id);
+        if (idx === -1) throw new Error('Shift tidak ditemukan.');
+        if (data.shifts.some(s => s.id !== v.id && s.code === v.code)) throw new Error('Kode shift sudah digunakan.');
+        data.shifts[idx] = v;
+        action = 'Shift kerja diperbarui';
+        detail = v.name;
+      } else if (command.action === 'delete') {
+        if (v.isDefault) throw new Error('Shift default tidak dapat dihapus.');
+        data.shifts = data.shifts.filter(s => s.id !== v.id);
+        if (data.shiftAssignments) {
+          data.shiftAssignments = data.shiftAssignments.filter(a => a.shiftId !== v.id);
+        }
+        action = 'Shift kerja dihapus';
+        detail = v.name;
+      }
+      break;
+    }
+    case 'assign_shift': {
+      if (!data.shiftAssignments) data.shiftAssignments = [];
+      const { shiftId, departmentId, employeeId } = command.assignment;
+      if (!data.shifts) data.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT];
+      if (!data.shifts.some(s => s.id === shiftId)) throw new Error('Shift tidak ditemukan.');
+
+      if (employeeId) {
+        const existingIdx = data.shiftAssignments.findIndex(a => a.employeeId === employeeId);
+        if (existingIdx !== -1) {
+          data.shiftAssignments[existingIdx].shiftId = shiftId;
+        } else {
+          data.shiftAssignments.push({ id: nextId(data.shiftAssignments), shiftId, employeeId, departmentId: null });
+        }
+        const empName = data.employees.find(e => e.id === employeeId)?.fullName || `Karyawan #${employeeId}`;
+        action = 'Penugasan shift karyawan';
+        detail = `${empName}`;
+      } else if (departmentId) {
+        const existingIdx = data.shiftAssignments.findIndex(a => a.departmentId === departmentId && !a.employeeId);
+        if (existingIdx !== -1) {
+          data.shiftAssignments[existingIdx].shiftId = shiftId;
+        } else {
+          data.shiftAssignments.push({ id: nextId(data.shiftAssignments), shiftId, departmentId, employeeId: null });
+        }
+        const deptName = data.departments.find(d => d.id === departmentId)?.name || `Dept #${departmentId}`;
+        action = 'Penugasan shift departemen';
+        detail = `${deptName}`;
+      } else {
+        throw new Error('Penugasan shift harus menentukan departemen atau karyawan.');
+      }
+      break;
     }
     case 'sync_employees': {
       if (Array.isArray(command.employees)) {

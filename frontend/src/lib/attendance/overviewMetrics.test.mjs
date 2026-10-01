@@ -25,10 +25,10 @@ const createFixture = () => ({
   ],
   identities: [],
   records: [
-    // Budi: Hadir, terlambat 35 menit
-    { id: 101, employeeId: 1, workDate: '2026-10-01', shift: 'Pagi', scheduleIn: '08:00', scheduleOut: '17:00', scanIn: '08:35', scanOut: '17:05', rawScanIn: '08:35', rawScanOut: '17:05', lateMinutes: 35, earlyMinutes: 0, overtimeMinutes: 0, attendanceStatus: 'PRESENT', isDayOff: false, normalized: false, revision: 1, sourceBatchId: 1 },
-    // Siti: Hadir, scanIn ada, scanOut kosong (missing punch)
-    { id: 102, employeeId: 2, workDate: '2026-10-01', shift: 'Pagi', scheduleIn: '08:00', scheduleOut: '17:00', scanIn: '07:55', scanOut: null, rawScanIn: '07:55', rawScanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0, attendanceStatus: 'PRESENT', isDayOff: false, normalized: false, revision: 1, sourceBatchId: 1 },
+    // Budi: Hadir, terlambat 35 menit, lembur 60 menit
+    { id: 101, employeeId: 1, workDate: '2026-10-01', shift: 'Pagi', scheduleIn: '08:00', scheduleOut: '17:00', scanIn: '08:35', scanOut: '18:05', rawScanIn: '08:35', rawScanOut: '18:05', lateMinutes: 35, earlyMinutes: 0, overtimeMinutes: 60, attendanceStatus: 'PRESENT', isDayOff: false, normalized: false, revision: 1, sourceBatchId: 1 },
+    // Siti: Hadir, tepat waktu, scanIn ada, scanOut kosong (missing punch), pulang cepat 15m
+    { id: 102, employeeId: 2, workDate: '2026-10-01', shift: 'Pagi', scheduleIn: '08:00', scheduleOut: '17:00', scanIn: '07:55', scanOut: null, rawScanIn: '07:55', rawScanOut: null, lateMinutes: 0, earlyMinutes: 15, overtimeMinutes: 0, attendanceStatus: 'PRESENT', isDayOff: false, normalized: false, revision: 1, sourceBatchId: 1 },
     // Ahmad: Cuti
     { id: 103, employeeId: 3, workDate: '2026-10-01', shift: null, scheduleIn: null, scheduleOut: null, scanIn: null, scanOut: null, rawScanIn: null, rawScanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0, attendanceStatus: 'CUTI', isDayOff: false, normalized: false, revision: 1, sourceBatchId: null },
   ],
@@ -46,8 +46,13 @@ test('calculateOverviewMetrics accurately computes real active workforce numbers
   assert.equal(metrics.totalActiveEmployees, 3, 'Dewi is inactive, so total active is 3');
   assert.equal(metrics.presentCount, 2, 'Budi and Siti are PRESENT');
   assert.equal(metrics.presentRate, 66.7, '2 / 3 = 66.7%');
+  assert.equal(metrics.onTimeCount, 1, 'Siti is on time (lateMinutes === 0)');
   assert.equal(metrics.lateCount, 1, 'Budi is late');
   assert.equal(metrics.totalLateMinutes, 35);
+  assert.equal(metrics.earlyCount, 1, 'Siti left early 15m');
+  assert.equal(metrics.totalEarlyMinutes, 15);
+  assert.equal(metrics.overtimeCount, 1, 'Budi has overtime');
+  assert.equal(metrics.totalOvertimeMinutes, 60);
   assert.equal(metrics.missingScanCount, 1, 'Siti has scanIn but no scanOut');
   assert.equal(metrics.leaveCount, 1, 'Ahmad is on CUTI');
 });

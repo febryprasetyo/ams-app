@@ -2,19 +2,21 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Upload, FileSpreadsheet, Users, Calendar } from 'lucide-react';
+import { Upload, FileSpreadsheet, Users, Calendar, CalendarCheck } from 'lucide-react';
 import { getTimeBasedGreeting, formatJakartaDate } from '@/lib/attendance/overviewMetrics';
 
 interface HrHeroGreetingProps {
   userName?: string;
   targetDate: string;
   canWrite: boolean;
+  onDateChange?: (date: string) => void;
 }
 
 export default function HrHeroGreeting({
   userName,
   targetDate,
   canWrite,
+  onDateChange,
 }: HrHeroGreetingProps) {
   const greeting = getTimeBasedGreeting(userName);
   const formattedDate = formatJakartaDate(targetDate);
@@ -36,7 +38,7 @@ export default function HrHeroGreeting({
             <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title="Operasional Aktif" />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                 {greeting}
@@ -52,15 +54,36 @@ export default function HrHeroGreeting({
           </div>
         </div>
 
-        {/* Right Side: RBAC Quick Actions */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {/* Right Side: Date Selector & RBAC Quick Actions */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {onDateChange && (
+            <label className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs cursor-pointer hover:border-emerald-300 transition-colors">
+              <span className="text-xs font-semibold text-slate-600">Tanggal:</span>
+              <input
+                type="date"
+                value={targetDate}
+                onChange={e => onDateChange(e.target.value)}
+                className="text-xs font-semibold text-slate-800 focus:outline-none bg-transparent cursor-pointer"
+              />
+            </label>
+          )}
+
+          <Link
+            href="/dashboard/attendance"
+            className="hr-btn-primary"
+            title="Buka tabel operasional data absensi harian"
+          >
+            <CalendarCheck size={15} />
+            <span>Data Absensi</span>
+          </Link>
+
           {canWrite && (
             <Link
               href="/dashboard/attendance/imports"
-              className="hr-btn-primary"
+              className="hr-btn"
               title="Unggah file log mesin fingerprint/absensi"
             >
-              <Upload size={15} />
+              <Upload size={15} className="text-slate-600" />
               <span>Impor Absensi</span>
             </Link>
           )}

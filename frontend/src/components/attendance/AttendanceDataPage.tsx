@@ -1,42 +1,36 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Download, HelpCircle, LockKeyhole, UnlockKeyhole, Upload, ChevronDown } from 'lucide-react';
 import ModalShell from '@/components/ui/ModalShell';
-import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Status, Pagination, FormDialog, Empty } from './shared';
 import { CorrectionDialog, RecordDetails } from './RecordDialogs';
 import { dateLabel, durationLabel, filterEmployees, filterRecords, summarizeEmployees, validDate, getJakartaToday } from '@/lib/attendance/domain';
 import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
-import {
-  calculateOverviewMetrics,
-  getActionablePriorities,
-  getDepartmentPresenceSummary,
-} from '@/lib/attendance/overviewMetrics';
-import HrHeroGreeting from './dashboard/HrHeroGreeting';
-import HrTodayKpiCards from './dashboard/HrTodayKpiCards';
-import HrPriorityChecks from './dashboard/HrPriorityChecks';
-import HrDepartmentSummary from './dashboard/HrDepartmentSummary';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceDataPage() {
-  const { user } = useAuth();
   const { data, execute, canWrite } = useAttendance();
+  const searchParams = useSearchParams();
 
   const defaultDate = useMemo(() => {
+    const paramDate = searchParams?.get('date');
+    if (paramDate && validDate(paramDate)) return paramDate;
     if (data.meta.defaultDate && validDate(data.meta.defaultDate)) return data.meta.defaultDate;
     if (data.records.length > 0) {
       return data.records.reduce((max, r) => (r.workDate > max ? r.workDate : max), data.records[0].workDate);
     }
     return getJakartaToday();
-  }, [data]);
+  }, [data, searchParams]);
 
   const [date, setDate] = useState(defaultDate);
   const [q, setQ] = useState('');
   const [departmentId, setDepartment] = useState(0);
-  const [condition, setCondition] = useState('all');
+  const initialCondition = searchParams?.get('condition') || 'all';
+  const [condition, setCondition] = useState(initialCondition);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<number[]>([]);
   const [correcting, setCorrecting] = useState<AttendanceRecord | null>(null);
@@ -44,15 +38,15 @@ export default function AttendanceDataPage() {
   const [lockOpen, setLockOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
+  useEffect(() => {
+    const c = searchParams?.get('condition');
+    if (c) setCondition(c);
+  }, [searchParams]);
+
   const locked = data.locks.some(l => l.workDate === date);
   const filter = { startDate: date, endDate: date, q, departmentId };
   const records = date ? filterRecords(data, filter) : [];
   const lookup = new Map(records.map(r => [r.employeeId, r]));
-
-  // Perhitungan metrik eksekutif GAJIANICH HR
-  const overviewMetrics = useMemo(() => calculateOverviewMetrics(data, date), [data, date]);
-  const priorities = useMemo(() => getActionablePriorities(data, date, 5), [data, date]);
-  const departmentSummary = useMemo(() => getDepartmentPresenceSummary(data, date), [data, date]);
 
   const metrics: { key: string; label: string; test: (r: AttendanceRecord) => boolean }[] = [
     { key: 'ontime', label: 'Tepat waktu', test: r => r.attendanceStatus === 'PRESENT' && r.lateMinutes === 0 },
@@ -76,19 +70,6 @@ export default function AttendanceDataPage() {
     setSelected([]);
   };
 
-  const handleKpiFilter = (kpiKey: string) => {
-    if (kpiKey === 'all') {
-      setCondition('all');
-    } else if (kpiKey === 'present') {
-      setCondition('ontime');
-    } else if (kpiKey === 'late') {
-      setCondition('late');
-    } else if (kpiKey === 'anomaly') {
-      setCondition('noout');
-    }
-    resetPage();
-  };
-
   const exportRows = () => {
     const ids = new Set((selected.length ? employees.filter(e => selected.includes(e.id)) : employees).map(e => e.id));
     const targetReports = summarizeEmployees(data, filter).filter(r => ids.has(r.employee.id));
@@ -100,310 +81,270 @@ export default function AttendanceDataPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Header Personal GAJIANICH HR */}
-      <HrHeroGreeting
-        userName={user?.fullName || user?.username || data.meta.actor}
-        targetDate={date}
-        canWrite={canWrite}
-      />
-
-      {/* 2. Pantauan Kehadiran Hari Ini (KPI Cards) */}
-      <HrTodayKpiCards
-        metrics={overviewMetrics}
-        activeFilter={
-          condition === 'all'
-            ? 'all'
-            : condition === 'ontime'
-            ? 'present'
-            : condition === 'late'
-            ? 'late'
-            : condition === 'noout' || condition === 'noin' || condition === 'leave'
-            ? 'anomaly'
-            : undefined
-        }
-        onSelectFilter={handleKpiFilter}
-      />
-
-      {/* 3. Dua Kolom: Perlu Dicek (Prioritas Kerja) & Ringkasan Departemen */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <HrPriorityChecks
-            priorities={priorities}
-            totalRecordsCount={records.length}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <HrDepartmentSummary departments={departmentSummary} />
-        </div>
-      </div>
-
-      {/* 4. Tabel Operasional Absensi (Eksisting) */}
-      <div className="pt-2 space-y-4">
-        <Heading
-          title="Data Operasional Presensi"
-          description="Jadwal, catatan scan fingerprint/mesin, dan durasi kerja per karyawan."
-        >
-          <button className="hr-btn" onClick={() => setHelpOpen(true)}>
-            <HelpCircle size={15} />
-            Panduan
+      <Heading
+        title="Data Absensi"
+        description="Jadwal, catatan kehadiran, dan durasi kerja per karyawan dalam satu tampilan."
+      >
+        <button className="hr-btn" onClick={() => setHelpOpen(true)}>
+          <HelpCircle size={15} />
+          Panduan
+        </button>
+        <Link className="hr-btn" href="/dashboard/attendance/imports">
+          <Upload size={15} />
+          Impor absensi
+        </Link>
+        {canWrite && (
+          <button
+            className={locked ? 'hr-btn' : 'hr-btn-primary'}
+            disabled={!date}
+            onClick={() => setLockOpen(true)}
+          >
+            {locked ? <UnlockKeyhole size={15} /> : <LockKeyhole size={15} />}
+            {locked ? 'Buka kunci' : 'Kunci data'}
           </button>
-          <Link className="hr-btn" href="/dashboard/attendance/imports">
-            <Upload size={15} />
-            Impor absensi
-          </Link>
-          {canWrite && (
-            <button
-              className={locked ? 'hr-btn' : 'hr-btn-primary'}
-              disabled={!date}
-              onClick={() => setLockOpen(true)}
-            >
-              {locked ? <UnlockKeyhole size={15} /> : <LockKeyhole size={15} />}
-              {locked ? 'Buka kunci' : 'Kunci data'}
-            </button>
-          )}
-        </Heading>
+        )}
+      </Heading>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <label>
-              <span className="sr-only">Tanggal absensi</span>
-              <input
-                className="hr-input"
-                type="date"
-                value={date}
-                onChange={e => {
-                  setDate(e.target.value);
-                  resetPage();
-                }}
-              />
-            </label>
-            <label>
-              <span className="sr-only">Departemen</span>
-              <select
-                className="hr-input cursor-pointer"
-                value={departmentId}
-                onChange={e => {
-                  setDepartment(Number(e.target.value));
-                  resetPage();
-                }}
-              >
-                <option value={0}>Semua departemen</option>
-                {data.departments.map(d => (
-                  <option value={d.id} key={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {condition !== 'all' && (
-              <button
-                className="hr-btn text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
-                onClick={() => {
-                  setCondition('all');
-                  resetPage();
-                }}
-              >
-                Hapus filter status
-              </button>
-            )}
-          </div>
-
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <SearchInput
-              value={q}
-              onChange={v => {
-                setQ(v);
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label>
+            <span className="sr-only">Tanggal absensi</span>
+            <input
+              className="hr-input"
+              type="date"
+              value={date}
+              onChange={e => {
+                setDate(e.target.value);
                 resetPage();
               }}
             />
-            <button
-              className="hr-btn"
-              disabled={!date || !employees.length}
-              onClick={exportRows}
+          </label>
+          <label>
+            <span className="sr-only">Departemen</span>
+            <select
+              className="hr-input cursor-pointer"
+              value={departmentId}
+              onChange={e => {
+                setDepartment(Number(e.target.value));
+                resetPage();
+              }}
             >
-              <Download size={15} />
-              {selected.length ? `Ekspor ${selected.length} pilihan` : 'Ekspor'}
+              <option value={0}>Semua departemen</option>
+              {data.departments.map(d => (
+                <option value={d.id} key={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {condition !== 'all' && (
+            <button
+              className="hr-btn text-emerald-800 bg-emerald-50 border-emerald-200 hover:bg-emerald-100"
+              onClick={() => {
+                setCondition('all');
+                resetPage();
+              }}
+            >
+              Hapus filter status
             </button>
-          </div>
-        </div>
-
-        {/* 9 Status Filter Strip */}
-        <div className="hr-panel overflow-x-auto">
-          <div className="grid min-w-[1050px] grid-cols-9 divide-x divide-slate-200">
-            {metrics.map(m => {
-              const count = records.filter(m.test).length;
-              const isSelected = condition === m.key;
-              return (
-                <button
-                  key={m.key}
-                  aria-pressed={isSelected}
-                  onClick={() => {
-                    setCondition(isSelected ? 'all' : m.key);
-                    resetPage();
-                  }}
-                  className={`px-4 py-3.5 text-left transition-colors hover:bg-slate-50 cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-50/80 ring-1 ring-inset ring-emerald-400'
-                      : ''
-                  }`}
-                >
-                  <span className={`block text-base font-bold tabular-nums ${
-                    isSelected ? 'text-emerald-800' : 'text-slate-900'
-                  }`}>
-                    {count}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] font-medium leading-4 text-slate-600 truncate">
-                    {m.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap justify-between gap-2 text-[11px] text-slate-500">
-          <p>
-            {date ? dateLabel(date) : 'Pilih tanggal'} · {records.length} catatan final.
-          </p>
-          {locked && (
-            <span className="flex items-center gap-1 font-medium text-amber-800">
-              <LockKeyhole size={13} />
-              Tanggal ini dikunci
-            </span>
           )}
         </div>
 
-        {/* Tabel Data Absensi */}
-        <div className="hr-panel">
-          <div className="hr-table-wrap">
-            <table className="hr-table">
-              <thead>
-                <tr>
-                  <th className="hr-employee-cell">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        aria-label="Pilih semua karyawan di halaman"
-                        checked={visible.length > 0 && visible.every(e => selected.includes(e.id))}
-                        onChange={e =>
-                          setSelected(
-                            e.target.checked
-                              ? [...new Set([...selected, ...visible.map(emp => emp.id)])]
-                              : selected.filter(id => !visible.some(emp => emp.id === id))
-                          )
-                        }
-                      />
-                      <span>Karyawan</span>
-                    </div>
-                  </th>
-                  {[
-                    'Tanggal',
-                    'Shift',
-                    'Jadwal masuk',
-                    'Jadwal pulang',
-                    'Scan masuk',
-                    'Scan pulang',
-                    'Kehadiran',
-                    'Lembur',
-                    'Aksi',
-                  ].map(h => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map(employee => {
-                  const r = lookup.get(employee.id);
-                  const dept = data.departments.find(d => d.id === employee.departmentId)?.name;
-                  return (
-                    <tr key={employee.id}>
-                      <td className="hr-employee-cell">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            aria-label={`Pilih ${employee.fullName}`}
-                            checked={selected.includes(employee.id)}
-                            onChange={e =>
-                              setSelected(
-                                e.target.checked
-                                  ? [...selected, employee.id]
-                                  : selected.filter(id => id !== employee.id)
-                              )
-                            }
-                          />
-                          <EmployeeName employee={employee} detail={dept} />
-                        </div>
-                      </td>
-                      <td>{date ? dateLabel(date) : '—'}</td>
-                      <td>{r?.shift ?? '—'}</td>
-                      <td className="text-slate-500">{r?.scheduleIn ?? '—'}</td>
-                      <td className="text-slate-500">{r?.scheduleOut ?? '—'}</td>
-                      <td className={r?.lateMinutes ? 'font-semibold text-amber-700' : 'text-emerald-700'}>
-                        {r?.scanIn ?? '—'}
-                        {r?.normalized && !r.rawScanIn && (
-                          <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">
-                            *
-                          </span>
-                        )}
-                      </td>
-                      <td className={r?.earlyMinutes ? 'text-amber-700' : ''}>
-                        {r?.scanOut ?? '—'}
-                        {r?.normalized && !r.rawScanOut && (
-                          <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">
-                            *
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {r ? (
-                          <Status status={r.attendanceStatus} dayOff={r.isDayOff} />
-                        ) : (
-                          <span className="text-slate-500">Belum ada data</span>
-                        )}
-                      </td>
-                      <td>{r ? durationLabel(r.overtimeMinutes) : '—'}</td>
-                      <td>
-                        {r ? (
-                          <details>
-                            <summary className="hr-btn list-none cursor-pointer">
-                              Aksi
-                              <ChevronDown size={13} />
-                            </summary>
-                            <div className="mt-2 flex flex-col gap-1">
-                              <button className="hr-btn" onClick={() => setDetail(r)}>
-                                Detail & riwayat
-                              </button>
-                              {canWrite && (
-                                <button
-                                  className="hr-btn"
-                                  disabled={locked}
-                                  onClick={() => setCorrecting(r)}
-                                >
-                                  Koreksi
-                                </button>
-                              )}
-                            </div>
-                          </details>
-                        ) : (
-                          <Link className="hr-btn" href={`/dashboard/attendance/employees/${employee.id}`}>
-                            Lihat kartu
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {!employees.length && <Empty />}
-          <Pagination total={employees.length} page={actualPage} onChange={setPage} />
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <SearchInput
+            value={q}
+            onChange={v => {
+              setQ(v);
+              resetPage();
+            }}
+          />
+          <button
+            className="hr-btn"
+            disabled={!date || !employees.length}
+            onClick={exportRows}
+          >
+            <Download size={15} />
+            {selected.length ? `Ekspor ${selected.length} pilihan` : 'Ekspor'}
+          </button>
         </div>
-
-        <p className="text-[11px] text-slate-500">
-          <span className="text-amber-700 font-semibold">*</span> Data Excel tidak lengkap, sudah dinormalisasi. Ketidakhadiran tidak disimpulkan dari scan kosong.
-        </p>
       </div>
+
+      {/* 9 Status Filter Strip */}
+      <div className="hr-panel overflow-x-auto">
+        <div className="grid min-w-[1050px] grid-cols-9 divide-x divide-slate-200">
+          {metrics.map(m => {
+            const count = records.filter(m.test).length;
+            const isSelected = condition === m.key;
+            return (
+              <button
+                key={m.key}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setCondition(isSelected ? 'all' : m.key);
+                  resetPage();
+                }}
+                className={`px-4 py-3.5 text-left transition-colors hover:bg-slate-50 cursor-pointer ${
+                  isSelected
+                    ? 'bg-emerald-50/80 ring-1 ring-inset ring-emerald-400'
+                    : ''
+                }`}
+              >
+                <span className={`block text-base font-bold tabular-nums ${
+                  isSelected ? 'text-emerald-800' : 'text-slate-900'
+                }`}>
+                  {count}
+                </span>
+                <span className="mt-0.5 block text-[10px] font-medium leading-4 text-slate-600 truncate">
+                  {m.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-between gap-2 text-[11px] text-slate-500">
+        <p>
+          {date ? dateLabel(date) : 'Pilih tanggal'} · {records.length} catatan final.
+        </p>
+        {locked && (
+          <span className="flex items-center gap-1 font-medium text-amber-800">
+            <LockKeyhole size={13} />
+            Tanggal ini dikunci
+          </span>
+        )}
+      </div>
+
+      {/* Tabel Data Absensi */}
+      <div className="hr-panel">
+        <div className="hr-table-wrap">
+          <table className="hr-table">
+            <thead>
+              <tr>
+                <th className="hr-employee-cell">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Pilih semua karyawan di halaman"
+                      checked={visible.length > 0 && visible.every(e => selected.includes(e.id))}
+                      onChange={e =>
+                        setSelected(
+                          e.target.checked
+                            ? [...new Set([...selected, ...visible.map(emp => emp.id)])]
+                            : selected.filter(id => !visible.some(emp => emp.id === id))
+                        )
+                      }
+                    />
+                    <span>Karyawan</span>
+                  </div>
+                </th>
+                {[
+                  'Tanggal',
+                  'Shift',
+                  'Jadwal masuk',
+                  'Jadwal pulang',
+                  'Scan masuk',
+                  'Scan pulang',
+                  'Kehadiran',
+                  'Lembur',
+                  'Aksi',
+                ].map(h => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map(employee => {
+                const r = lookup.get(employee.id);
+                const dept = data.departments.find(d => d.id === employee.departmentId)?.name;
+                return (
+                  <tr key={employee.id}>
+                    <td className="hr-employee-cell">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Pilih ${employee.fullName}`}
+                          checked={selected.includes(employee.id)}
+                          onChange={e =>
+                            setSelected(
+                              e.target.checked
+                                ? [...selected, employee.id]
+                                : selected.filter(id => id !== employee.id)
+                            )
+                          }
+                        />
+                        <EmployeeName employee={employee} detail={dept} />
+                      </div>
+                    </td>
+                    <td>{date ? dateLabel(date) : '—'}</td>
+                    <td>{r?.shift ?? '—'}</td>
+                    <td className="text-slate-500">{r?.scheduleIn ?? '—'}</td>
+                    <td className="text-slate-500">{r?.scheduleOut ?? '—'}</td>
+                    <td className={r?.lateMinutes ? 'font-semibold text-amber-700' : 'text-emerald-700'}>
+                      {r?.scanIn ?? '—'}
+                      {r?.normalized && !r.rawScanIn && (
+                        <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">
+                          *
+                        </span>
+                      )}
+                    </td>
+                    <td className={r?.earlyMinutes ? 'text-amber-700' : ''}>
+                      {r?.scanOut ?? '—'}
+                      {r?.normalized && !r.rawScanOut && (
+                        <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">
+                          *
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {r ? (
+                        <Status status={r.attendanceStatus} dayOff={r.isDayOff} />
+                      ) : (
+                        <span className="text-slate-500">Belum ada data</span>
+                      )}
+                    </td>
+                    <td>{r ? durationLabel(r.overtimeMinutes) : '—'}</td>
+                    <td>
+                      {r ? (
+                        <details>
+                          <summary className="hr-btn list-none cursor-pointer">
+                            Aksi
+                            <ChevronDown size={13} />
+                          </summary>
+                          <div className="mt-2 flex flex-col gap-1">
+                            <button className="hr-btn" onClick={() => setDetail(r)}>
+                              Detail & riwayat
+                            </button>
+                            {canWrite && (
+                              <button
+                                className="hr-btn"
+                                disabled={locked}
+                                onClick={() => setCorrecting(r)}
+                              >
+                                Koreksi
+                              </button>
+                            )}
+                          </div>
+                        </details>
+                      ) : (
+                        <Link className="hr-btn" href={`/dashboard/attendance/employees/${employee.id}`}>
+                          Lihat kartu
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!employees.length && <Empty />}
+        <Pagination total={employees.length} page={actualPage} onChange={setPage} />
+      </div>
+
+      <p className="text-[11px] text-slate-500">
+        <span className="text-amber-700 font-semibold">*</span> Data Excel tidak lengkap, sudah dinormalisasi. Ketidakhadiran tidak disimpulkan dari scan kosong.
+      </p>
 
       {correcting && <CorrectionDialog record={correcting} onClose={() => setCorrecting(null)} />}
       {detail && <RecordDetails record={detail} onClose={() => setDetail(null)} />}

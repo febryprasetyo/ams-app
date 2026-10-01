@@ -29,6 +29,7 @@ import {
   Shapes,
   UserRoundCog,
   GitMerge,
+  LayoutDashboard,
   CalendarCheck,
   FileInput,
   ClipboardList,
@@ -82,6 +83,7 @@ export const navGroups: NavGroup[] = [
         name: 'Attendance',
         icon: CalendarCheck,
         children: [
+          { name: 'Ringkasan HR', href: '/dashboard/attendance/overview', icon: LayoutDashboard, permission: 'attendance.view' },
           { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck, permission: 'attendance.view' },
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
@@ -319,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
-          <Link href={isHrRole ? '/dashboard/attendance' : '/dashboard/master/departments'} className="flex items-center gap-3 overflow-hidden group">
+          <Link href={isHrRole ? '/dashboard/attendance/overview' : '/dashboard/master/departments'} className="flex items-center gap-3 overflow-hidden group">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 group-hover:scale-105 transition-transform">
               <Image src="/branding/gajianich-cat-favicon.png" alt="" width={36} height={36} className="w-9 h-9 object-contain" />
             </div>

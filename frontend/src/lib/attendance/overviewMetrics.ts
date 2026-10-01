@@ -4,8 +4,13 @@ export interface OverviewMetrics {
   totalActiveEmployees: number;
   presentCount: number;
   presentRate: number; // e.g. 94.2
+  onTimeCount: number;
   lateCount: number;
   totalLateMinutes: number;
+  earlyCount: number;
+  totalEarlyMinutes: number;
+  overtimeCount: number;
+  totalOvertimeMinutes: number;
   missingScanCount: number;
   leaveCount: number;
   alphaCount: number;
@@ -53,9 +58,20 @@ export function calculateOverviewMetrics(
     ? Math.round((presentCount / totalActiveEmployees) * 1000) / 10
     : 0;
 
+  const onTimeRecords = presentRecords.filter(r => (r.lateMinutes || 0) === 0);
+  const onTimeCount = onTimeRecords.length;
+
   const lateRecords = records.filter(r => (r.lateMinutes || 0) > 0);
   const lateCount = lateRecords.length;
   const totalLateMinutes = lateRecords.reduce((sum, r) => sum + (r.lateMinutes || 0), 0);
+
+  const earlyRecords = records.filter(r => (r.earlyMinutes || 0) > 0);
+  const earlyCount = earlyRecords.length;
+  const totalEarlyMinutes = earlyRecords.reduce((sum, r) => sum + (r.earlyMinutes || 0), 0);
+
+  const overtimeRecords = records.filter(r => (r.overtimeMinutes || 0) > 0);
+  const overtimeCount = overtimeRecords.length;
+  const totalOvertimeMinutes = overtimeRecords.reduce((sum, r) => sum + (r.overtimeMinutes || 0), 0);
 
   const missingScanRecords = records.filter(
     r => !r.isDayOff && (
@@ -80,8 +96,13 @@ export function calculateOverviewMetrics(
     totalActiveEmployees,
     presentCount,
     presentRate,
+    onTimeCount,
     lateCount,
     totalLateMinutes,
+    earlyCount,
+    totalEarlyMinutes,
+    overtimeCount,
+    totalOvertimeMinutes,
     missingScanCount,
     leaveCount,
     alphaCount,

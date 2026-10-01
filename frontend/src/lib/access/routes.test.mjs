@@ -62,7 +62,7 @@ test('HRD / HR Attendance user is strictly restricted to HR and blocked from IT 
   assert.equal(canAccessRoute('/dashboard/master/asset-custodians', hrdUser), false, 'HRD must not access Asset Custodians');
 
   // Default redirect for HRD must be attendance
-  assert.equal(getDefaultRedirectForUser(hrdUser), '/dashboard/attendance');
+  assert.equal(getDefaultRedirectForUser(hrdUser), '/dashboard/attendance/overview');
 });
 
 test('ITAdmin user can access IT modules, master data, and audits', () => {

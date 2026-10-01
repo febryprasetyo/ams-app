@@ -2,10 +2,11 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #DC2626;
+  --color-primary: #059669;
+  --color-mint: #10B981;
   --color-on-primary: #FFFFFF;
-  --color-secondary: #FEE2E2;
-  --color-accent: #EF4444;
+  --color-secondary: #D1FAE5;
+  --color-accent: #F59E0B;
   --color-background: #F8FAFC;
   --color-foreground: #0F172A;
   --color-muted: #F1F5F9;
@@ -23,6 +24,11 @@ body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 3px solid #059669;
+  outline-offset: 3px;
 }
 
 code, kbd, samp, pre, .font-mono {
@@ -49,11 +55,7 @@ code, kbd, samp, pre, .font-mono {
 }
 
 /* Gradient Text */
-.text-gradient-red {
-  background: linear-gradient(135deg, #EF4444 0%, #991B1B 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+.text-gradient-red { color: #059669; }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {

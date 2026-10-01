@@ -81,6 +81,16 @@
   cursor: not-allowed;
 }
 
+.hr-input[type="time"],
+.hr-input[type="date"] {
+  cursor: pointer;
+}
+
+.hr-input[type="time"]::-webkit-calendar-picker-indicator,
+.hr-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
 /* Ensure search inputs never collide with the absolute left icon */
 .hr-input.hr-search-input,
 .hr-search-input {

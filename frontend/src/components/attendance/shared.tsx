@@ -108,7 +108,29 @@ export function FormDialog({ title, description, fields, onClose, onSubmit, subm
             ) : field.type === 'textarea' ? (
               <textarea rows={3} className="hr-input" name={field.name} defaultValue={field.value} required={field.required} disabled={busy} />
             ) : (
-              <input className="hr-input" name={field.name} type={field.type ?? 'text'} defaultValue={field.value} required={field.required} disabled={field.disabled || busy} min={field.type === 'number' ? 0 : undefined} step={field.type === 'number' ? 1 : undefined} />
+              <input
+                className="hr-input"
+                name={field.name}
+                type={field.type ?? 'text'}
+                defaultValue={field.value}
+                required={field.required}
+                disabled={field.disabled || busy}
+                min={field.type === 'number' ? 0 : undefined}
+                step={field.type === 'number' ? 1 : undefined}
+                onClick={
+                  field.type === 'time' || field.type === 'date'
+                    ? e => {
+                        try {
+                          if (typeof e.currentTarget.showPicker === 'function') {
+                            e.currentTarget.showPicker();
+                          }
+                        } catch {
+                          // ignore if showPicker is unsupported or already active
+                        }
+                      }
+                    : undefined
+                }
+              />
             )}
             {field.hint && <span className="block font-normal text-slate-500">{field.hint}</span>}
           </label>

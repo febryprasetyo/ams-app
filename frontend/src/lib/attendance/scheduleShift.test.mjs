@@ -10,17 +10,17 @@ import {
 } from './scheduleShift.ts';
 
 test('getPayrollCyclePeriod computes exact 21st to 20th cut-off range', () => {
-  // September 2026 -> 21 August 2026 to 20 September 2026
-  const sep = getPayrollCyclePeriod(2026, 9);
-  assert.equal(sep.startDate, '2026-08-21');
-  assert.equal(sep.endDate, '2026-09-20');
-  assert.equal(sep.label, 'September 2026');
+  // August 2026 -> 21 August 2026 to 20 September 2026 (matching Talenta month=8)
+  const aug = getPayrollCyclePeriod(2026, 8);
+  assert.equal(aug.startDate, '2026-08-21');
+  assert.equal(aug.endDate, '2026-09-20');
+  assert.equal(aug.label, 'Agustus 2026');
 
-  // January 2027 -> 21 December 2026 to 20 January 2027 (crosses year boundary)
-  const jan = getPayrollCyclePeriod(2027, 1);
-  assert.equal(jan.startDate, '2026-12-21');
-  assert.equal(jan.endDate, '2027-01-20');
-  assert.equal(jan.label, 'Januari 2027');
+  // December 2026 -> 21 December 2026 to 20 January 2027 (crosses year boundary)
+  const dec = getPayrollCyclePeriod(2026, 12);
+  assert.equal(dec.startDate, '2026-12-21');
+  assert.equal(dec.endDate, '2027-01-20');
+  assert.equal(dec.label, 'Desember 2026');
 });
 
 test('resolveEmployeeShift prioritizes employee override, then department default, then global office', () => {

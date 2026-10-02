@@ -41,7 +41,9 @@ export function TalentaMonthPickerPopover({
     }
   }, [isOpen]);
 
-  const currentMonthLabel = `${MONTHS_SHORT[selectedMonth - 1]} ${selectedYear}`;
+  const startMonthName = MONTHS_SHORT[selectedMonth - 1];
+  const nextMonthName = MONTHS_SHORT[selectedMonth % 12];
+  const currentMonthLabel = `${startMonthName} ${selectedYear} (21 ${startMonthName} – 20 ${nextMonthName})`;
 
   const handleSelectMonth = (monthIndex: number) => {
     onSelect(navYear, monthIndex + 1);

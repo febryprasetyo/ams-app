@@ -68,7 +68,7 @@ export interface AttendanceDataset {
   shiftAssignments?: ShiftAssignment[];
 }
 export interface RecordFilter { startDate: string; endDate: string; q?: string; departmentId?: number; locationId?: number; employeeId?: number }
-export interface EmployeeReport { employee: Employee; recordCount: number; lateMinutes: number; overtimeMinutes: number }
+export interface EmployeeReport { employee: Employee; recordCount: number; lateMinutes: number; overtimeMinutes: number; sakitCount?: number; izinCount?: number; cutiCount?: number; }
 export type AttendanceCommand =
   | { type: 'correct'; recordId: number; expectedRevision: number; values: Pick<AttendanceRecord, 'scanIn' | 'scanOut' | 'lateMinutes' | 'overtimeMinutes' | 'attendanceStatus'>; reason: string }
   | { type: 'employee'; value: Employee }

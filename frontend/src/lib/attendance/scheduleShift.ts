@@ -62,14 +62,14 @@ export function getPayrollCyclePeriod(year: number, month: number): {
   year: number;
   month: number;
 } {
-  const prevMonth = month === 1 ? 12 : month - 1;
-  const prevYear = month === 1 ? year - 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
 
-  const startMonthStr = String(prevMonth).padStart(2, '0');
-  const targetMonthStr = String(month).padStart(2, '0');
+  const startMonthStr = String(month).padStart(2, '0');
+  const endMonthStr = String(nextMonth).padStart(2, '0');
 
-  const startDate = `${prevYear}-${startMonthStr}-21`;
-  const endDate = `${year}-${targetMonthStr}-20`;
+  const startDate = `${year}-${startMonthStr}-21`;
+  const endDate = `${nextYear}-${endMonthStr}-20`;
   const label = `${MONTH_NAMES_ID[month - 1]} ${year}`;
 
   return { startDate, endDate, label, year, month };

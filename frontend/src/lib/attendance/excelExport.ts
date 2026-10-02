@@ -32,12 +32,15 @@ export function createAttendanceReportWorkbook(
   if (anonymous) {
     const summaryData = [
       {
-        "Periode Mulai": filter.startDate,
-        "Periode Selesai": filter.endDate,
+        "Periode Awal": filter.startDate,
+        "Periode Akhir": filter.endDate,
         "Total Karyawan": rows.length,
         "Total Kehadiran (Hari)": rows.reduce((v, r) => v + r.recordCount, 0),
         "Total Keterlambatan (Menit)": rows.reduce((v, r) => v + r.lateMinutes, 0),
         "Total Lembur (Menit)": rows.reduce((v, r) => v + r.overtimeMinutes, 0),
+        "Total Izin": rows.reduce((v, r) => v + (r.izinCount || 0), 0),
+        "Total Sakit": rows.reduce((v, r) => v + (r.sakitCount || 0), 0),
+        "Total Cuti": rows.reduce((v, r) => v + (r.cutiCount || 0), 0),
       },
     ];
     const ws = XLSX.utils.json_to_sheet(summaryData);
@@ -48,24 +51,30 @@ export function createAttendanceReportWorkbook(
       { wch: 22 },
       { wch: 26 },
       { wch: 22 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
     ];
     XLSX.utils.book_append_sheet(workbook, ws, "Ringkasan Laporan");
     return workbook;
   }
 
-  // Rekap Absensi Sheet (All filtered employees)
+  // Rekap Absensi Sheet (All selected/filtered employees)
   const reportData = rows.map((r, idx) => ({
     "No": idx + 1,
     "ID Karyawan": r.employee.employeeCode || "-",
     "Nama Karyawan": r.employee.fullName || "-",
     "Departemen": options?.departmentLookup ? (options.departmentLookup(r.employee.departmentId) || "-") : "-",
-    "Periode Mulai": filter.startDate,
-    "Periode Selesai": filter.endDate,
+    "Periode Awal": filter.startDate,
+    "Periode Akhir": filter.endDate,
     "Hari Hadir": r.recordCount,
     "Keterlambatan (Menit)": r.recordCount ? r.lateMinutes : 0,
     "Durasi Terlambat": r.recordCount ? durationLabel(r.lateMinutes) : "0 m",
     "Lembur (Menit)": r.recordCount ? r.overtimeMinutes : 0,
     "Durasi Lembur": r.recordCount ? durationLabel(r.overtimeMinutes) : "0 m",
+    "Izin": r.izinCount || 0,
+    "Sakit": r.sakitCount || 0,
+    "Cuti": r.cutiCount || 0,
   }));
 
   const wsSummary = XLSX.utils.json_to_sheet(reportData);
@@ -81,8 +90,11 @@ export function createAttendanceReportWorkbook(
     { wch: 18 },
     { wch: 16 },
     { wch: 16 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
   ];
-  XLSX.utils.book_append_sheet(workbook, wsSummary, "Rekap Absensi Payroll");
+  XLSX.utils.book_append_sheet(workbook, wsSummary, "Rekap Absensi");
 
   // If daily records are provided (e.g. single employee detail or full daily view)
   if (options?.dailyRecords && options.dailyRecords.length > 0) {

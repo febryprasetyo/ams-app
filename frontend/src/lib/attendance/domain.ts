@@ -29,13 +29,43 @@ export function filterRecords(data: AttendanceDataset, filter: RecordFilter): At
   return data.records.filter(r => ids.has(r.employeeId) && r.workDate >= filter.startDate && r.workDate <= filter.endDate);
 }
 export function summarizeEmployees(data: AttendanceDataset, filter: RecordFilter): EmployeeReport[] {
-  const totals = new Map<number, { recordCount: number; lateMinutes: number; overtimeMinutes: number }>();
+  const totals = new Map<number, {
+    recordCount: number;
+    lateMinutes: number;
+    overtimeMinutes: number;
+    sakitCount: number;
+    izinCount: number;
+    cutiCount: number;
+  }>();
+
   for (const r of filterRecords(data, filter)) {
-    const row = totals.get(r.employeeId) ?? { recordCount: 0, lateMinutes: 0, overtimeMinutes: 0 };
-    row.recordCount++; row.lateMinutes += r.lateMinutes; row.overtimeMinutes += r.overtimeMinutes;
+    const row = totals.get(r.employeeId) ?? {
+      recordCount: 0,
+      lateMinutes: 0,
+      overtimeMinutes: 0,
+      sakitCount: 0,
+      izinCount: 0,
+      cutiCount: 0,
+    };
+    row.recordCount++;
+    row.lateMinutes += r.lateMinutes || 0;
+    row.overtimeMinutes += r.overtimeMinutes || 0;
+    if (r.attendanceStatus === 'SAKIT') row.sakitCount++;
+    else if (r.attendanceStatus === 'IZIN') row.izinCount++;
+    else if (r.attendanceStatus === 'CUTI') row.cutiCount++;
     totals.set(r.employeeId, row);
   }
-  return filterEmployees(data, filter).map(employee => ({ employee, ...(totals.get(employee.id) ?? { recordCount: 0, lateMinutes: 0, overtimeMinutes: 0 }) }));
+  return filterEmployees(data, filter).map(employee => ({
+    employee,
+    ...(totals.get(employee.id) ?? {
+      recordCount: 0,
+      lateMinutes: 0,
+      overtimeMinutes: 0,
+      sakitCount: 0,
+      izinCount: 0,
+      cutiCount: 0,
+    }),
+  }));
 }
 function csvCell(value: string | number) {
   const raw = String(value);
@@ -122,18 +152,33 @@ export function getDefaultAttendancePeriod(data: AttendanceDataset, employeeId?:
       : today;
   }
 
-  let resolvedEnd = latestDate;
+  let baseDate = latestDate;
   if (today >= latestDate) {
     const diffDays = (Date.parse(today) - Date.parse(latestDate)) / (1000 * 60 * 60 * 24);
     if (diffDays <= 31) {
-      resolvedEnd = today;
+      baseDate = today;
     }
   }
 
-  const resolvedStart = subtractOneMonth(resolvedEnd);
+  // Calculate 21st-to-20th cut-off cycle containing baseDate
+  const [y, m, d] = baseDate.split('-').map(Number);
+  let cycleMonth = m;
+  let cycleYear = y;
+
+  if (d < 21) {
+    cycleMonth = m === 1 ? 12 : m - 1;
+    cycleYear = m === 1 ? y - 1 : y;
+  }
+
+  const nextMonth = cycleMonth === 12 ? 1 : cycleMonth + 1;
+  const nextYear = cycleMonth === 12 ? cycleYear + 1 : cycleYear;
+
+  const startMonthStr = String(cycleMonth).padStart(2, '0');
+  const endMonthStr = String(nextMonth).padStart(2, '0');
+
   return {
-    startDate: resolvedStart,
-    endDate: resolvedEnd,
+    startDate: `${cycleYear}-${startMonthStr}-21`,
+    endDate: `${nextYear}-${endMonthStr}-20`,
   };
 }
 

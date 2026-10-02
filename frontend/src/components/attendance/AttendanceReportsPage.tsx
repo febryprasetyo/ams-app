@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Download, SlidersHorizontal, ArrowLeft } from 'lucide-react';
+import { Download, ArrowLeft } from 'lucide-react';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, EmployeeName, Pagination, Empty, Totals } from './shared';
 import { UnifiedCorrectionModal } from './UnifiedCorrectionModal';
@@ -27,6 +27,7 @@ import {
 } from '@/lib/attendance/scheduleShift';
 import { calculateTalentaKpi, filterTalentaRows, type TalentaKpiFilterKey } from '@/lib/attendance/talentaCard';
 import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
+import { ExportAttendanceModal } from './ExportAttendanceModal';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
 export default function AttendanceReportsPage({ employeeId }: { employeeId?: number }) {
@@ -59,7 +60,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
 
   const [selectedCycleIndex, setSelectedCycleIndex] = useState<number>(0);
   const [kpiFilter, setKpiFilter] = useState<TalentaKpiFilterKey>('ALL');
-  const [showAllFilters, setShowAllFilters] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
   const [startDate, setStart] = useState(defaultPeriod.startDate);
   const [endDate, setEnd] = useState(defaultPeriod.endDate);
@@ -128,12 +129,12 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
 
   // Selected year and month for the Talenta Month Picker Popover
   const [activeYear, activeMonth] = useMemo(() => {
-    if (endDate && endDate.includes('-')) {
-      const parts = endDate.split('-').map(Number);
+    if (startDate && startDate.includes('-')) {
+      const parts = startDate.split('-').map(Number);
       return [parts[0], parts[1]];
     }
-    return [2026, 9];
-  }, [endDate]);
+    return [2026, 8];
+  }, [startDate]);
 
   const handleSelectMonth = (year: number, month: number) => {
     const cycle = getPayrollCyclePeriod(year, month);
@@ -210,18 +211,12 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
       ) : (
         <Heading
           title="Laporan Rekap Absensi"
-          description="Rekap keterlambatan, lembur, dan kehadiran karyawan berdasarkan catatan final pada siklus payroll."
+          description="Rekap keterlambatan, lembur, dan kehadiran karyawan berdasarkan catatan final pada siklus cut-off 21 s.d. 20."
         >
           <button
             className="hr-btn-primary"
             disabled={!!error || !reports.length}
-            onClick={() => {
-              exportAttendanceReportToExcel(reports, filter, {
-                anonymous,
-                departmentLookup: id => data.departments.find(d => d.id === id)?.name,
-                filename: `rekap-absensi-payroll-${startDate}-${endDate}.xlsx`,
-              });
-            }}
+            onClick={() => setIsExportModalOpen(true)}
           >
             <Download size={15} />
             Ekspor Excel (.xlsx)
@@ -229,9 +224,9 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         </Heading>
       )}
 
-      {/* TALENTA FILTER TOOLBAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      {/* FILTER TOOLBAR: Month Popover + Direct Department Filter + Search Input */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Month Popover (Talenta style) */}
           <TalentaMonthPickerPopover
             selectedYear={activeYear}
@@ -239,113 +234,46 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
             onSelect={handleSelectMonth}
           />
 
-          {/* All Filters Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowAllFilters(!showAllFilters)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer shadow-2xs ${
-              showAllFilters
-                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-            }`}
-          >
-            <SlidersHorizontal size={13} className={showAllFilters ? 'text-blue-600' : 'text-slate-400'} />
-            <span>All filters</span>
-          </button>
+          {/* Direct Department Dropdown (Replacing All filters) */}
+          {!anonymous && (
+            <select
+              aria-label="Filter Departemen"
+              className="hr-input text-xs h-8.5 rounded-lg border-slate-200 bg-white px-2.5 font-medium text-slate-700 hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              value={departmentId}
+              onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}
+            >
+              <option value={0}>Semua Departemen</option>
+              {data.departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          )}
+
+          {/* Search Input for rekap view */}
+          {!employee && !anonymous && (
+            <div className="w-56 sm:w-64">
+              <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} placeholder="Cari nama karyawan..." />
+            </div>
+          )}
         </div>
 
-        {employee && (
-          <span className="text-[11px] font-medium text-slate-400">
-            Cut-off: 21 s.d. 20 ({dateLabel(startDate)} – {dateLabel(endDate)})
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium text-slate-500">
+            Periode Awal: <strong className="text-slate-800 font-semibold">{dateLabel(startDate)}</strong> · Periode Akhir: <strong className="text-slate-800 font-semibold">{dateLabel(endDate)}</strong>
           </span>
-        )}
-      </div>
-
-      {/* EXPANDABLE "ALL FILTERS" PANEL */}
-      {showAllFilters && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3 text-xs animate-in fade-in duration-100 shadow-2xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span className="font-bold text-slate-800">Filter Tambahan</span>
+          {!employee && (
             <button
               type="button"
-              onClick={() => setIsCustomPeriod(!isCustomPeriod)}
-              className="text-blue-600 hover:underline cursor-pointer font-medium"
+              className="hr-btn text-xs inline-flex items-center gap-1.5 ml-2 cursor-pointer"
+              disabled={!!error || !reports.length}
+              onClick={() => setIsExportModalOpen(true)}
             >
-              {isCustomPeriod ? 'Gunakan Siklus Payroll Standar' : 'Gunakan Rentang Tanggal Kustom'}
+              <Download size={13} className="text-slate-500" />
+              <span>Ekspor Excel</span>
             </button>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-4">
-            {isCustomPeriod ? (
-              <>
-                <label className="space-y-1 block">
-                  <span className="font-semibold text-slate-700">Dari tanggal</span>
-                  <input
-                    className="hr-input"
-                    type="date"
-                    value={startDate}
-                    onChange={e => { setStart(e.target.value); setPage(1); }}
-                  />
-                </label>
-                <label className="space-y-1 block">
-                  <span className="font-semibold text-slate-700">Sampai tanggal</span>
-                  <input
-                    className="hr-input"
-                    type="date"
-                    value={endDate}
-                    onChange={e => { setEnd(e.target.value); setPage(1); }}
-                  />
-                </label>
-              </>
-            ) : (
-              <label className="space-y-1 block w-full sm:w-80">
-                <span className="font-semibold text-slate-700">Siklus Payroll</span>
-                <select
-                  aria-label="Pilih Bulan Siklus Payroll"
-                  className="hr-input"
-                  value={selectedCycleIndex}
-                  onChange={e => {
-                    const idx = Number(e.target.value);
-                    setSelectedCycleIndex(idx);
-                    const p = payrollMonths[idx];
-                    if (p) {
-                      setStart(p.startDate);
-                      setEnd(p.endDate);
-                      setPage(1);
-                    }
-                  }}
-                >
-                  {payrollMonths.map((p, idx) => (
-                    <option key={`${p.year}-${p.month}`} value={idx}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {!employee && !anonymous && (
-              <>
-                <label className="space-y-1 block min-w-44">
-                  <span className="font-semibold text-slate-700">Departemen</span>
-                  <select
-                    aria-label="Filter Departemen"
-                    className="hr-input"
-                    value={departmentId}
-                    onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}
-                  >
-                    <option value={0}>Semua departemen</option>
-                    {data.departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </label>
-                <div className="ml-auto w-full sm:w-64">
-                  <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} />
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {error ? (
         <div className="rounded-xl bg-red-50 p-4 text-xs font-medium text-red-700 border border-red-200" role="alert">
@@ -367,6 +295,9 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
               late={reports.reduce((n, r) => n + r.lateMinutes, 0)}
               overtime={reports.reduce((n, r) => n + r.overtimeMinutes, 0)}
               count={reports.reduce((n, r) => n + r.recordCount, 0)}
+              sakit={reports.reduce((n, r) => n + (r.sakitCount || 0), 0)}
+              izin={reports.reduce((n, r) => n + (r.izinCount || 0), 0)}
+              cuti={reports.reduce((n, r) => n + (r.cutiCount || 0), 0)}
             />
           )}
 
@@ -391,10 +322,13 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                     <tr>
                       <th>Karyawan</th>
                       <th>Departemen</th>
-                      <th>Catatan final</th>
-                      <th>Total keterlambatan</th>
-                      <th>Total lembur</th>
-                      <th>Detail</th>
+                      <th>Hadir</th>
+                      <th>Terlambat</th>
+                      <th>Lembur</th>
+                      <th className="text-center">Izin</th>
+                      <th className="text-center">Sakit</th>
+                      <th className="text-center">Cuti</th>
+                      <th className="text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -402,10 +336,13 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                       <tr key={r.employee.id}>
                         <td><EmployeeName employee={r.employee} /></td>
                         <td>{data.departments.find(d => d.id === r.employee.departmentId)?.name ?? '—'}</td>
-                        <td>{r.recordCount || <span className="text-slate-500">Belum ada data</span>}</td>
+                        <td>{r.recordCount || <span className="text-slate-400">0</span>}</td>
                         <td className={r.lateMinutes ? 'font-medium text-red-700' : ''}>{r.recordCount ? durationLabel(r.lateMinutes) : '—'}</td>
                         <td className="font-medium">{r.recordCount ? durationLabel(r.overtimeMinutes) : '—'}</td>
-                        <td>
+                        <td className="text-center tabular-nums">{r.izinCount || <span className="text-slate-400">0</span>}</td>
+                        <td className="text-center tabular-nums">{r.sakitCount || <span className="text-slate-400">0</span>}</td>
+                        <td className="text-center tabular-nums">{r.cutiCount || <span className="text-slate-400">0</span>}</td>
+                        <td className="text-right">
                           <Link className="hr-btn" href={`/dashboard/attendance/employees/${r.employee.id}`}>
                             Lihat kartu
                           </Link>
@@ -430,6 +367,24 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
           existingRecord={editingTarget.existingRecord}
           shiftId={employeeShift.id}
           onClose={() => setEditingTarget(null)}
+        />
+      )}
+
+      {/* EXPORT ATTENDANCE MODAL (Multi-person & Multi-divisi selection) */}
+      {isExportModalOpen && (
+        <ExportAttendanceModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          departments={data.departments}
+          reports={reports}
+          filter={filter}
+          onExport={selectedReports => {
+            exportAttendanceReportToExcel(selectedReports, filter, {
+              anonymous,
+              departmentLookup: id => data.departments.find(d => d.id === id)?.name,
+              filename: `rekap-absensi-${startDate}-${endDate}.xlsx`,
+            });
+          }}
         />
       )}
     </div>

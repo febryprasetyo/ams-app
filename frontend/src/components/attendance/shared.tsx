@@ -141,19 +141,40 @@ export function FormDialog({ title, description, fields, onClose, onSubmit, subm
   );
 }
 
-export function Totals({ late, overtime, count }: { late: number; overtime: number; count: number }) {
+export function Totals({
+  late,
+  overtime,
+  count,
+  sakit = 0,
+  izin = 0,
+  cuti = 0,
+}: {
+  late: number;
+  overtime: number;
+  count: number;
+  sakit?: number;
+  izin?: number;
+  cuti?: number;
+}) {
+  const items = [
+    { label: 'Total keterlambatan', value: durationLabel(late), color: 'text-red-700' },
+    { label: 'Total lembur', value: durationLabel(overtime), color: 'text-slate-900' },
+    { label: 'Catatan hadir', value: String(count), color: 'text-slate-900' },
+    { label: 'Total Izin', value: String(izin), color: 'text-amber-700' },
+    { label: 'Total Sakit', value: String(sakit), color: 'text-rose-700' },
+    { label: 'Total Cuti', value: String(cuti), color: 'text-blue-700' },
+  ];
+
   return (
-    <div className="hr-panel grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      {[
-        { label: 'Total keterlambatan', value: durationLabel(late), color: 'text-red-700' },
-        { label: 'Total lembur', value: durationLabel(overtime), color: 'text-slate-900' },
-        { label: 'Catatan final', value: String(count), color: 'text-slate-900' }
-      ].map(item => (
-        <div className="px-5 py-5" key={item.label}>
-          <p className="text-xs text-slate-500">{item.label}</p>
-          <p className={`mt-2 text-xl font-semibold tabular-nums ${item.color}`}>{item.value}</p>
-        </div>
-      ))}
+    <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+        {items.map(item => (
+          <div className="px-4 py-3.5" key={item.label}>
+            <p className="text-[11px] font-medium text-slate-500">{item.label}</p>
+            <p className={`mt-1 text-lg font-bold tabular-nums ${item.color}`}>{item.value}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

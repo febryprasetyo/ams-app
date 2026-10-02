@@ -147,15 +147,16 @@ test('subtractOneMonth calculates exact 1 month period across variable month len
   assert.equal(subtractOneMonth('2026-01-15'), '2025-12-15');
 });
 
-test('getDefaultAttendancePeriod returns 1 month period up to latest day', () => {
+test('getDefaultAttendancePeriod returns exact 21st to 20th cut-off cycle', () => {
   const data = fixture();
   // seed has record at workDate: '2026-09-20' and meta defaultDate: '2026-09-25'
   const period = getDefaultAttendancePeriod(data, 1);
   assert.ok(period.startDate < period.endDate);
-  assert.equal(period.startDate, subtractOneMonth(period.endDate));
+  assert.ok(period.startDate.endsWith('-21'));
+  assert.ok(period.endDate.endsWith('-20'));
   assert.doesNotThrow(() => validatePeriod(period.startDate, period.endDate));
 
-  // empty records and empty meta
+  // empty records and empty meta defaults to today cut-off
   const emptyData = {
     schemaVersion: 1,
     meta: { defaultDate: '', periodStart: '', actor: '', role: 'HR_ADMIN', canManageAccess: true },
@@ -163,8 +164,26 @@ test('getDefaultAttendancePeriod returns 1 month period up to latest day', () =>
   };
   const emptyPeriod = getDefaultAttendancePeriod(emptyData);
   assert.ok(emptyPeriod.startDate < emptyPeriod.endDate);
-  assert.equal(emptyPeriod.startDate, subtractOneMonth(emptyPeriod.endDate));
+  assert.ok(emptyPeriod.startDate.endsWith('-21'));
+  assert.ok(emptyPeriod.endDate.endsWith('-20'));
   assert.doesNotThrow(() => validatePeriod(emptyPeriod.startDate, emptyPeriod.endDate));
+});
+
+test('summarizeEmployees computes accurate counts for SAKIT, IZIN, and CUTI', () => {
+  const data = fixture();
+  const base = data.records[0];
+  data.records = [
+    { ...base, id: 101, employeeId: 1, workDate: '2026-09-21', attendanceStatus: 'PRESENT', lateMinutes: 10, overtimeMinutes: 30 },
+    { ...base, id: 102, employeeId: 1, workDate: '2026-09-22', attendanceStatus: 'SAKIT', lateMinutes: 0, overtimeMinutes: 0 },
+    { ...base, id: 103, employeeId: 1, workDate: '2026-09-23', attendanceStatus: 'IZIN', lateMinutes: 0, overtimeMinutes: 0 },
+    { ...base, id: 104, employeeId: 1, workDate: '2026-09-24', attendanceStatus: 'CUTI', lateMinutes: 0, overtimeMinutes: 0 },
+    { ...base, id: 105, employeeId: 1, workDate: '2026-09-25', attendanceStatus: 'SAKIT', lateMinutes: 0, overtimeMinutes: 0 },
+  ];
+  const report = summarizeEmployees(data, { startDate: '2026-09-21', endDate: '2026-09-25' }).find(row => row.employee.id === 1);
+  assert.equal(report.recordCount, 5);
+  assert.equal(report.sakitCount, 2);
+  assert.equal(report.izinCount, 1);
+  assert.equal(report.cutiCount, 1);
 });
 
 test('sortRecordsDescending places the newest day at the very top', () => {

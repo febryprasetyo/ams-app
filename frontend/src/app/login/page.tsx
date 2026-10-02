@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
-  KeyRound,
 } from 'lucide-react';
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/gajianichBrand';
 
@@ -79,12 +78,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickDemo = () => {
-    setUsername('admin');
-    setPassword('Admin123!');
-    setError(null);
-  };
-
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] p-4 relative overflow-hidden font-sans text-slate-900">
 
@@ -115,16 +108,6 @@ export default function LoginPage() {
               siap kerja
             </span>
           </div>
-
-          {/* Quick Auto-Fill Demo Credentials */}
-          <button
-            type="button"
-            onClick={handleQuickDemo}
-            className="w-full mb-6 py-2.5 px-3 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 rounded-xl text-xs font-mono text-slate-700 hover:text-emerald-700 transition-all flex items-center justify-center gap-2 cursor-pointer group shadow-sm"
-          >
-            <KeyRound className="w-3.5 h-3.5 text-emerald-600 group-hover:rotate-12 transition-transform" />
-            <span>Auto-fill SuperAdmin (admin / Admin123!)</span>
-          </button>
 
           {/* Error Alert Display */}
           {error && (

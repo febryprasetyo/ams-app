@@ -216,7 +216,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
       )}
 
       {/* FILTER TOOLBAR: 1-Line horizontal bar (No 3-tier stacking) */}
-      <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs overflow-x-auto">
+      <div className="relative z-30 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
         <div className="flex items-center gap-2.5 shrink-0">
           {/* Month Popover (Talenta style: clean "Aug 2026") */}
           <TalentaMonthPickerPopover

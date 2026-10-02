@@ -77,7 +77,7 @@ export function TalentaMonthPickerPopover({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 z-50 w-64 rounded-xl bg-white border border-slate-200 shadow-xl p-3 text-xs animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 top-full mt-1.5 z-50 w-64 rounded-xl bg-white border border-slate-200 shadow-2xl p-3 text-xs animate-in fade-in zoom-in-95 duration-100">
           {/* Header with Cut-off Cycle hint */}
           <div className="mb-2 pb-1.5 border-b border-slate-100 text-center">
             <span className="text-[10px] text-slate-400 block font-medium">Siklus Cut-Off</span>

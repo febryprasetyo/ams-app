@@ -1,2 +1,5 @@
-import AttendanceDirectoryPage from '@/components/attendance/AttendanceDirectoryPage';
-export default function Page() { return <AttendanceDirectoryPage mode="employees" />; }
+import EmployeeDirectoryPage from '@/components/master/EmployeeDirectoryPage';
+
+export default function Page() {
+  return <EmployeeDirectoryPage basePath="/dashboard/attendance/master/employees" />;
+}

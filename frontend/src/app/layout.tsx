@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { BRAND_DESCRIPTION, BRAND_NAME } from '@/lib/gajianichBrand';
 
 export const metadata: Metadata = {
-  title: "AMS-ITSM | Asset & IT Service Management",
-  description: "IT Asset Management and ITSM Master Data Administration",
+  title: `${BRAND_NAME} | ${BRAND_DESCRIPTION}`,
+  description: BRAND_DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -25,10 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="id"
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col bg-[#020617] text-[#F8FAFC]">
+      <body className="min-h-full flex flex-col bg-[#F8FAFC] text-[#0F172A]">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

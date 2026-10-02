@@ -84,7 +84,7 @@ export default function LicenseAllocationModal({
       isLoading={submitting}
       title="Allocate License Seat"
       subtitle={`Assign a seat from "${license.name}" to an employee or hardware asset`}
-      icon={<UserPlus className="w-5 h-5 text-blue-600" />}
+      icon={<UserPlus className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,7 +128,7 @@ export default function LicenseAllocationModal({
               }}
               className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                 targetType === 'employee'
-                  ? 'border-blue-600 bg-blue-50/50 text-blue-700 ring-2 ring-blue-500/20'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-700 ring-2 ring-emerald-500/20'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -143,7 +143,7 @@ export default function LicenseAllocationModal({
               }}
               className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                 targetType === 'asset'
-                  ? 'border-blue-600 bg-blue-50/50 text-blue-700 ring-2 ring-blue-500/20'
+                  ? 'border-emerald-600 bg-emerald-50/50 text-emerald-700 ring-2 ring-emerald-500/20'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -162,7 +162,7 @@ export default function LicenseAllocationModal({
             <select
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="">-- Choose Employee --</option>
               {employees.map((emp) => (
@@ -180,7 +180,7 @@ export default function LicenseAllocationModal({
             <select
               value={assetId}
               onChange={(e) => setAssetId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="">-- Choose Asset --</option>
               {assets.map((ast) => (
@@ -199,7 +199,7 @@ export default function LicenseAllocationModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Workstation PC Graphic design team..."
-            className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
           />
         </div>
 
@@ -215,7 +215,7 @@ export default function LicenseAllocationModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>Allocate Seat</span>

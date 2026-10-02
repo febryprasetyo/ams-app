@@ -85,7 +85,7 @@ export default function VendorsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <Store className="w-6 h-6 text-red-600" />
+              <Store className="w-6 h-6 text-emerald-600" />
               <span>Vendor Directory</span>
             </h1>
             <p className="text-xs text-slate-500 font-mono mt-1">
@@ -94,7 +94,7 @@ export default function VendorsPage() {
           </div>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer w-fit"
           >
             <Plus className="w-4 h-4" />
             <span>New Vendor</span>
@@ -104,7 +104,7 @@ export default function VendorsPage() {
         {/* Bento Stat Header Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200">
-            <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center font-mono">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-mono">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
@@ -113,7 +113,7 @@ export default function VendorsPage() {
             </div>
           </div>
           <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center font-mono">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-mono">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export default function VendorsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search vendor company, contact person, email, address..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-all font-mono"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
             />
           </div>
           <span className="text-xs text-slate-500 font-mono hidden sm:inline">

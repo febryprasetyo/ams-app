@@ -40,7 +40,7 @@ export default function AssetFilters({
             placeholder="Search Asset Tag, Serial Number, Name, User..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-red-500 transition-colors"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500 transition-colors"
           />
         </div>
 
@@ -49,7 +49,7 @@ export default function AssetFilters({
           <select
             value={selectedCategory}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-red-500 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="ALL">All Categories</option>
             {categories.map((c) => (
@@ -65,7 +65,7 @@ export default function AssetFilters({
           <select
             value={selectedLocation}
             onChange={(e) => onLocationChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-red-500 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="ALL">All Locations</option>
             {locations.map((loc) => (
@@ -81,7 +81,7 @@ export default function AssetFilters({
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-red-500 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="Available">Available (Stock)</option>

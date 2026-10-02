@@ -99,9 +99,9 @@ export default function EmployeeFormModal({
       title={isEdit ? 'Edit Employee Details' : 'Register New Employee'}
       icon={
         isEdit ? (
-          <Pencil className="w-5 h-5 text-red-600" />
+          <Pencil className="w-5 h-5 text-emerald-600" />
         ) : (
-          <Plus className="w-5 h-5 text-red-600" />
+          <Plus className="w-5 h-5 text-emerald-600" />
         )
       }
       maxWidthClass="max-w-xl"
@@ -125,7 +125,7 @@ export default function EmployeeFormModal({
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="e.g. EMP-001"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -136,7 +136,7 @@ export default function EmployeeFormModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
@@ -154,7 +154,7 @@ export default function EmployeeFormModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Alex Johnson"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -169,7 +169,7 @@ export default function EmployeeFormModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. alex@company.com"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -182,7 +182,7 @@ export default function EmployeeFormModal({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. +62 812-3456-7890"
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function EmployeeFormModal({
             value={position}
             onChange={(e) => setPosition(e.target.value)}
             placeholder="e.g. Senior Frontend Engineer"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -208,7 +208,7 @@ export default function EmployeeFormModal({
             <select
               value={deptId}
               onChange={(e) => setDeptId(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="">No Department</option>
               {departments.map((d) => (
@@ -226,7 +226,7 @@ export default function EmployeeFormModal({
             <select
               value={locId}
               onChange={(e) => setLocId(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             >
               <option value="">Unassigned Location</option>
               {locations.map((l) => (
@@ -250,7 +250,7 @@ export default function EmployeeFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{isEdit ? 'Update Details' : 'Register Member'}</span>

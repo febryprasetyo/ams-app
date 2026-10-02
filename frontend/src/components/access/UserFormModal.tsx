@@ -1,23 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import ModalShell from '@/components/ui/ModalShell';
-import { UserItem, RoleItem, UserFormData } from '@/lib/access/types';
-import { UserPlus, UserCog, Loader2 } from 'lucide-react';
-
-interface EmployeeOption {
-  id: number;
-  fullName: string;
-  employeeCode: string;
-  departmentId?: number;
-}
+import React, { useState, useEffect } from "react";
+import ModalShell from "@/components/ui/ModalShell";
+import { UserItem, RoleItem, UserFormData } from "@/lib/access/types";
+import { UserPlus, UserCog, Loader2, KeyRound } from "lucide-react";
 
 interface UserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: UserFormData) => Promise<void>;
+  onSubmit: (formData: UserFormData) => Promise<void>;
   roles: RoleItem[];
-  employees: EmployeeOption[];
+  employees?: any[];
   initialData?: UserItem | null;
   isLoading?: boolean;
 }
@@ -27,35 +20,32 @@ export default function UserFormModal({
   onClose,
   onSubmit,
   roles,
-  employees,
-  initialData,
+  employees = [],
+  initialData = null,
   isLoading = false,
 }: UserFormModalProps) {
   const isEdit = Boolean(initialData);
 
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [roleId, setRoleId] = useState<number>(roles[0]?.id || 1);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [status, setStatus] = useState<"active" | "inactive">("active");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialData) {
       setUsername(initialData.username);
       setEmail(initialData.email);
-      setPassword('');
       setRoleId(initialData.roleId || roles[0]?.id || 1);
       setEmployeeId(initialData.employeeId || null);
       setStatus(initialData.status);
     } else {
-      setUsername('');
-      setEmail('');
-      setPassword('');
+      setUsername("");
+      setEmail("");
       setRoleId(roles[0]?.id || 1);
       setEmployeeId(null);
-      setStatus('active');
+      setStatus("active");
     }
     setError(null);
   }, [initialData, roles, isOpen]);
@@ -65,12 +55,7 @@ export default function UserFormModal({
     setError(null);
 
     if (!username.trim() || !email.trim()) {
-      setError('Username and email are required');
-      return;
-    }
-
-    if (!isEdit && (!password || password.length < 8)) {
-      setError('Password must be at least 8 characters long');
+      setError("Username and email are required");
       return;
     }
 
@@ -78,14 +63,13 @@ export default function UserFormModal({
       await onSubmit({
         username: username.trim(),
         email: email.trim().toLowerCase(),
-        password: isEdit ? undefined : password,
         roleId: Number(roleId),
         employeeId: employeeId ? Number(employeeId) : null,
         status,
       });
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Failed to save user');
+      setError(err?.message || "Failed to save user");
     }
   };
 
@@ -93,9 +77,9 @@ export default function UserFormModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? 'Edit User Account' : 'Create New User Account'}
-      subtitle={isEdit ? 'Update account details, role assignment, and employee mapping' : 'Add credentials and assign role permissions'}
-      icon={isEdit ? <UserCog className="w-5 h-5 text-blue-600" /> : <UserPlus className="w-5 h-5 text-red-600" />}
+      title={isEdit ? "Edit User Account" : "Create New User Account"}
+      subtitle={isEdit ? "Update account details, role assignment, and employee mapping" : "Add user details and assign role permissions"}
+      icon={isEdit ? <UserCog className="w-5 h-5 text-emerald-600" /> : <UserPlus className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-lg"
       isLoading={isLoading}
       footer={
@@ -112,10 +96,10 @@ export default function UserFormModal({
             type="submit"
             form="user-form"
             disabled={isLoading}
-            className="px-4 py-2 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>{isEdit ? 'Save Changes' : 'Create User'}</span>
+            <span>{isEdit ? "Save Changes" : "Create User"}</span>
           </button>
         </>
       }
@@ -138,7 +122,7 @@ export default function UserFormModal({
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="e.g. john.doe"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
         </div>
 
@@ -153,28 +137,17 @@ export default function UserFormModal({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="john.doe@company.com"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
         </div>
 
-        {/* Password (only on create) */}
+        {/* Automatic Temporary Password Info (only on create) */}
         {!isEdit && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Initial Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 8 characters"
-              className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-            />
-            <p className="text-[10px] text-slate-400 mt-1">
-              User will use this password to sign in. Minimum 8 characters.
-            </p>
+          <div className="p-3 bg-red-50/70 border border-red-200/80 rounded-xl text-red-900 text-xs flex items-start gap-2.5">
+            <KeyRound className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <div className="text-[11px] leading-relaxed">
+              <span className="font-semibold text-red-800">Temporary Password Otomatis:</span> Sistem akan otomatis membuatkan password temporary acak yang aman (huruf, angka & simbol). Password tersebut akan ditampilkan setelah akun dibuat untuk disalin.
+            </div>
           </div>
         )}
 
@@ -186,11 +159,11 @@ export default function UserFormModal({
           <select
             value={roleId}
             onChange={(e) => setRoleId(Number(e.target.value))}
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             {roles.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.name} ({r.code}) {r.isSystem ? '• System' : ''}
+                {r.name} ({r.code}) {r.isSystem ? "• System" : ""}
               </option>
             ))}
           </select>
@@ -202,9 +175,9 @@ export default function UserFormModal({
             Linked Employee <span className="text-slate-400 font-normal">(Optional)</span>
           </label>
           <select
-            value={employeeId ?? ''}
+            value={employeeId ?? ""}
             onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             <option value="">-- No Linked Employee (System / Independent Account) --</option>
             {employees.map((emp) => (
@@ -229,9 +202,9 @@ export default function UserFormModal({
                 type="radio"
                 name="user-status"
                 value="active"
-                checked={status === 'active'}
-                onChange={() => setStatus('active')}
-                className="text-red-600 focus:ring-red-500"
+                checked={status === "active"}
+                onChange={() => setStatus("active")}
+                className="text-red-600 focus:ring-emerald-500"
               />
               Active
             </label>
@@ -240,9 +213,9 @@ export default function UserFormModal({
                 type="radio"
                 name="user-status"
                 value="inactive"
-                checked={status === 'inactive'}
-                onChange={() => setStatus('inactive')}
-                className="text-red-600 focus:ring-red-500"
+                checked={status === "inactive"}
+                onChange={() => setStatus("inactive")}
+                className="text-red-600 focus:ring-emerald-500"
               />
               Inactive (Deactivated)
             </label>

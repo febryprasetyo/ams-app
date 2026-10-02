@@ -35,14 +35,14 @@ export const renderLicenseTypeBadge = (type?: string | null) => {
   switch (type) {
     case 'CD / Dongle':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-purple-50 text-purple-700 border border-purple-200/80 shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs">
           <Disc className="w-3.5 h-3.5" />
           <span>CD / Dongle</span>
         </span>
       );
     case 'OEM Bundled':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
           <Laptop className="w-3.5 h-3.5" />
           <span>OEM Bundled</span>
         </span>
@@ -105,7 +105,7 @@ export default function LicenseTable({
               <tr>
                 <td colSpan={7} className="py-12 text-center text-slate-400">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+                    <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                     <span className="font-mono text-xs text-slate-500">
                       Loading Software Catalog...
                     </span>
@@ -159,7 +159,7 @@ export default function LicenseTable({
                       <div className="space-y-1">
                         <Link
                           href={`/dashboard/licenses/${lic.id}`}
-                          className="font-bold text-slate-900 group-hover:text-red-600 transition-colors inline-flex items-center gap-1.5"
+                          className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5"
                         >
                           <span>{lic.name}</span>
                         </Link>
@@ -169,7 +169,7 @@ export default function LicenseTable({
                             {maskLicenseKey(lic.licenseKey)}
                           </span>
                           <span className="text-[11px] font-sans text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60 inline-flex items-center gap-1.5 font-medium">
-                            <Building2 className="w-3 h-3 text-red-600 shrink-0" />
+                            <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
                             <span className="text-slate-400 font-normal">Location:</span>
                             <span
                               className="font-semibold text-slate-800"
@@ -293,7 +293,7 @@ export default function LicenseTable({
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             isFull
                               ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
+                              : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
                           }`}
                           title={isFull ? 'No seats available' : 'Quick Allocate Seat'}
                         >

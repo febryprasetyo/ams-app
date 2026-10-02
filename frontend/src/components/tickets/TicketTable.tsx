@@ -63,15 +63,15 @@ export function renderStatusBadge(status: string) {
   switch (status) {
     case 'Open':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
           Open
         </span>
       );
     case 'In Progress':
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
           In Progress
         </span>
       );
@@ -162,7 +162,7 @@ export default function TicketTable({
   if (loading) {
     return (
       <div className="glass-panel rounded-2xl overflow-hidden shadow-sm bg-white border border-slate-200 w-full p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-        <Loader2 className="w-7 h-7 animate-spin text-red-600" />
+        <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
         <span>Fetching IT Service Desk ticket queue...</span>
       </div>
     );
@@ -188,7 +188,7 @@ export default function TicketTable({
         ) : (
           <button
             onClick={onCreateFirstTicket}
-            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Create First Ticket</span>
@@ -223,7 +223,7 @@ export default function TicketTable({
               return (
                 <tr
                   key={ticket.id}
-                  className="hover:bg-red-50/30 transition-colors group"
+                  className="hover:bg-emerald-50/30 transition-colors group"
                 >
                   {/* Ticket Code */}
                   <td className="py-4 px-5 whitespace-nowrap">
@@ -231,8 +231,8 @@ export default function TicketTable({
                       href={`/dashboard/tickets/${ticket.id}`}
                       className={`font-mono font-bold px-2.5 py-1 rounded-md border transition-colors inline-flex items-center gap-1 group/code ${
                         isReq
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300'
-                          : 'bg-red-50 text-red-600 border-red-200 hover:border-red-300'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300'
+                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300'
                       }`}
                     >
                       <span>{ticket.ticketCode}</span>
@@ -245,7 +245,7 @@ export default function TicketTable({
                     <div className="flex flex-col max-w-xs">
                       <Link
                         href={`/dashboard/tickets/${ticket.id}`}
-                        className="font-bold text-slate-900 group-hover:text-red-600 transition-colors text-xs truncate"
+                        className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors text-xs truncate"
                         title={ticket.subject}
                       >
                         {ticket.subject}
@@ -291,7 +291,7 @@ export default function TicketTable({
                     {ticket.assetId && ticket.assetCode ? (
                       <Link
                         href={`/dashboard/assets/${ticket.assetId}`}
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 font-mono text-[11px] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-600 border border-slate-200 font-mono text-[11px] transition-colors"
                         title={ticket.assetName || 'Associated IT Asset'}
                       >
                         <HardDrive className="w-3 h-3 text-slate-500" />
@@ -311,7 +311,7 @@ export default function TicketTable({
                   <td className="py-4 px-5 whitespace-nowrap">
                     {ticket.assigneeName ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-mono font-bold text-[10px] flex items-center justify-center border border-blue-200">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-mono font-bold text-[10px] flex items-center justify-center border border-emerald-200">
                           {ticket.assigneeName[0].toUpperCase()}
                         </div>
                         <span className="font-semibold text-slate-800 text-xs">
@@ -344,7 +344,7 @@ export default function TicketTable({
                       {/* Assign Technician */}
                       <button
                         onClick={() => onAssign(ticket)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                         title="Assign / Change Technician"
                       >
                         <UserCheck className="w-4 h-4" />

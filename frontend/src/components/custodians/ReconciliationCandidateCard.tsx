@@ -89,7 +89,7 @@ export default function ReconciliationCandidateCard({
                       value={match.id}
                       checked={linkSelection === String(match.id)}
                       onChange={(e) => onLinkSelectionChange(e.target.value)}
-                      className="text-red-600 focus:ring-red-500"
+                      className="text-red-600 focus:ring-emerald-500"
                     />
                     <div>
                       <p className="font-bold text-slate-900">{match.fullName}</p>
@@ -129,7 +129,7 @@ export default function ReconciliationCandidateCard({
             <select
               value={mergeSelection}
               onChange={(e) => onMergeSelectionChange(e.target.value)}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:border-red-500 focus:outline-none"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Select target custodian...</option>
               {otherActiveCustodians.map((c) => (

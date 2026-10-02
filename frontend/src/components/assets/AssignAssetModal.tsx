@@ -79,7 +79,7 @@ export default function AssignAssetModal({
       isLoading={submitting}
       title="Assign Asset Custody"
       subtitle={`${asset.assetCode} — ${asset.name}`}
-      icon={<UserCheck className="w-5 h-5 text-blue-600" />}
+      icon={<UserCheck className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,7 +108,7 @@ export default function AssignAssetModal({
           <select
             value={locationId}
             onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
           >
             <option value="">Keep / Default Holder Location</option>
             {locations.map((loc) => (
@@ -128,7 +128,7 @@ export default function AssignAssetModal({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Handed over for engineering work with charger and mouse..."
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-blue-500"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-emerald-500"
           />
         </div>
 
@@ -144,7 +144,7 @@ export default function AssignAssetModal({
           <button
             type="submit"
             disabled={submitting || custodian.kind === 'none'}
-            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />

@@ -137,11 +137,11 @@ export default function InfrastructurePage() {
 
         {/* Header */}
         <header className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="absolute inset-y-0 left-0 w-2 bg-red-600" />
+          <div className="absolute inset-y-0 left-0 w-2 bg-emerald-600" />
           <div className="flex flex-col gap-5 pl-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-600 text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white">
                   <Server className="h-5 w-5" />
                 </span>
                 Accurate Database
@@ -159,7 +159,7 @@ export default function InfrastructurePage() {
                 type="button"
                 onClick={() => handleSync('all')}
                 disabled={syncingServer !== null || servers.length === 0}
-                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <RefreshCw className={`h-4 w-4 ${syncingServer === 'all' ? 'animate-spin' : ''}`} />
                 Sync Semua Lisensi

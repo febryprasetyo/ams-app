@@ -78,7 +78,7 @@ export default function CustodianDirectoryTable({
                     onClick={() => onOpenHeldAssets(custodian)}
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
                       assetCount > 0
-                        ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                         : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
                     }`}
                     title={`View ${assetCount} asset(s) held by ${custodian.displayName}`}
@@ -97,7 +97,7 @@ export default function CustodianDirectoryTable({
                     <button
                       type="button"
                       onClick={() => onOpenHeldAssets(custodian)}
-                      className="rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
+                      className="rounded-lg p-2 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors cursor-pointer"
                       title="View assigned assets"
                     >
                       <Eye className="h-4 w-4" />

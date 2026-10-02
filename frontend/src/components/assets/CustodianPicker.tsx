@@ -231,7 +231,7 @@ export default function CustodianPicker({
             }}
             placeholder="Search holder name or employee code..."
             className={`w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-xs text-slate-900 focus:outline-none ${
-              accent === 'blue' ? 'focus:border-blue-500' : 'focus:border-red-500'
+              accent === 'blue' ? 'focus:border-emerald-500' : 'focus:border-emerald-500'
             }`}
           />
         </div>
@@ -291,14 +291,14 @@ export default function CustodianPicker({
 
           {manualOpen && (
             <div className="space-y-3 p-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900"><UserRound className="h-4 w-4 text-red-600" /> New manual holder</div>
-              <input value={manualName} onChange={(event) => { setManualName(event.target.value); setSearch(event.target.value); setDuplicateAcknowledged(false); }} placeholder="Display name *" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none" />
-              <select value={manualLocationId} onChange={(event) => setManualLocationId(event.target.value ? Number(event.target.value) : '')} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900"><UserRound className="h-4 w-4 text-emerald-600" /> New manual holder</div>
+              <input value={manualName} onChange={(event) => { setManualName(event.target.value); setSearch(event.target.value); setDuplicateAcknowledged(false); }} placeholder="Display name *" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none" />
+              <select value={manualLocationId} onChange={(event) => setManualLocationId(event.target.value ? Number(event.target.value) : '')} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none">
                 <option value="">Unknown / no location</option>
                 {locations.map((location) => <option key={location.id} value={location.id}>{location.name}{location.code ? ` (${location.code})` : ''}</option>)}
               </select>
-              <input value={manualUnit} onChange={(event) => setManualUnit(event.target.value)} placeholder="Unit / team (optional)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none" />
-              <textarea rows={2} value={manualNotes} onChange={(event) => setManualNotes(event.target.value)} placeholder="IT-only notes (optional)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none" />
+              <input value={manualUnit} onChange={(event) => setManualUnit(event.target.value)} placeholder="Unit / team (optional)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none" />
+              <textarea rows={2} value={manualNotes} onChange={(event) => setManualNotes(event.target.value)} placeholder="IT-only notes (optional)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none" />
               {hasCandidates && (
                 <label className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[10px] text-amber-800">
                   <input type="checkbox" checked={duplicateAcknowledged} onChange={(event) => setDuplicateAcknowledged(event.target.checked)} className="mt-0.5" />
@@ -307,7 +307,7 @@ export default function CustodianPicker({
               )}
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setManualOpen(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">Back</button>
-                <button type="button" onClick={chooseManual} disabled={loading || !manualName.trim() || (hasCandidates && !duplicateAcknowledged)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40">Use new holder</button>
+                <button type="button" onClick={chooseManual} disabled={loading || !manualName.trim() || (hasCandidates && !duplicateAcknowledged)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40">Use new holder</button>
               </div>
             </div>
           )}

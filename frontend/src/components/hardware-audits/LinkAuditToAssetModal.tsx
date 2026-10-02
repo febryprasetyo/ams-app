@@ -81,7 +81,7 @@ export default function LinkAuditToAssetModal({
       title={
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center">
-            <Link2 className="w-4 h-4 text-sky-400" />
+            <Link2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900">
@@ -118,8 +118,8 @@ export default function LinkAuditToAssetModal({
           </div>
           {audit.peripherals && audit.peripherals.length > 0 && (
             <div className="pt-2 border-t border-slate-200/80 space-y-1">
-              <div className="font-bold text-sky-800 flex items-center gap-1.5">
-                <Printer className="w-3.5 h-3.5 text-sky-600" />
+              <div className="font-bold text-emerald-800 flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Periferal Terkait ({audit.peripherals.length} unit akan ditautkan):</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -172,7 +172,7 @@ export default function LinkAuditToAssetModal({
                         name="selectedAsset"
                         checked={selectedAssetId === cand.id}
                         onChange={() => setSelectedAssetId(cand.id)}
-                        className="text-red-600 focus:ring-red-500 cursor-pointer"
+                        className="text-red-600 focus:ring-emerald-500 cursor-pointer"
                       />
                       <div>
                         <div className="font-bold text-xs font-mono text-slate-900 flex items-center gap-2">
@@ -204,7 +204,7 @@ export default function LinkAuditToAssetModal({
             <select
               value={selectedAssetId || ''}
               onChange={(e) => setSelectedAssetId(Number(e.target.value) || null)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             >
               <option value="">-- Pilih Manual dari Seluruh Aset --</option>
               {allAssets.map((asset) => {
@@ -229,7 +229,7 @@ export default function LinkAuditToAssetModal({
               type="checkbox"
               checked={updateSpecs}
               onChange={(e) => setUpdateSpecs(e.target.checked)}
-              className="rounded text-red-600 focus:ring-red-500 cursor-pointer"
+              className="rounded text-red-600 focus:ring-emerald-500 cursor-pointer"
             />
             <span>Perbarui Spesifikasi Komputer (CPU, RAM, Storage, Periferal)</span>
           </label>
@@ -238,7 +238,7 @@ export default function LinkAuditToAssetModal({
               type="checkbox"
               checked={updateSerial}
               onChange={(e) => setUpdateSerial(e.target.checked)}
-              className="rounded text-red-600 focus:ring-red-500 cursor-pointer"
+              className="rounded text-red-600 focus:ring-emerald-500 cursor-pointer"
             />
             <span>
               Perbarui Serial Number Aset ({audit.serialNumber || 'Kosong'})

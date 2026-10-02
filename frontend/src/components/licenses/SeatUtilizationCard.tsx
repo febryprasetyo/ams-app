@@ -64,9 +64,9 @@ export default function SeatUtilizationCard({
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2 text-xs font-mono">
-          <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-center">
-            <p className="text-[10px] text-blue-600 font-semibold uppercase">Assigned</p>
-            <p className="text-base font-bold text-blue-900 mt-0.5">{license.usedSeats}</p>
+          <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-center">
+            <p className="text-[10px] text-emerald-600 font-semibold uppercase">Assigned</p>
+            <p className="text-base font-bold text-emerald-900 mt-0.5">{license.usedSeats}</p>
           </div>
 
           <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-center">

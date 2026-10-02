@@ -66,14 +66,14 @@ export default function AssignTechnicianModal({
       onClose={handleClose}
       title={
         <div className="flex items-center gap-2">
-          <UserCheck className="w-5 h-5 text-red-600" />
+          <UserCheck className="w-5 h-5 text-emerald-600" />
           <span>Assign IT Specialist</span>
         </div>
       }
       maxWidthClass="max-w-md"
     >
-      <div className="mb-4 p-3 bg-red-50/50 rounded-xl border border-red-100 font-mono text-xs">
-        <p className="font-bold text-red-600">{ticket.ticketCode}</p>
+      <div className="mb-4 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 font-mono text-xs">
+        <p className="font-bold text-emerald-600">{ticket.ticketCode}</p>
         <p className="text-slate-700 truncate mt-0.5">{ticket.subject}</p>
       </div>
 
@@ -92,7 +92,7 @@ export default function AssignTechnicianModal({
           <select
             value={selectedAssigneeId}
             onChange={(e) => setSelectedAssigneeId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">Unassigned</option>
             {technicians.map((t) => (
@@ -115,7 +115,7 @@ export default function AssignTechnicianModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {submitting ? (
               <>

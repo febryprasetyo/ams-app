@@ -71,9 +71,9 @@ export default function DepartmentFormModal({
       title={isEdit ? 'Edit Department' : 'Register New Department'}
       icon={
         isEdit ? (
-          <Pencil className="w-5 h-5 text-red-600" />
+          <Pencil className="w-5 h-5 text-emerald-600" />
         ) : (
-          <Plus className="w-5 h-5 text-red-600" />
+          <Plus className="w-5 h-5 text-emerald-600" />
         )
       }
       maxWidthClass="max-w-lg"
@@ -96,7 +96,7 @@ export default function DepartmentFormModal({
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="e.g. IT-OPS"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 uppercase font-bold"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 uppercase font-bold"
           />
         </div>
 
@@ -110,7 +110,7 @@ export default function DepartmentFormModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Information Technology & Infrastructure"
-            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function DepartmentFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl transition flex items-center gap-2 shadow-sm font-bold cursor-pointer"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{isEdit ? 'Update Department' : 'Save Department'}</span>

@@ -24,7 +24,7 @@ export default function DashboardIndexPage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center font-sans text-slate-600">
       <div className="flex items-center gap-3 bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-xl">
-        <Loader2 className="w-5 h-5 animate-spin text-red-600" />
+        <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
         <span className="text-sm font-medium text-slate-800">Mengarahkan ke modul Anda...</span>
       </div>
     </div>

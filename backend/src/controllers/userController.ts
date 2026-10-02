@@ -6,11 +6,12 @@ import { employees } from '../db/schema/employees';
 import { eq, and, ne, sql } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
+import { generateSecureTemporaryPassword, validatePasswordStrength } from '../domain/passwordPolicy';
 
 const createUserSchema = z.object({
   username: z.string().min(3).max(100),
   email: z.string().email().max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  password: z.string().optional(),
   roleId: z.number().int().positive(),
   employeeId: z.number().int().positive().nullable().optional(),
   status: z.enum(['active', 'inactive']).default('active'),
@@ -29,8 +30,8 @@ const toggleStatusSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
-});
+  newPassword: z.string().optional(),
+}).optional();
 
 async function isLastActiveSuperAdmin(userId: number): Promise<boolean> {
   // Count how many active users have SuperAdmin role or role.code === 'super_admin'
@@ -57,6 +58,7 @@ export async function getUsers(req: AuthenticatedRequest, res: Response) {
         id: users.id,
         username: users.username,
         email: users.email,
+        mustChangePassword: users.mustChangePassword,
         roleId: users.roleId,
         role: users.role,
         employeeId: users.employeeId,
@@ -110,7 +112,17 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
       }
     }
 
-    const passwordHash = await bcrypt.hash(parsed.password, 10);
+    let rawPassword = parsed.password;
+    if (rawPassword) {
+      const policyCheck = validatePasswordStrength(rawPassword);
+      if (!policyCheck.isValid) {
+        return res.status(400).json({ error: policyCheck.error });
+      }
+    } else {
+      rawPassword = generateSecureTemporaryPassword(12);
+    }
+
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     const [inserted] = await db
       .insert(users)
@@ -118,6 +130,7 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
         username: parsed.username,
         email: parsed.email,
         passwordHash,
+        mustChangePassword: true,
         roleId: parsed.roleId,
         role: targetRole.name,
         employeeId: parsed.employeeId || null,
@@ -127,6 +140,7 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
         id: users.id,
         username: users.username,
         email: users.email,
+        mustChangePassword: users.mustChangePassword,
         roleId: users.roleId,
         role: users.role,
         employeeId: users.employeeId,
@@ -134,7 +148,11 @@ export async function createUser(req: AuthenticatedRequest, res: Response) {
         createdAt: users.createdAt,
       });
 
-    return res.status(201).json({ message: 'User created successfully', user: inserted });
+    return res.status(201).json({
+      message: 'User created successfully',
+      user: inserted,
+      temporaryPassword: rawPassword,
+    });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
@@ -287,24 +305,38 @@ export async function resetPassword(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
-    const parsed = resetPasswordSchema.parse(req.body);
+    const parsed = resetPasswordSchema ? resetPasswordSchema.parse(req.body) : {};
 
     const existingUser = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
     if (!existingUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const passwordHash = await bcrypt.hash(parsed.newPassword, 10);
+    let rawPassword = parsed?.newPassword;
+    if (rawPassword) {
+      const policyCheck = validatePasswordStrength(rawPassword);
+      if (!policyCheck.isValid) {
+        return res.status(400).json({ error: policyCheck.error });
+      }
+    } else {
+      rawPassword = generateSecureTemporaryPassword(12);
+    }
+
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     await db
       .update(users)
       .set({
         passwordHash,
+        mustChangePassword: true,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
 
-    return res.status(200).json({ message: 'User password reset successfully' });
+    return res.status(200).json({
+      message: 'User password reset successfully',
+      temporaryPassword: rawPassword,
+    });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });

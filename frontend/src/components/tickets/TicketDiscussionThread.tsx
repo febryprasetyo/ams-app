@@ -47,10 +47,10 @@ export default function TicketDiscussionThread({
     <div className="glass-panel p-6 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-6">
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-red-600" />
+          <MessageSquare className="w-4 h-4 text-emerald-600" />
           <span>Work Log & Discussion Thread</span>
         </h3>
-        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
           {comments.length} Messages
         </span>
       </div>
@@ -77,7 +77,7 @@ export default function TicketDiscussionThread({
                     className={`w-7 h-7 rounded-full font-mono font-bold text-xs flex items-center justify-center ${
                       comment.isInternal
                         ? 'bg-amber-200 text-amber-900 border border-amber-300'
-                        : 'bg-red-600 text-white shadow-xs'
+                        : 'bg-emerald-600 text-white shadow-xs'
                     }`}
                   >
                     {comment.userName ? comment.userName[0].toUpperCase() : 'U'}
@@ -101,7 +101,7 @@ export default function TicketDiscussionThread({
                       Internal Tech Note
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Public Response
                     </span>
                   )}
@@ -139,7 +139,7 @@ export default function TicketDiscussionThread({
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Type your response to user or internal technician log..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -160,7 +160,7 @@ export default function TicketDiscussionThread({
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md shadow-red-600/10"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md shadow-emerald-600/10"
             >
               {submitting ? (
                 <>

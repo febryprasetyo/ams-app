@@ -6,7 +6,7 @@ export const employees = pgTable('employees', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
   employeeCode: varchar('employee_number', { length: 50 }).notNull().unique(),
   fullName: varchar('full_name', { length: 150 }).notNull(),
-  email: varchar('email', { length: 150 }).notNull().unique(),
+  email: varchar('email', { length: 150 }).unique(),
   phone: varchar('phone', { length: 50 }),
   departmentId: bigint('department_id', { mode: 'number' }).references(() => departments.id),
   locationId: bigint('location_id', { mode: 'number' }).references(() => locations.id),

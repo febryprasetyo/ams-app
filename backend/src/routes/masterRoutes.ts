@@ -22,15 +22,17 @@ router.use(authenticateToken);
 
 const viewMaster = requirePermission('master.view');
 const manageMaster = requirePermission('master.manage');
+// HR Attendance juga perlu baca departments & locations untuk sinkronisasi
+const viewMasterOrAttendance = requirePermission(['master.view', 'attendance.view']);
 
 // --- Departments ---
-router.get('/departments', viewMaster, getDepartments);
+router.get('/departments', viewMasterOrAttendance, getDepartments);
 router.post('/departments', manageMaster, createDepartment);
 router.put('/departments/:id', manageMaster, updateDepartment);
 router.delete('/departments/:id', manageMaster, deleteDepartment);
 
 // --- Locations ---
-router.get('/locations', viewMaster, getLocations);
+router.get('/locations', viewMasterOrAttendance, getLocations);
 router.post('/locations', manageMaster, createLocation);
 router.put('/locations/:id', manageMaster, updateLocation);
 router.delete('/locations/:id', manageMaster, deleteLocation);

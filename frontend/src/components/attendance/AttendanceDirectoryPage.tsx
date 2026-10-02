@@ -2,20 +2,30 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Download, Upload, Loader2, Trash2 } from 'lucide-react';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, Empty, EmployeeName, FormDialog, Pagination, type Field } from './shared';
+import EmployeeImportModal from '@/components/master/EmployeeImportModal';
+import { api } from '@/lib/api';
 import { roleLabels } from '@/lib/attendance/domain';
 import type { AttendanceGrant, Employee, Identity, MasterItem } from '@/lib/attendance/types';
 
 type Mode = 'employees' | 'departments' | 'locations' | 'identities' | 'sources' | 'access' | 'cards';
 const titles: Record<Mode, string> = { employees: 'Master Karyawan Absensi', departments: 'Departemen Absensi', locations: 'Lokasi Absensi', identities: 'Pemetaan Identitas', sources: 'Sumber Absensi', access: 'Akses Absensi', cards: 'Kartu Absensi' };
-const descriptions: Record<Mode, string> = { employees: 'Master karyawan khusus HR, terpisah dari master karyawan aset AMS.', departments: 'Kelola departemen yang digunakan oleh karyawan absensi.', locations: 'Kelola lokasi kerja absensi. Lokasi yang tidak tersedia pada file sumber tetap kosong.', identities: 'Hubungkan nomor mesin ke karyawan. Angka nol di depan nomor tetap dipertahankan.', sources: 'Sumber file menjadi pembeda nomor identitas mesin.', access: 'Simulasi grant modul HR. Perubahan di sini tidak mengubah akun atau hak akses login AMS.', cards: 'Pilih karyawan untuk melihat catatan harian, total durasi, dan riwayat koreksi.' };
+const descriptions: Record<Mode, string> = { employees: 'Master karyawan HR dengan sinkronisasi master data AMS & Talenta.', departments: 'Kelola departemen yang digunakan oleh karyawan absensi.', locations: 'Kelola lokasi kerja absensi. Lokasi yang tidak tersedia pada file sumber tetap kosong.', identities: 'Hubungkan nomor mesin ke karyawan. Angka nol di depan nomor tetap dipertahankan.', sources: 'Sumber file menjadi pembeda nomor identitas mesin.', access: 'Simulasi grant modul HR. Perubahan di sini tidak mengubah akun atau hak akses login AMS.', cards: 'Pilih karyawan untuk melihat catatan harian, total durasi, dan riwayat koreksi.' };
 type Entry = Employee | MasterItem | Identity | AttendanceGrant;
 export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   const { data, execute, canWrite } = useAttendance();
   const [q, setQ] = useState(''), [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Entry | null | undefined>(undefined);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [grantToDelete, setGrantToDelete] = useState<AttendanceGrant | null>(null);
+  const [isDeletingGrant, setIsDeletingGrant] = useState(false);
+  const [deleteGrantError, setDeleteGrantError] = useState<string | null>(null);
+
   const allowed = mode === 'access' ? data.meta.canManageAccess : canWrite;
   const entries: Entry[] = mode === 'cards' || mode === 'employees' ? data.employees : mode === 'access' ? data.grants : data[mode];
   const titleOf = (entry: Entry): string => 'fullName' in entry ? entry.fullName : 'name' in entry ? entry.name : 'displayName' in entry ? entry.displayName : `${entry.externalNoId} ${data.employees.find(e => e.id === entry.employeeId)?.fullName ?? ''}`;
@@ -41,11 +51,27 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     { name: 'employeeId', label: 'Karyawan absensi', type: 'select', value: existingIdentity?.employeeId ?? '', required: true, options: [{ value: '', label: 'Pilih karyawan' }, ...data.employees.map(e => ({ value: e.id, label: `${e.employeeCode || 'Tanpa kode'} · ${e.fullName}` }))] },
   ];
   else if (mode === 'access') fields = [
-    { name: 'principalKey', label: 'Identitas akun demo', value: existingGrant?.principalKey, required: true, hint: 'Grant contoh tidak membuat akun login AMS.' },
+    { name: 'principalKey', label: 'Identitas akun', value: existingGrant?.principalKey, required: true, hint: 'Contoh: email atau username. Grant ini tidak membuat akun login AMS.' },
     { name: 'displayName', label: 'Nama tampilan', value: existingGrant?.displayName, required: true },
     { name: 'role', label: 'Peran absensi', type: 'select', value: existingGrant?.role ?? 'HR_STAFF', options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })) }, activeField,
   ];
   else fields = [{ name: 'code', label: 'Kode', value: existingMaster?.code, required: true }, { name: 'name', label: 'Nama', value: existingMaster?.name, required: true }, activeField];
+  
+  const handleDeleteGrant = async () => {
+    if (!grantToDelete) return;
+    setIsDeletingGrant(true);
+    setDeleteGrantError(null);
+    try {
+      await execute({ type: 'delete_grant', id: grantToDelete.id });
+      setNotice({ type: 'success', text: `Akses absensi untuk "${grantToDelete.displayName}" berhasil dihapus.` });
+      setGrantToDelete(null);
+    } catch (err: unknown) {
+      setDeleteGrantError((err as Error).message || 'Gagal menghapus akses absensi.');
+    } finally {
+      setIsDeletingGrant(false);
+    }
+  };
+
   const submit = async (form: FormData) => {
     const text = (key: string) => String(form.get(key) ?? '');
     const id = editing?.id ?? 0; const isActive = text('isActive') === 'true';
@@ -54,19 +80,279 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     else if (mode === 'access') await execute({ type: 'grant', value: { id, principalKey: text('principalKey'), displayName: text('displayName'), role: text('role') as AttendanceGrant['role'], isActive } });
     else if (mode !== 'cards') await execute({ type: 'master', collection: mode, value: { id, code: text('code'), name: text('name'), isActive } });
   };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      setNotice(null);
+      const res = await fetch('/api/v1/employees/export', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Gagal mengekspor data karyawan');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `master_karyawan_talenta_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setNotice({ type: 'success', text: 'File Excel data master karyawan berhasil diunduh.' });
+    } catch (err: unknown) {
+      setNotice({ type: 'error', text: (err as Error).message || 'Gagal mengekspor data karyawan' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportSuccess = async () => {
+    try {
+      const [empData, deptData] = await Promise.all([
+        api.get<any[]>('/employees'),
+        api.get<any[]>('/master/departments'),
+      ]);
+      const mappedEmployees: Employee[] = empData.map((e) => ({
+        id: Number(e.id),
+        employeeCode: String(e.employeeId || e.nik || e.employeeCode || ''),
+        fullName: String(e.fullName || e.name || ''),
+        email: String(e.email || ''),
+        departmentId: Number(e.departmentId || 0),
+        locationId: e.locationId ? Number(e.locationId) : null,
+        position: String(e.jobPosition || e.position || ''),
+        isActive: e.isActive !== false,
+      }));
+      const mappedDepartments: MasterItem[] = deptData.map((d) => ({
+        id: Number(d.id),
+        code: String(d.code || ''),
+        name: String(d.name || ''),
+        isActive: d.isActive !== false,
+      }));
+      await execute({
+        type: 'sync_employees',
+        employees: mappedEmployees,
+        departments: mappedDepartments,
+      });
+      setNotice({ type: 'success', text: `${mappedEmployees.length} data karyawan berhasil disinkronkan ke modul absensi.` });
+    } catch (err) {
+      console.error('Failed to sync after import:', err);
+    }
+  };
+
   if (mode === 'access' && !data.meta.canManageAccess) return <Empty text="Pengelolaan akses hanya tersedia bagi pengelola grant." />;
-  return <div className="space-y-6"><Heading title={titles[mode]} description={descriptions[mode]}>
-    {mode === 'identities' && <Link className="hr-btn" href="/dashboard/attendance/identities/sources">Kelola sumber</Link>}
-    {mode === 'sources' && <Link className="hr-btn" href="/dashboard/attendance/identities">Pemetaan identitas</Link>}
-    {mode !== 'cards' && allowed && <button className="hr-btn-primary" onClick={() => setEditing(null)}><Plus size={16} />{mode === 'identities' ? 'Tambah pemetaan' : mode === 'access' ? 'Tambah akses' : 'Tambah data'}</button>}
-  </Heading>
-  <div className="flex flex-wrap items-center justify-between gap-4"><SearchInput value={q} onChange={value => { setQ(value); setPage(1); }} placeholder={mode === "employees" || mode === "cards" ? "Cari nama atau No. ID karyawan" : "Cari kode atau nama"} /><span className="text-xs font-medium text-slate-500">{filtered.length} data</span></div>
-  <div className="hr-panel"><div className="hr-table-wrap"><table className="hr-table"><thead><tr><th>{mode === 'identities' ? 'No. ID mesin' : 'Nama'}</th><th>{mode === 'identities' ? 'Sumber' : mode === 'access' ? 'Akun / peran' : 'Kode / departemen'}</th><th>{mode === 'identities' ? 'Karyawan absensi' : 'Status / lokasi'}</th><th>Aksi</th></tr></thead><tbody>{filtered.slice((currentPage - 1) * 10, currentPage * 10).map(entry => <tr key={entry.id}>
-    <td>{'fullName' in entry ? <EmployeeName employee={entry} detail={entry.position} /> : <span className="font-medium">{'externalNoId' in entry ? entry.externalNoId : titleOf(entry)}</span>}</td>
-    <td>{'fullName' in entry ? data.departments.find(d => d.id === entry.departmentId)?.name : 'externalNoId' in entry ? data.sources.find(s => s.id === entry.sourceId)?.name : 'principalKey' in entry ? <><span>{entry.principalKey}</span><p className="mt-1 text-slate-500">{roleLabels[entry.role]}</p></> : entry.code}</td>
-    <td>{'externalNoId' in entry ? data.employees.find(e => e.id === entry.employeeId)?.fullName : <><span className={entry.isActive ? 'text-emerald-700' : 'text-slate-500'}>{entry.isActive ? 'Aktif' : 'Nonaktif'}</span>{'locationId' in entry && <p className="mt-1 text-slate-500">{data.locations.find(l => l.id === entry.locationId)?.name ?? 'Lokasi belum ditentukan'}</p>}</>}</td>
-    <td><div className="flex gap-2">{'fullName' in entry && <Link className="hr-btn" href={`/dashboard/attendance/employees/${entry.id}`}>Lihat kartu</Link>}{mode !== 'cards' && allowed && <button className="hr-btn" onClick={() => setEditing(entry)}>Edit</button>}</div></td>
-  </tr>)}</tbody></table></div>{!filtered.length && <Empty text={q ? 'Tidak ada hasil pencarian.' : 'Belum ada data. Tambahkan melalui tombol di atas.'} />}<Pagination total={filtered.length} page={currentPage} onChange={setPage} /></div>
-  {editing !== undefined && <FormDialog title={`${editing ? 'Edit' : 'Tambah'} ${mode === 'identities' ? 'pemetaan' : mode === 'access' ? 'akses' : mode === 'employees' ? 'karyawan absensi' : 'data master'}`} fields={fields} onClose={() => setEditing(undefined)} onSubmit={submit} />}
-  </div>;
+  return (
+    <div className="space-y-6">
+      <Heading title={titles[mode]} description={descriptions[mode]}>
+        {mode === 'identities' && <Link className="hr-btn" href="/dashboard/attendance/identities/sources">Kelola sumber</Link>}
+        {mode === 'sources' && <Link className="hr-btn" href="/dashboard/attendance/identities">Pemetaan identitas</Link>}
+        {mode === 'employees' && (
+          <>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="hr-btn flex items-center gap-1.5"
+              title="Ekspor seluruh data karyawan aktif ke file Excel format Talenta"
+            >
+              {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              <span>{isExporting ? 'Mengekspor...' : 'Export Excel'}</span>
+            </button>
+            {allowed && (
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="hr-btn flex items-center gap-1.5"
+                title="Impor data master karyawan dari file Excel format Talenta"
+              >
+                <Upload size={16} />
+                <span>Import Excel</span>
+              </button>
+            )}
+          </>
+        )}
+        {mode !== 'cards' && allowed && (
+          <button className="hr-btn-primary" onClick={() => setEditing(null)}>
+            <Plus size={16} />
+            {mode === 'identities' ? 'Tambah pemetaan' : mode === 'access' ? 'Tambah akses' : 'Tambah data'}
+          </button>
+        )}
+      </Heading>
+
+      {notice && (
+        <div
+          className={`flex items-center justify-between rounded-xl border p-3.5 text-xs font-medium transition-all ${
+            notice.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-rose-200 bg-rose-50 text-rose-900'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="ml-3 font-semibold underline hover:opacity-75"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <SearchInput
+          value={q}
+          onChange={(value) => {
+            setQ(value);
+            setPage(1);
+          }}
+          placeholder={mode === 'employees' || mode === 'cards' ? 'Cari nama atau No. ID karyawan' : 'Cari kode atau nama'}
+        />
+        <span className="text-xs font-medium text-slate-500">{filtered.length} data</span>
+      </div>
+
+      <div className="hr-panel">
+        <div className="hr-table-wrap">
+          <table className="hr-table">
+            <thead>
+              <tr>
+                <th>{mode === 'identities' ? 'No. ID mesin' : 'Nama'}</th>
+                <th>{mode === 'identities' ? 'Sumber' : mode === 'access' ? 'Akun / peran' : 'Kode / departemen'}</th>
+                <th>{mode === 'identities' ? 'Karyawan absensi' : 'Status / lokasi'}</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.slice((currentPage - 1) * 10, currentPage * 10).map((entry) => (
+                <tr key={entry.id}>
+                  <td>
+                    {'fullName' in entry ? (
+                      <EmployeeName employee={entry} detail={entry.position} />
+                    ) : (
+                      <span className="font-medium">{'externalNoId' in entry ? entry.externalNoId : titleOf(entry)}</span>
+                    )}
+                  </td>
+                  <td>
+                    {'fullName' in entry ? (
+                      data.departments.find((d) => d.id === entry.departmentId)?.name || '-'
+                    ) : 'externalNoId' in entry ? (
+                      data.sources.find((s) => s.id === entry.sourceId)?.name
+                    ) : 'principalKey' in entry ? (
+                      <>
+                        <span>{entry.principalKey}</span>
+                        <p className="mt-1 text-slate-500">{roleLabels[entry.role]}</p>
+                      </>
+                    ) : (
+                      entry.code
+                    )}
+                  </td>
+                  <td>
+                    {'externalNoId' in entry ? (
+                      data.employees.find((e) => e.id === entry.employeeId)?.fullName
+                    ) : (
+                      <>
+                        <span className={entry.isActive ? 'text-emerald-700' : 'text-slate-500'}>
+                          {entry.isActive ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                        {'locationId' in entry && (
+                          <p className="mt-1 text-slate-500">
+                            {data.locations.find((l) => l.id === entry.locationId)?.name ?? 'Lokasi belum ditentukan'}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      {'fullName' in entry && (
+                        <Link className="hr-btn" href={`/dashboard/attendance/employees/${entry.id}`}>
+                          Lihat kartu
+                        </Link>
+                      )}
+                      {mode !== 'cards' && allowed && (
+                        <button className="hr-btn" onClick={() => setEditing(entry)}>
+                          Edit
+                        </button>
+                      )}
+                      {mode === 'access' && allowed && (
+                        <button
+                          type="button"
+                          className="hr-btn text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+                          onClick={() => {
+                            setDeleteGrantError(null);
+                            setGrantToDelete(entry as AttendanceGrant);
+                          }}
+                          title="Hapus Akses"
+                        >
+                          <Trash2 size={13} className="text-rose-600" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!filtered.length && (
+          <Empty text={q ? 'Tidak ada hasil pencarian.' : 'Belum ada data. Tambahkan melalui tombol di atas.'} />
+        )}
+        <Pagination total={filtered.length} page={currentPage} onChange={setPage} />
+      </div>
+
+      {editing !== undefined && (
+        <FormDialog
+          title={`${editing ? 'Edit' : 'Tambah'} ${
+            mode === 'identities'
+              ? 'pemetaan'
+              : mode === 'access'
+              ? 'akses'
+              : mode === 'employees'
+              ? 'karyawan absensi'
+              : 'data master'
+          }`}
+          fields={fields}
+          onClose={() => setEditing(undefined)}
+          onSubmit={submit}
+        />
+      )}
+
+      {mode === 'employees' && (
+        <EmployeeImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onSuccess={handleImportSuccess}
+        />
+      )}
+
+      {grantToDelete && (
+        <ConfirmDeleteModal
+          isOpen={true}
+          onClose={() => {
+            if (!isDeletingGrant) {
+              setGrantToDelete(null);
+              setDeleteGrantError(null);
+            }
+          }}
+          onConfirm={handleDeleteGrant}
+          title="Hapus Akses Absensi"
+          description="Apakah Anda yakin ingin menghapus akses absensi ini? Akun tersebut tidak lagi memiliki izin khusus pada modul absensi."
+          itemName={grantToDelete.displayName}
+          itemDetails={[
+            { label: 'Identitas Akun', value: grantToDelete.principalKey },
+            { label: 'Nama Tampilan', value: grantToDelete.displayName },
+            { label: 'Peran Absensi', value: roleLabels[grantToDelete.role] || grantToDelete.role },
+          ]}
+          confirmText="Hapus Akses"
+          variant="danger"
+          isLoading={isDeletingGrant}
+          error={deleteGrantError}
+        />
+      )}
+    </div>
+  );
 }

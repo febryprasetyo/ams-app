@@ -23,7 +23,7 @@ export default function PeripheralSummary({
     <div className="mt-2 p-3 bg-slate-50/90 border border-slate-200/80 rounded-xl space-y-2">
       <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-700">
         <div className="flex items-center gap-1.5">
-          <Printer className="w-3.5 h-3.5 text-sky-600" />
+          <Printer className="w-3.5 h-3.5 text-emerald-600" />
           <span>Periferal Terlampir ({peripherals.length} unit):</span>
         </div>
       </div>
@@ -45,11 +45,11 @@ export default function PeripheralSummary({
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${
                     isPrinter
-                      ? 'bg-sky-50 text-sky-700 border-sky-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : isScanner
-                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
                       : isMonitor
-                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-amber-50 text-amber-800 border-amber-200'
                   }`}
                 >

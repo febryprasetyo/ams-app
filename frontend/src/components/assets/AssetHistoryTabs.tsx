@@ -49,7 +49,7 @@ export default function AssetHistoryTabs({
           onClick={() => setActiveTab('transfers')}
           className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'transfers'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
@@ -63,7 +63,7 @@ export default function AssetHistoryTabs({
           onClick={() => setActiveTab('maintenance')}
           className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'maintenance'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
@@ -77,7 +77,7 @@ export default function AssetHistoryTabs({
           onClick={() => setActiveTab('audit')}
           className={`px-4 py-2 text-xs font-mono font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 ${
             activeTab === 'audit'
-              ? 'bg-red-600 text-white shadow-sm'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
           }`}
         >
@@ -99,7 +99,7 @@ export default function AssetHistoryTabs({
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-blue-600" />
+                      <UserCheck className="w-4 h-4 text-emerald-600" />
                       <span className="font-bold text-slate-900 text-sm">
                         {item.employeeName || 'Unknown Staff'}
                       </span>
@@ -129,7 +129,7 @@ export default function AssetHistoryTabs({
                         <span>Returned: {new Date(item.returnedAt).toLocaleDateString()}</span>
                       </div>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-bold text-[10px] border border-blue-200">
+                      <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px] border border-emerald-200">
                         Current Active Custodian
                       </span>
                     )}
@@ -214,7 +214,7 @@ export default function AssetHistoryTabs({
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-red-600 uppercase tracking-wider text-[11px]">
+                      <span className="font-bold text-emerald-600 uppercase tracking-wider text-[11px]">
                         {item.action}
                       </span>
                       <span className="text-slate-700">

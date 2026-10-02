@@ -87,7 +87,7 @@ export default function AccurateServerCard({
           type="button"
           onClick={onSync}
           disabled={isSyncing || !server.licenseServerUrl}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 transition-colors cursor-pointer"
         >
           <RefreshCw
             className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`}
@@ -99,7 +99,7 @@ export default function AccurateServerCard({
             href={server.licenseServerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-red-600 transition-colors"
+            className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-emerald-600 transition-colors"
             title="Buka License Server"
           >
             <ExternalLink className="h-4 w-4" />

@@ -29,13 +29,43 @@ export function filterRecords(data: AttendanceDataset, filter: RecordFilter): At
   return data.records.filter(r => ids.has(r.employeeId) && r.workDate >= filter.startDate && r.workDate <= filter.endDate);
 }
 export function summarizeEmployees(data: AttendanceDataset, filter: RecordFilter): EmployeeReport[] {
-  const totals = new Map<number, { recordCount: number; lateMinutes: number; overtimeMinutes: number }>();
+  const totals = new Map<number, {
+    recordCount: number;
+    lateMinutes: number;
+    overtimeMinutes: number;
+    sakitCount: number;
+    izinCount: number;
+    cutiCount: number;
+  }>();
+
   for (const r of filterRecords(data, filter)) {
-    const row = totals.get(r.employeeId) ?? { recordCount: 0, lateMinutes: 0, overtimeMinutes: 0 };
-    row.recordCount++; row.lateMinutes += r.lateMinutes; row.overtimeMinutes += r.overtimeMinutes;
+    const row = totals.get(r.employeeId) ?? {
+      recordCount: 0,
+      lateMinutes: 0,
+      overtimeMinutes: 0,
+      sakitCount: 0,
+      izinCount: 0,
+      cutiCount: 0,
+    };
+    row.recordCount++;
+    row.lateMinutes += r.lateMinutes || 0;
+    row.overtimeMinutes += r.overtimeMinutes || 0;
+    if (r.attendanceStatus === 'SAKIT') row.sakitCount++;
+    else if (r.attendanceStatus === 'IZIN') row.izinCount++;
+    else if (r.attendanceStatus === 'CUTI') row.cutiCount++;
     totals.set(r.employeeId, row);
   }
-  return filterEmployees(data, filter).map(employee => ({ employee, ...(totals.get(employee.id) ?? { recordCount: 0, lateMinutes: 0, overtimeMinutes: 0 }) }));
+  return filterEmployees(data, filter).map(employee => ({
+    employee,
+    ...(totals.get(employee.id) ?? {
+      recordCount: 0,
+      lateMinutes: 0,
+      overtimeMinutes: 0,
+      sakitCount: 0,
+      izinCount: 0,
+      cutiCount: 0,
+    }),
+  }));
 }
 function csvCell(value: string | number) {
   const raw = String(value);
@@ -69,4 +99,89 @@ export function parseImportRows(text: string): ImportRow[] {
     }
     return { id: index + 1, externalNoId: r.externalNoId.trim(), employeeId: null, workDate: r.workDate, scanIn: r.scanIn as string | null, scanOut: r.scanOut as string | null, lateMinutes: r.lateMinutes as number, earlyMinutes: r.earlyMinutes as number, overtimeMinutes: r.overtimeMinutes as number, reviewStatus: 'BLOCKED', note: '' };
   });
+}
+
+export function getJakartaToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+export function subtractOneMonth(dateStr: string): string {
+  if (!validDate(dateStr)) return dateStr;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  let targetYear = y;
+  let targetMonth = m - 1;
+  if (targetMonth === 0) {
+    targetYear -= 1;
+    targetMonth = 12;
+  }
+  const maxDays = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+  const targetDay = Math.min(d, maxDays);
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+}
+
+export function getDefaultAttendancePeriod(data: AttendanceDataset, employeeId?: number): { startDate: string; endDate: string } {
+  const records = employeeId
+    ? data.records.filter(r => r.employeeId === employeeId)
+    : data.records;
+
+  const today = getJakartaToday();
+
+  let latestDate = '';
+  for (const r of records) {
+    if (r.workDate && (!latestDate || r.workDate > latestDate)) {
+      latestDate = r.workDate;
+    }
+  }
+
+  if (!latestDate && employeeId && data.records.length > 0) {
+    for (const r of data.records) {
+      if (r.workDate && (!latestDate || r.workDate > latestDate)) {
+        latestDate = r.workDate;
+      }
+    }
+  }
+
+  if (!latestDate) {
+    latestDate = (data.meta?.defaultDate && validDate(data.meta.defaultDate))
+      ? data.meta.defaultDate
+      : today;
+  }
+
+  let baseDate = latestDate;
+  if (today >= latestDate) {
+    const diffDays = (Date.parse(today) - Date.parse(latestDate)) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 31) {
+      baseDate = today;
+    }
+  }
+
+  // Calculate 21st-to-20th cut-off cycle containing baseDate
+  const [y, m, d] = baseDate.split('-').map(Number);
+  let cycleMonth = m;
+  let cycleYear = y;
+
+  if (d < 21) {
+    cycleMonth = m === 1 ? 12 : m - 1;
+    cycleYear = m === 1 ? y - 1 : y;
+  }
+
+  const nextMonth = cycleMonth === 12 ? 1 : cycleMonth + 1;
+  const nextYear = cycleMonth === 12 ? cycleYear + 1 : cycleYear;
+
+  const startMonthStr = String(cycleMonth).padStart(2, '0');
+  const endMonthStr = String(nextMonth).padStart(2, '0');
+
+  return {
+    startDate: `${cycleYear}-${startMonthStr}-21`,
+    endDate: `${nextYear}-${endMonthStr}-20`,
+  };
+}
+
+export function sortRecordsDescending(records: AttendanceRecord[]): AttendanceRecord[] {
+  return [...records].sort((a, b) => b.workDate.localeCompare(a.workDate) || (b.id - a.id));
 }

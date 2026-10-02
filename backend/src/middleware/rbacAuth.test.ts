@@ -70,6 +70,27 @@ test('requirePermission returns 403 when user lacks permission', async () => {
   assert.match(body.error, /Missing permission/);
 });
 
+test('requirePermission supports array of permission codes and allows if user has one', async () => {
+  const middleware = requirePermission(['master.view', 'attendance.view']);
+  let nextCalled = false;
+  // ITStaff has master.view fallback
+  const req: any = {
+    user: { userId: 999999, roleName: 'ITStaff', roleId: 999999, email: 'staff@company.com' },
+  };
+  const res: any = {
+    status(code: number) {
+      this.statusCode = code;
+      return this;
+    },
+    json(b: any) {
+      this.body = b;
+      return this;
+    },
+  };
+  await middleware(req, res, () => { nextCalled = true; });
+  assert.equal(nextCalled, true, 'User with one matching permission should be allowed');
+});
+
 test('getUserPermissions returns all permissions for SuperAdmin', async () => {
   const perms = await getUserPermissions(undefined, 'SuperAdmin');
   assert.ok(perms.length >= 20);

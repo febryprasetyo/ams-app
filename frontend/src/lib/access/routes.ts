@@ -190,7 +190,7 @@ export function getDefaultRedirectForUser(
     normRole.includes('attendance') ||
     perms.includes('attendance.view')
   ) {
-    return '/dashboard/attendance';
+    return '/dashboard/attendance/overview';
   }
 
   // IT Asset role

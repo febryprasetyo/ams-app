@@ -74,7 +74,8 @@ export type AttendanceCommand =
   | { type: 'employee'; value: Employee }
   | { type: 'master'; collection: 'departments' | 'locations' | 'sources'; value: MasterItem }
   | { type: 'identity'; value: Identity }
-  | { type: 'grant'; value: AttendanceGrant }
+  | { type: 'grant'; value: AttendanceGrant; action?: 'save' | 'delete' }
+  | { type: 'delete_grant'; id: number }
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
   | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
   | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }

@@ -42,7 +42,7 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
 }
 export function applyCommand(input: AttendanceDataset, command: AttendanceCommand): AttendanceDataset {
   const admin = input.meta.role === 'HR_ADMIN';
-  if (command.type === 'grant' ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
+  if ((command.type === 'grant' || command.type === 'delete_grant') ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
   if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
   const data = structuredClone(input);
   const now = new Date().toISOString();
@@ -92,12 +92,24 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       action = 'Pemetaan identitas diperbarui'; detail = v.externalNoId; break;
     }
     case 'grant': {
+      if (command.action === 'delete') {
+        const target = data.grants.find(g => g.id === command.value.id);
+        if (!target) throw new Error('Akses tidak ditemukan.');
+        data.grants = data.grants.filter(g => g.id !== command.value.id);
+        action = 'Akses demo dihapus'; detail = target.displayName; break;
+      }
       const v = { ...command.value, principalKey: command.value.principalKey.trim(), displayName: command.value.displayName.trim() };
       if (!v.principalKey || !v.displayName) throw new Error('Akun dan nama wajib diisi.');
       if (data.grants.some(g => g.id !== v.id && g.principalKey === v.principalKey)) throw new Error('Akun sudah mempunyai grant.');
       if (!v.id) { v.id = nextId(data.grants); data.grants.push(v); }
       else data.grants = data.grants.map(g => g.id === v.id ? v : g);
       action = 'Akses demo diperbarui'; detail = v.displayName; break;
+    }
+    case 'delete_grant': {
+      const target = data.grants.find(g => g.id === command.id);
+      if (!target) throw new Error('Akses tidak ditemukan.');
+      data.grants = data.grants.filter(g => g.id !== command.id);
+      action = 'Akses demo dihapus'; detail = target.displayName; break;
     }
     case 'lock': {
       requireReason(command.reason);

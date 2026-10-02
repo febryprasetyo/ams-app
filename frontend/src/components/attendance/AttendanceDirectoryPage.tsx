@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Download, Upload, Loader2 } from 'lucide-react';
+import { Plus, Download, Upload, Loader2, Trash2 } from 'lucide-react';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, Empty, EmployeeName, FormDialog, Pagination, type Field } from './shared';
 import EmployeeImportModal from '@/components/master/EmployeeImportModal';
@@ -21,6 +22,9 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   const [isExporting, setIsExporting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [grantToDelete, setGrantToDelete] = useState<AttendanceGrant | null>(null);
+  const [isDeletingGrant, setIsDeletingGrant] = useState(false);
+  const [deleteGrantError, setDeleteGrantError] = useState<string | null>(null);
 
   const allowed = mode === 'access' ? data.meta.canManageAccess : canWrite;
   const entries: Entry[] = mode === 'cards' || mode === 'employees' ? data.employees : mode === 'access' ? data.grants : data[mode];
@@ -53,6 +57,21 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   ];
   else fields = [{ name: 'code', label: 'Kode', value: existingMaster?.code, required: true }, { name: 'name', label: 'Nama', value: existingMaster?.name, required: true }, activeField];
   
+  const handleDeleteGrant = async () => {
+    if (!grantToDelete) return;
+    setIsDeletingGrant(true);
+    setDeleteGrantError(null);
+    try {
+      await execute({ type: 'delete_grant', id: grantToDelete.id });
+      setNotice({ type: 'success', text: `Akses absensi untuk "${grantToDelete.displayName}" berhasil dihapus.` });
+      setGrantToDelete(null);
+    } catch (err: unknown) {
+      setDeleteGrantError((err as Error).message || 'Gagal menghapus akses absensi.');
+    } finally {
+      setIsDeletingGrant(false);
+    }
+  };
+
   const submit = async (form: FormData) => {
     const text = (key: string) => String(form.get(key) ?? '');
     const id = editing?.id ?? 0; const isActive = text('isActive') === 'true';
@@ -247,7 +266,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
                     )}
                   </td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       {'fullName' in entry && (
                         <Link className="hr-btn" href={`/dashboard/attendance/employees/${entry.id}`}>
                           Lihat kartu
@@ -256,6 +275,20 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
                       {mode !== 'cards' && allowed && (
                         <button className="hr-btn" onClick={() => setEditing(entry)}>
                           Edit
+                        </button>
+                      )}
+                      {mode === 'access' && allowed && (
+                        <button
+                          type="button"
+                          className="hr-btn text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+                          onClick={() => {
+                            setDeleteGrantError(null);
+                            setGrantToDelete(entry as AttendanceGrant);
+                          }}
+                          title="Hapus Akses"
+                        >
+                          <Trash2 size={13} className="text-rose-600" />
+                          <span>Hapus</span>
                         </button>
                       )}
                     </div>
@@ -293,6 +326,31 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
           onSuccess={handleImportSuccess}
+        />
+      )}
+
+      {grantToDelete && (
+        <ConfirmDeleteModal
+          isOpen={true}
+          onClose={() => {
+            if (!isDeletingGrant) {
+              setGrantToDelete(null);
+              setDeleteGrantError(null);
+            }
+          }}
+          onConfirm={handleDeleteGrant}
+          title="Hapus Akses Absensi"
+          description="Apakah Anda yakin ingin menghapus akses absensi ini? Akun tersebut tidak lagi memiliki izin khusus pada modul absensi."
+          itemName={grantToDelete.displayName}
+          itemDetails={[
+            { label: 'Identitas Akun', value: grantToDelete.principalKey },
+            { label: 'Nama Tampilan', value: grantToDelete.displayName },
+            { label: 'Peran Absensi', value: roleLabels[grantToDelete.role] || grantToDelete.role },
+          ]}
+          confirmText="Hapus Akses"
+          variant="danger"
+          isLoading={isDeletingGrant}
+          error={deleteGrantError}
         />
       )}
     </div>

@@ -52,4 +52,8 @@ GEMINI.md
 # Sensitive / local data & prompt references
 *.xlsx
 docs/WhatsApp Image*
-docs/view-attd-talenta.md
+/docs/*
+/design-system/*
+/hardware-collector/*
+/scripts/*
+/tests/*

@@ -53,13 +53,15 @@ jobs:
           bash scripts/validate-compose.sh dev
           bash scripts/validate-compose.sh prod
 
-      - name: Run Database Migrations against Ephemeral DB
+      - name: Run Database Migrations and Seed against Ephemeral DB
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
           JWT_SECRET: ci-jwt-secret-do-not-use-in-production-1234
           JWT_REFRESH_SECRET: ci-jwt-refresh-secret-do-not-use-in-production-1234
           AGENT_API_KEY: ci-agent-key-do-not-use-in-production-1234
-        run: npm run db:migrate --prefix backend
+        run: |
+          npm run db:migrate --prefix backend
+          npm run seed --prefix backend
 
       - name: Run Backend Tests
         env:

@@ -28,4 +28,30 @@ coverage/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# AI Agent rules & configurations
+.agents/
+frontend/.agents/
+*AGENTS.md
+*CLAUDE.md
+GEMINI.md
+
+# AI Tools & skills
 /.superpowers/
+/docs/superpowers/
+/graphify-out/
+/anti-slop/
+
+# Sensitive / local data & prompt references
+*.xlsx
+docs/WhatsApp Image*
+/docs/*
+/design-system/*
+/hardware-collector/*

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TalentaMonthPickerPopoverProps {
   selectedYear: number;
@@ -23,11 +23,6 @@ export function TalentaMonthPickerPopover({
   const [navYear, setNavYear] = useState(selectedYear);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync navYear when selectedYear changes
-  useEffect(() => {
-    setNavYear(selectedYear);
-  }, [selectedYear]);
-
   // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -43,7 +38,15 @@ export function TalentaMonthPickerPopover({
 
   const startMonthName = MONTHS_SHORT[selectedMonth - 1];
   const nextMonthName = MONTHS_SHORT[selectedMonth % 12];
-  const currentMonthLabel = `${startMonthName} ${selectedYear} (21 ${startMonthName} – 20 ${nextMonthName})`;
+  // Talenta-style button label: clean "Aug 2026"
+  const buttonLabel = `${startMonthName} ${selectedYear}`;
+
+  const toggleOpen = () => {
+    if (!isOpen) {
+      setNavYear(selectedYear);
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleSelectMonth = (monthIndex: number) => {
     onSelect(navYear, monthIndex + 1);
@@ -63,19 +66,28 @@ export function TalentaMonthPickerPopover({
     <div className="relative inline-block text-left" ref={containerRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer"
+        onClick={toggleOpen}
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer shrink-0"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <span>{currentMonthLabel}</span>
-        <Calendar size={14} className="text-slate-400" />
+        <Calendar size={13} className="text-slate-400" />
+        <span>{buttonLabel}</span>
+        <ChevronDown size={13} className="text-slate-400 transition-transform duration-150" style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 z-50 w-64 rounded-xl bg-white border border-slate-200 shadow-lg p-3 text-xs animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 mt-2 z-50 w-64 rounded-xl bg-white border border-slate-200 shadow-xl p-3 text-xs animate-in fade-in zoom-in-95 duration-100">
+          {/* Header with Cut-off Cycle hint */}
+          <div className="mb-2 pb-1.5 border-b border-slate-100 text-center">
+            <span className="text-[10px] text-slate-400 block font-medium">Siklus Cut-Off</span>
+            <span className="text-[11px] font-semibold text-slate-700">
+              21 {startMonthName} – 20 {nextMonthName}
+            </span>
+          </div>
+
           {/* Year Navigator */}
-          <div className="flex items-center justify-between px-2 py-1 mb-2 border-b border-slate-100">
+          <div className="flex items-center justify-between px-2 py-1 mb-2">
             <button
               type="button"
               onClick={() => setNavYear(navYear - 1)}
@@ -84,7 +96,7 @@ export function TalentaMonthPickerPopover({
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="font-bold text-slate-800 text-sm tabular-nums">
+            <span className="font-bold text-slate-900 text-sm tabular-nums">
               {navYear}
             </span>
             <button

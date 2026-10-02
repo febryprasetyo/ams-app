@@ -192,7 +192,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
             </Link>
             <button
               type="button"
-              className="hr-btn text-xs inline-flex items-center gap-1.5"
+              className="hr-btn-primary text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
               disabled={!!error || !calendarRows.length}
               onClick={() => {
                 exportAttendanceReportToExcel(reports, filter, {
@@ -203,7 +203,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                 });
               }}
             >
-              <Download size={13} className="text-slate-500" />
+              <Download size={13} />
               <span>Ekspor Excel</span>
             </button>
           </div>
@@ -212,33 +212,26 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         <Heading
           title="Laporan Rekap Absensi"
           description="Rekap keterlambatan, lembur, dan kehadiran karyawan berdasarkan catatan final pada siklus cut-off 21 s.d. 20."
-        >
-          <button
-            className="hr-btn-primary"
-            disabled={!!error || !reports.length}
-            onClick={() => setIsExportModalOpen(true)}
-          >
-            <Download size={15} />
-            Ekspor Excel (.xlsx)
-          </button>
-        </Heading>
+        />
       )}
 
-      {/* FILTER TOOLBAR: Month Popover + Direct Department Filter + Search Input */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Month Popover (Talenta style) */}
+      {/* FILTER TOOLBAR: 1-Line horizontal bar (No 3-tier stacking) */}
+      <div className="flex items-center justify-between gap-3 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs overflow-x-auto">
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Month Popover (Talenta style: clean "Aug 2026") */}
           <TalentaMonthPickerPopover
             selectedYear={activeYear}
             selectedMonth={activeMonth}
             onSelect={handleSelectMonth}
           />
 
+          <div className="h-4 w-px bg-slate-200 shrink-0" />
+
           {/* Direct Department Dropdown (Replacing All filters) */}
           {!anonymous && (
             <select
               aria-label="Filter Departemen"
-              className="hr-input text-xs h-8.5 rounded-lg border-slate-200 bg-white px-2.5 font-medium text-slate-700 hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="hr-input text-xs h-8.5 rounded-lg border-slate-200 bg-white px-2.5 font-medium text-slate-700 hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shrink-0"
               value={departmentId}
               onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}
             >
@@ -251,24 +244,29 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
 
           {/* Search Input for rekap view */}
           {!employee && !anonymous && (
-            <div className="w-56 sm:w-64">
+            <div className="w-52 shrink-0">
               <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} placeholder="Cari nama karyawan..." />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-slate-500">
-            Periode Awal: <strong className="text-slate-800 font-semibold">{dateLabel(startDate)}</strong> · Periode Akhir: <strong className="text-slate-800 font-semibold">{dateLabel(endDate)}</strong>
-          </span>
+        <div className="flex items-center gap-3 shrink-0 ml-auto">
+          <div className="text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/80 whitespace-nowrap">
+            <span>Periode Awal: </span>
+            <strong className="text-slate-800 font-semibold">{dateLabel(startDate)}</strong>
+            <span className="text-slate-300 mx-1.5">|</span>
+            <span>Periode Akhir: </span>
+            <strong className="text-slate-800 font-semibold">{dateLabel(endDate)}</strong>
+          </div>
+
           {!employee && (
             <button
               type="button"
-              className="hr-btn text-xs inline-flex items-center gap-1.5 ml-2 cursor-pointer"
+              className="hr-btn-primary text-xs inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg shadow-xs cursor-pointer shrink-0"
               disabled={!!error || !reports.length}
               onClick={() => setIsExportModalOpen(true)}
             >
-              <Download size={13} className="text-slate-500" />
+              <Download size={13} />
               <span>Ekspor Excel</span>
             </button>
           )}
@@ -343,7 +341,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                         <td className="text-center tabular-nums">{r.sakitCount || <span className="text-slate-400">0</span>}</td>
                         <td className="text-center tabular-nums">{r.cutiCount || <span className="text-slate-400">0</span>}</td>
                         <td className="text-right">
-                          <Link className="hr-btn" href={`/dashboard/attendance/employees/${r.employee.id}`}>
+                          <Link className="hr-btn" href={`/dashboard/attendance/reports?employeeId=${r.employee.id}`}>
                             Lihat kartu
                           </Link>
                         </td>

@@ -184,3 +184,53 @@ export function calculateTalentaKpi(
     nextWorkdays,
   };
 }
+
+export type TalentaKpiFilterKey =
+  | 'ALL'
+  | 'EARLY_CLOCK_OUT'
+  | 'NO_CLOCK_OUT'
+  | 'NO_CLOCK_IN'
+  | 'INVALID'
+  | 'ABSENT'
+  | 'DAY_OFF'
+  | 'TIME_OFF'
+  | 'NEXT_WORKDAYS';
+
+/**
+ * Filter calendar day rows based on active Talenta KPI card selection
+ */
+export function filterTalentaRows(
+  rows: CalendarDayRow[],
+  filterKey: TalentaKpiFilterKey,
+  todayDateStr?: string
+): CalendarDayRow[] {
+  if (!filterKey || filterKey === 'ALL') return rows;
+  const today = todayDateStr || new Date().toISOString().slice(0, 10);
+
+  return rows.filter((row) => {
+    const isFuture = row.date > today;
+    const r = row.record;
+
+    switch (filterKey) {
+      case 'EARLY_CLOCK_OUT':
+        return r?.attendanceStatus === 'PRESENT' && (r.earlyMinutes || 0) > 0;
+      case 'NO_CLOCK_OUT':
+        return r?.attendanceStatus === 'PRESENT' && !!r.scanIn && !r.scanOut;
+      case 'NO_CLOCK_IN':
+        return r?.attendanceStatus === 'PRESENT' && !r.scanIn && !!r.scanOut;
+      case 'INVALID':
+        return (r?.attendanceStatus as string) === 'INVALID';
+      case 'ABSENT':
+        if (r?.attendanceStatus === 'ALPHA') return true;
+        return !r && !row.isDayOff && row.date <= today;
+      case 'DAY_OFF':
+        return !!row.isDayOff;
+      case 'TIME_OFF':
+        return !!r && ['SAKIT', 'CUTI', 'IZIN'].includes(r.attendanceStatus);
+      case 'NEXT_WORKDAYS':
+        return !r && !row.isDayOff && isFuture;
+      default:
+        return true;
+    }
+  });
+}

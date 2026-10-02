@@ -25,7 +25,7 @@ import {
   type WorkShift,
   type CalendarDayRow,
 } from '@/lib/attendance/scheduleShift';
-import { calculateTalentaKpi } from '@/lib/attendance/talentaCard';
+import { calculateTalentaKpi, filterTalentaRows, type TalentaKpiFilterKey } from '@/lib/attendance/talentaCard';
 import { exportAttendanceReportToExcel } from '@/lib/attendance/excelExport';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
@@ -58,6 +58,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
   }, [defaultPeriod.endDate]);
 
   const [selectedCycleIndex, setSelectedCycleIndex] = useState<number>(0);
+  const [kpiFilter, setKpiFilter] = useState<TalentaKpiFilterKey>('ALL');
   const [showAllFilters, setShowAllFilters] = useState(false);
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
   const [startDate, setStart] = useState(defaultPeriod.startDate);
@@ -77,6 +78,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         setEnd(defaultPeriod.endDate);
       }
     }
+    setKpiFilter('ALL');
     setPage(1);
   }, [employeeId, defaultPeriod.startDate, defaultPeriod.endDate, isCustomPeriod, payrollMonths]);
 
@@ -114,6 +116,11 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
     return calculateTalentaKpi(calendarRows);
   }, [employeeId, calendarRows]);
 
+  // Filter calendar rows based on active KPI card filter
+  const displayedCalendarRows = useMemo(() => {
+    return filterTalentaRows(calendarRows, kpiFilter);
+  }, [calendarRows, kpiFilter]);
+
   const count = employeeId ? calendarRows.length : reports.length;
   const pageSize = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(count / pageSize)));
@@ -133,6 +140,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
     setStart(cycle.startDate);
     setEnd(cycle.endDate);
     setIsCustomPeriod(false);
+    setKpiFilter('ALL');
     setPage(1);
 
     const matchIdx = payrollMonths.findIndex(p => p.year === year && p.month === month);
@@ -347,7 +355,11 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         <>
           {/* TALENTA 3-SEGMENT KPI STRIP (Neutral, un-rainbow, single container) */}
           {employee && talentaKpi && (
-            <TalentaKpiStrip kpi={talentaKpi} />
+            <TalentaKpiStrip
+              kpi={talentaKpi}
+              activeFilter={kpiFilter}
+              onSelectFilter={setKpiFilter}
+            />
           )}
 
           {!employee && (
@@ -361,9 +373,11 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
           {/* ATTENDANCE TABLE */}
           {employee ? (
             <TalentaAttendanceTable
-              rows={calendarRows}
+              rows={displayedCalendarRows}
               canWrite={canWrite}
               onEdit={target => setEditingTarget(target)}
+              activeFilter={kpiFilter}
+              onResetFilter={() => setKpiFilter('ALL')}
             />
           ) : anonymous ? (
             <div className="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-600">

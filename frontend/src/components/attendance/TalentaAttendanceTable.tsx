@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArrowUpDown, Edit3 } from 'lucide-react';
-import { formatTalentaRow, type TalentaFormattedRow } from '@/lib/attendance/talentaCard';
+import { ArrowUpDown, Edit3, X } from 'lucide-react';
+import { formatTalentaRow, type TalentaFormattedRow, type TalentaKpiFilterKey } from '@/lib/attendance/talentaCard';
 import type { CalendarDayRow } from '@/lib/attendance/scheduleShift';
 import type { AttendanceRecord } from '@/lib/attendance/types';
 
@@ -10,15 +10,31 @@ interface TalentaAttendanceTableProps {
   rows: CalendarDayRow[];
   canWrite: boolean;
   onEdit: (row: { date: string; existingRecord?: AttendanceRecord | null }) => void;
+  activeFilter?: TalentaKpiFilterKey;
+  onResetFilter?: () => void;
 }
 
 type SortField = 'date' | 'shift' | 'scheduleIn' | 'scheduleOut' | 'clockIn' | 'clockOut';
 type SortDirection = 'asc' | 'desc';
 
+const FILTER_LABELS: Record<TalentaKpiFilterKey, string> = {
+  ALL: 'Semua Catatan',
+  EARLY_CLOCK_OUT: 'Early clock out',
+  NO_CLOCK_OUT: 'No clock out',
+  NO_CLOCK_IN: 'No clock in',
+  INVALID: 'Invalid',
+  ABSENT: 'Absent',
+  DAY_OFF: 'Day off',
+  TIME_OFF: 'Time off',
+  NEXT_WORKDAYS: 'Next workdays',
+};
+
 export function TalentaAttendanceTable({
   rows,
   canWrite,
   onEdit,
+  activeFilter = 'ALL',
+  onResetFilter,
 }: TalentaAttendanceTableProps) {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
@@ -53,11 +69,35 @@ export function TalentaAttendanceTable({
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      {/* Active Filter Indicator Banner */}
+      {activeFilter !== 'ALL' && (
+        <div className="bg-blue-50/70 border-b border-blue-100/90 px-4 py-2.5 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-blue-900">
+            <span className="font-normal text-blue-700">Filter aktif:</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-blue-950 bg-white px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+              {FILTER_LABELS[activeFilter]}
+            </span>
+            <span className="text-blue-600 font-medium">({sortedRows.length} baris)</span>
+          </div>
+          {onResetFilter && (
+            <button
+              type="button"
+              onClick={onResetFilter}
+              className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-medium px-2 py-1 rounded hover:bg-blue-100/70 transition-colors cursor-pointer"
+            >
+              <X size={13} />
+              <span>Tampilkan semua</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50/80 text-slate-700 font-semibold border-b border-slate-200">
-              <th scope="col" className="py-3 px-4 whitespace-nowrap">
+              {/* Date Column with right vertical dividing line */}
+              <th scope="col" className="py-3 px-4 whitespace-nowrap border-r border-slate-200">
                 <button
                   type="button"
                   onClick={() => toggleSort('date')}
@@ -68,6 +108,7 @@ export function TalentaAttendanceTable({
                 </button>
               </th>
 
+              {/* Shift Column */}
               <th scope="col" className="py-3 px-4 whitespace-nowrap">
                 <button
                   type="button"
@@ -146,8 +187,21 @@ export function TalentaAttendanceTable({
           <tbody className="divide-y divide-slate-100">
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={canWrite ? 10 : 9} className="py-8 text-center text-slate-400">
-                  Tidak ada data absensi pada periode ini.
+                <td colSpan={canWrite ? 10 : 9} className="py-12 text-center text-slate-500">
+                  <p className="font-medium text-slate-700">
+                    {activeFilter !== 'ALL'
+                      ? `Tidak ada catatan dengan status "${FILTER_LABELS[activeFilter]}".`
+                      : 'Tidak ada data absensi pada periode ini.'}
+                  </p>
+                  {activeFilter !== 'ALL' && onResetFilter && (
+                    <button
+                      type="button"
+                      onClick={onResetFilter}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer"
+                    >
+                      Reset filter dan tampilkan semua catatan
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -159,8 +213,8 @@ export function TalentaAttendanceTable({
                     key={row.date}
                     className="hover:bg-slate-50/60 transition-colors"
                   >
-                    {/* Date */}
-                    <td className="py-3 px-4 whitespace-nowrap font-medium text-slate-800">
+                    {/* Date with vertical dividing line separating it from Shift */}
+                    <td className="py-3 px-4 whitespace-nowrap font-medium text-slate-800 border-r border-slate-200">
                       {row.dateDisplay}
                     </td>
 

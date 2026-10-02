@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  calculateTalentaKpi,
+  calculateTalentaKpi, filterTalentaRows,
   formatTalentaDate,
   formatTalentaRow,
 } from './talentaCard.ts';
@@ -129,4 +129,73 @@ test('calculateTalentaKpi calculates accurate 3-segment KPI stats', () => {
 
   // Segment 3
   assert.equal(kpi.nextWorkdays, 2); // 28th and 29th
+});
+
+test('filterTalentaRows correctly filters rows based on selected KPI metric', () => {
+  const rows = [
+    { date: '2026-09-20', isDayOff: true, record: null },
+    { date: '2026-09-21', isDayOff: false, record: { attendanceStatus: 'PRESENT', scanIn: '08:00', scanOut: '16:30', earlyMinutes: 30, lateMinutes: 0 } },
+    { date: '2026-09-22', isDayOff: false, record: { attendanceStatus: 'PRESENT', scanIn: '08:00', scanOut: null, earlyMinutes: 0, lateMinutes: 0 } },
+    { date: '2026-09-24', isDayOff: false, record: { attendanceStatus: 'SAKIT', scanIn: null, scanOut: null, earlyMinutes: 0, lateMinutes: 0 } },
+    { date: '2026-09-25', isDayOff: false, record: null }, // Past unrecorded -> Absent
+    { date: '2026-09-26', isDayOff: true, record: null }, // Day off
+    { date: '2026-09-28', isDayOff: false, record: null }, // Future workday (next workday)
+  ];
+
+  const todayStr = '2026-09-26';
+
+  // Filter: ABSENT -> should return only 2026-09-25
+  const absentRows = filterTalentaRows(rows, 'ABSENT', todayStr);
+  assert.equal(absentRows.length, 1);
+  assert.equal(absentRows[0].date, '2026-09-25');
+
+  // Filter: DAY_OFF -> should return 2026-09-20 and 2026-09-26
+  const dayOffRows = filterTalentaRows(rows, 'DAY_OFF', todayStr);
+  assert.equal(dayOffRows.length, 2);
+
+  // Filter: EARLY_CLOCK_OUT -> should return 2026-09-21
+  const earlyRows = filterTalentaRows(rows, 'EARLY_CLOCK_OUT', todayStr);
+  assert.equal(earlyRows.length, 1);
+  assert.equal(earlyRows[0].date, '2026-09-21');
+
+  // Filter: TIME_OFF -> should return 2026-09-24
+  const timeOffRows = filterTalentaRows(rows, 'TIME_OFF', todayStr);
+  assert.equal(timeOffRows.length, 1);
+  assert.equal(timeOffRows[0].date, '2026-09-24');
+
+  // Filter: NEXT_WORKDAYS -> should return 2026-09-28
+  const nextRows = filterTalentaRows(rows, 'NEXT_WORKDAYS', todayStr);
+  assert.equal(nextRows.length, 1);
+  assert.equal(nextRows[0].date, '2026-09-28');
+
+  // Filter: ALL -> should return all rows
+  const allRows = filterTalentaRows(rows, 'ALL', todayStr);
+  assert.equal(allRows.length, rows.length);
+});
+
+test('filterTalentaRows handles explicit ALPHA, NO_CLOCK_OUT, NO_CLOCK_IN, and INVALID filters', () => {
+  const rows = [
+    { date: '2026-09-21', isDayOff: false, record: { attendanceStatus: 'PRESENT', scanIn: '08:00', scanOut: null } },
+    { date: '2026-09-22', isDayOff: false, record: { attendanceStatus: 'PRESENT', scanIn: null, scanOut: '17:00' } },
+    { date: '2026-09-23', isDayOff: false, record: { attendanceStatus: 'INVALID', scanIn: null, scanOut: null } },
+    { date: '2026-09-24', isDayOff: false, record: { attendanceStatus: 'ALPHA', scanIn: null, scanOut: null } },
+  ];
+
+  const todayStr = '2026-09-26';
+
+  const noOutRows = filterTalentaRows(rows, 'NO_CLOCK_OUT', todayStr);
+  assert.equal(noOutRows.length, 1);
+  assert.equal(noOutRows[0].date, '2026-09-21');
+
+  const noInRows = filterTalentaRows(rows, 'NO_CLOCK_IN', todayStr);
+  assert.equal(noInRows.length, 1);
+  assert.equal(noInRows[0].date, '2026-09-22');
+
+  const invalidRows = filterTalentaRows(rows, 'INVALID', todayStr);
+  assert.equal(invalidRows.length, 1);
+  assert.equal(invalidRows[0].date, '2026-09-23');
+
+  const alphaRows = filterTalentaRows(rows, 'ABSENT', todayStr);
+  assert.equal(alphaRows.length, 1);
+  assert.equal(alphaRows[0].date, '2026-09-24');
 });

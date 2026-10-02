@@ -162,10 +162,10 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
   }
 
   return (
-    <div className="space-y-4">
-      {/* HEADER SECTION */}
+    <div className="space-y-6">
+      {/* HEADER SECTION: Seragam dengan Data Absensi & Data Karyawan */}
       {employee ? (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200/70">
           <div>
             <div className="flex items-center gap-2">
               <Link
@@ -192,7 +192,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
             </Link>
             <button
               type="button"
-              className="hr-btn-primary text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="hr-btn text-xs inline-flex items-center gap-1.5"
               disabled={!!error || !calendarRows.length}
               onClick={() => {
                 exportAttendanceReportToExcel(reports, filter, {
@@ -203,7 +203,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                 });
               }}
             >
-              <Download size={13} />
+              <Download size={13} className="text-slate-500" />
               <span>Ekspor Excel</span>
             </button>
           </div>
@@ -212,62 +212,65 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         <Heading
           title="Laporan Rekap Absensi"
           description="Rekap keterlambatan, lembur, dan kehadiran karyawan berdasarkan catatan final pada siklus cut-off 21 s.d. 20."
-        />
+        >
+          <button
+            type="button"
+            className="hr-btn"
+            disabled={!!error || !reports.length}
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            <Download size={15} />
+            <span>Ekspor</span>
+          </button>
+        </Heading>
       )}
 
-      {/* FILTER TOOLBAR: 1-Line horizontal bar (No 3-tier stacking) */}
-      <div className="relative z-30 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs">
-        <div className="flex items-center gap-2.5 shrink-0">
-          {/* Month Popover (Talenta style: clean "Aug 2026") */}
+      {/* FILTER TOOLBAR: Bentuk dan layout konsisten dengan Data Absensi */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Month Popover (Talenta style) */}
           <TalentaMonthPickerPopover
             selectedYear={activeYear}
             selectedMonth={activeMonth}
             onSelect={handleSelectMonth}
           />
 
-          <div className="h-4 w-px bg-slate-200 shrink-0" />
-
-          {/* Direct Department Dropdown (Replacing All filters) */}
+          {/* Direct Department Dropdown */}
           {!anonymous && (
-            <select
-              aria-label="Filter Departemen"
-              className="hr-input text-xs h-8.5 rounded-lg border-slate-200 bg-white px-2.5 font-medium text-slate-700 hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shrink-0"
-              value={departmentId}
-              onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}
-            >
-              <option value={0}>Semua Departemen</option>
-              {data.departments.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          )}
-
-          {/* Search Input for rekap view */}
-          {!employee && !anonymous && (
-            <div className="w-52 shrink-0">
-              <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} placeholder="Cari nama karyawan..." />
-            </div>
+            <label>
+              <span className="sr-only">Departemen</span>
+              <select
+                aria-label="Filter Departemen"
+                className="hr-input cursor-pointer"
+                value={departmentId}
+                onChange={e => { setDepartment(Number(e.target.value)); setPage(1); }}
+              >
+                <option value={0}>Semua departemen</option>
+                {data.departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </label>
           )}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 ml-auto">
-          <div className="text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200/80 whitespace-nowrap">
-            <span>Periode Awal: </span>
-            <strong className="text-slate-800 font-semibold">{dateLabel(startDate)}</strong>
-            <span className="text-slate-300 mx-1.5">|</span>
-            <span>Periode Akhir: </span>
-            <strong className="text-slate-800 font-semibold">{dateLabel(endDate)}</strong>
-          </div>
-
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          {!employee && !anonymous && (
+            <SearchInput
+              value={q}
+              onChange={v => { setQ(v); setPage(1); }}
+              placeholder="Cari nama atau ID karyawan"
+            />
+          )}
           {!employee && (
             <button
               type="button"
-              className="hr-btn-primary text-xs inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg shadow-xs cursor-pointer shrink-0"
+              className="hr-btn"
               disabled={!!error || !reports.length}
               onClick={() => setIsExportModalOpen(true)}
             >
-              <Download size={13} />
-              <span>Ekspor Excel</span>
+              <Download size={15} />
+              <span>Ekspor</span>
             </button>
           )}
         </div>
@@ -279,7 +282,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
         </div>
       ) : (
         <>
-          {/* TALENTA 3-SEGMENT KPI STRIP (Neutral, un-rainbow, single container) */}
+          {/* TALENTA 3-SEGMENT KPI STRIP (untuk tampilan individu) */}
           {employee && talentaKpi && (
             <TalentaKpiStrip
               kpi={talentaKpi}
@@ -288,6 +291,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
             />
           )}
 
+          {/* TOTALS KPI STRIP: Seragam dengan strip 9-Status Data Absensi */}
           {!employee && (
             <Totals
               late={reports.reduce((n, r) => n + r.lateMinutes, 0)}
@@ -297,6 +301,15 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
               izin={reports.reduce((n, r) => n + (r.izinCount || 0), 0)}
               cuti={reports.reduce((n, r) => n + (r.cutiCount || 0), 0)}
             />
+          )}
+
+          {/* Sub-keterangan ringkas di bawah KPI strip */}
+          {!employee && (
+            <div className="flex flex-wrap justify-between gap-2 text-[11px] text-slate-500">
+              <p>
+                Periode: <strong className="font-semibold text-slate-800">{dateLabel(startDate)} – {dateLabel(endDate)}</strong> (Cut-Off 21 – 20) · {reports.length} karyawan terdata.
+              </p>
+            </div>
           )}
 
           {/* ATTENDANCE TABLE */}
@@ -313,7 +326,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
               Ringkasan agregat tanpa identitas karyawan. Ekspor mengikuti cakupan ringkasan ini.
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="hr-panel overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="hr-table">
                   <thead>
@@ -335,14 +348,18 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                         <td><EmployeeName employee={r.employee} /></td>
                         <td>{data.departments.find(d => d.id === r.employee.departmentId)?.name ?? '—'}</td>
                         <td>{r.recordCount || <span className="text-slate-400">0</span>}</td>
-                        <td className={r.lateMinutes ? 'font-medium text-red-700' : ''}>{r.recordCount ? durationLabel(r.lateMinutes) : '—'}</td>
-                        <td className="font-medium">{r.recordCount ? durationLabel(r.overtimeMinutes) : '—'}</td>
+                        <td className={r.lateMinutes ? 'font-medium text-red-700' : ''}>
+                          {r.recordCount ? (r.lateMinutes ? durationLabel(r.lateMinutes) : '—') : '—'}
+                        </td>
+                        <td className="font-medium">
+                          {r.recordCount ? (r.overtimeMinutes ? durationLabel(r.overtimeMinutes) : '—') : '—'}
+                        </td>
                         <td className="text-center tabular-nums">{r.izinCount || <span className="text-slate-400">0</span>}</td>
                         <td className="text-center tabular-nums">{r.sakitCount || <span className="text-slate-400">0</span>}</td>
                         <td className="text-center tabular-nums">{r.cutiCount || <span className="text-slate-400">0</span>}</td>
                         <td className="text-right">
-                          <Link className="hr-btn" href={`/dashboard/attendance/reports?employeeId=${r.employee.id}`}>
-                            Lihat kartu
+                          <Link className="hr-btn text-xs" href={`/dashboard/attendance/employees/${r.employee.id}`}>
+                            Kartu
                           </Link>
                         </td>
                       </tr>

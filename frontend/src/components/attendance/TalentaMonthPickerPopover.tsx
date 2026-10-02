@@ -67,13 +67,19 @@ export function TalentaMonthPickerPopover({
       <button
         type="button"
         onClick={toggleOpen}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer shrink-0"
+        className="hr-input !w-auto inline-flex items-center justify-between gap-3 text-xs font-semibold text-slate-800 hover:border-slate-400 transition-colors shadow-2xs cursor-pointer shrink-0"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <Calendar size={13} className="text-slate-400" />
-        <span>{buttonLabel}</span>
-        <ChevronDown size={13} className="text-slate-400 transition-transform duration-150" style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }} />
+        <div className="flex items-center gap-2">
+          <Calendar size={14} className="text-slate-400" />
+          <span>{buttonLabel}</span>
+        </div>
+        <ChevronDown
+          size={14}
+          className="text-slate-400 transition-transform duration-150"
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}
+        />
       </button>
 
       {isOpen && (
@@ -120,7 +126,7 @@ export function TalentaMonthPickerPopover({
                   onClick={() => handleSelectMonth(idx)}
                   className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-blue-600 text-white font-bold shadow-xs'
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
                       : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -135,7 +141,7 @@ export function TalentaMonthPickerPopover({
             <button
               type="button"
               onClick={handleThisMonth}
-              className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-800 hover:underline cursor-pointer"
             >
               This Month
             </button>

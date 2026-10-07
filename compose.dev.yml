@@ -34,6 +34,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-do-not-use-in-production-1234}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret-do-not-use-in-production-1234}
       AGENT_API_KEY: ${AGENT_API_KEY:-dev-agent-key-do-not-use-in-production-1234}
+      CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./backend:/app
       - /app/node_modules

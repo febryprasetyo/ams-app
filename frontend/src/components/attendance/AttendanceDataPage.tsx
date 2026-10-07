@@ -404,7 +404,7 @@ export default function AttendanceDataPage() {
             Data awal berasal dari {data.meta.sourceFile ?? 'file sumber'} ({data.meta.sourceRows ?? data.records.length} baris). Jadwal dan durasi mengikuti isi file mesin.
           </p>
           <p>
-            Impor menerima file .xls BIFF dengan kolom No. ID, Nama, Tanggal, Terlambat, Plg. Cepat, dan Lembur. Pemetaan, normalisasi dan konflik diperiksa sebelum disimpan.
+            Impor menerima file Excel (.xls atau .xlsx) dengan kolom No. ID, Nama, dan Tanggal. Pemetaan, normalisasi dan konflik diperiksa sebelum disimpan.
           </p>
           <p>
             Koreksi membutuhkan alasan. Rekap hanya menghitung catatan final dan tidak menghitung nominal potongan atau upah lembur.

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
+import { getDefaultRedirectForUser } from '@/lib/access/routes';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
@@ -13,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.replace('/dashboard/master/departments');
+        router.replace(getDefaultRedirectForUser(user));
       } else {
         router.replace('/login');
       }

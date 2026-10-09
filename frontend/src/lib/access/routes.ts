@@ -11,6 +11,25 @@ export const IT_ROLES = ['superadmin', 'super_admin', 'itadmin', 'it_admin', 'it
 export const ADMIN_ROLES = ['superadmin', 'super_admin', 'itadmin', 'it_admin', 'admin'];
 
 export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
+  // Super App Landing & Overviews
+  {
+    prefix: '/dashboard/assets/overview',
+    permission: 'assets.view',
+    moduleName: 'Asset Management Dashboard',
+  },
+  {
+    prefix: '/dashboard/employee/overview',
+    moduleName: 'Employee Workspace',
+  },
+  {
+    prefix: '/dashboard/management/overview',
+    moduleName: 'Management Workspace',
+  },
+  {
+    prefix: '/dashboard/welcome',
+    moduleName: 'Welcome Overview',
+  },
+
   // Administration
   {
     prefix: '/dashboard/access',
@@ -139,6 +158,15 @@ export function canAccessRoute(
     return true;
   }
 
+  // Dedicated open workspace landing pages
+  if (pathname === '/dashboard/employee/overview' || pathname === '/dashboard/welcome') {
+    return true;
+  }
+
+  if (pathname === '/dashboard/management/overview') {
+    return normRole === 'management' || perms.includes('management.view');
+  }
+
   const matched = findMatchingRouteRule(pathname);
   if (!matched) {
     // If not specifically registered in DASHBOARD_ROUTE_RULES, allow unless under dashboard
@@ -180,8 +208,15 @@ export function getDefaultRedirectForUser(
   const normRole = (user.roleName || user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
   const perms = Array.isArray(user.permissions) ? user.permissions : [];
 
-  if (normRole === 'superadmin' || normRole === 'super_admin' || perms.includes('*')) {
-    return '/dashboard/master/departments';
+  // Admin, SuperAdmin, ITAdmin, ITStaff direct to Asset Management Dashboard
+  if (
+    normRole === 'superadmin' ||
+    normRole === 'super_admin' ||
+    normRole.includes('itadmin') ||
+    normRole.includes('itstaff') ||
+    perms.includes('*')
+  ) {
+    return '/dashboard/assets/overview';
   }
 
   // Prioritize HR / Attendance role
@@ -193,9 +228,19 @@ export function getDefaultRedirectForUser(
     return '/dashboard/attendance/overview';
   }
 
+  // Management workspace
+  if (normRole === 'management') {
+    return '/dashboard/management/overview';
+  }
+
+  // Employee workspace
+  if (normRole === 'employee') {
+    return '/dashboard/employee/overview';
+  }
+
   // IT Asset role
   if (perms.includes('assets.view')) {
-    return '/dashboard/assets';
+    return '/dashboard/assets/overview';
   }
 
   // Helpdesk Ticket role
@@ -223,5 +268,11 @@ export function getDefaultRedirectForUser(
     return '/dashboard/master/departments';
   }
 
-  return '/dashboard/unauthorized';
+  return '/dashboard/welcome';
+}
+
+export function getDashboardHrefForUser(
+  user: { roleName?: string; role?: string; permissions?: string[] } | null | undefined
+): string {
+  return getDefaultRedirectForUser(user);
 }

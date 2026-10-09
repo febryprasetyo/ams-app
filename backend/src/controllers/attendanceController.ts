@@ -63,10 +63,10 @@ export async function getAttendanceRecords(req: Request, res: Response) {
     const { startDate, endDate, employeeId } = req.query;
 
     const conditions: any[] = [];
-    if (startDate && typeof startDate === 'string') {
+    if (startDate && typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
       conditions.push(gte(attendanceRecords.workDate, startDate));
     }
-    if (endDate && typeof endDate === 'string') {
+    if (endDate && typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
       conditions.push(lte(attendanceRecords.workDate, endDate));
     }
     if (employeeId) {

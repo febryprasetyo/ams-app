@@ -71,7 +71,7 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
     {batch && <>
       <div className="hr-panel grid grid-cols-2 divide-x divide-slate-200 sm:grid-cols-4">
         {Object.entries(reviewLabels).map(([key, label]) => (
-          <button key={key} className={`p-4 text-left hover:bg-slate-50 ${reviewStatus === key ? 'bg-red-50' : ''}`} onClick={() => { setReviewStatus(reviewStatus === key ? 'all' : key); setPage(1); }}>
+          <button key={key} className={`p-4 text-left hover:bg-slate-50 ${reviewStatus === key ? 'bg-emerald-50/70 text-emerald-950 font-medium ring-1 ring-inset ring-emerald-400' : ''}`} onClick={() => { setReviewStatus(reviewStatus === key ? 'all' : key); setPage(1); }}>
             <p className="text-xs text-slate-500">{label}</p>
             <p className="mt-1 text-xl font-semibold">{batch.rows.filter(r => r.reviewStatus === key).length}</p>
           </button>

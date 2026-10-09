@@ -32,6 +32,7 @@ import {
   GitMerge,
   LayoutDashboard,
   CalendarCheck,
+  CalendarDays,
   Clock,
   FileInput,
   ClipboardList,
@@ -86,6 +87,7 @@ export const navGroups: NavGroup[] = [
         children: [
           { name: 'Ringkasan HR', href: '/dashboard/attendance/overview', icon: LayoutDashboard, permission: 'attendance.view' },
           { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck, permission: 'attendance.view' },
+          { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
           { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart, permission: 'attendance.view' },
@@ -136,6 +138,7 @@ const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: st
   { prefix: '/dashboard/tickets', permission: 'tickets.view', moduleName: 'Service Desk Tickets' },
   { prefix: '/dashboard/infrastructure', permission: 'infrastructure.view', moduleName: 'Accurate & Server Infrastructure' },
   { prefix: '/dashboard/attendance', permission: 'attendance.view', moduleName: 'HR Attendance' },
+  { prefix: '/dashboard/leaves', permission: 'attendance.view', moduleName: 'Leave Requests' },
   { prefix: '/dashboard/master', permission: 'master.view', moduleName: 'Master Data' },
   { prefix: '/dashboard/access', permission: 'access.users.view', moduleName: 'Access Control' },
   { prefix: '/dashboard/employee/overview', permission: '', moduleName: 'Employee Workspace' },

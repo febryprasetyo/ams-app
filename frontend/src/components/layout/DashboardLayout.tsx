@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { canManageCustodians } from '@/lib/assetCustodian';
 import { BRAND_NAME } from '@/lib/gajianichBrand';
+import { getDashboardHrefForUser, canAccessRoute } from '@/lib/access/routes';
 import {
   Building2,
   MapPin,
@@ -36,7 +37,6 @@ import {
   ClipboardList,
   FileBarChart,
   History,
-  Fingerprint
 } from 'lucide-react';
 
 export interface NavSubItem {
@@ -107,7 +107,8 @@ export const navGroups: NavGroup[] = [
   {
     title: 'Asset Lifecycle',
     items: [
-      { name: 'IT Inventory', href: '/dashboard/assets', icon: HardDrive, permission: 'assets.view' },
+      { name: 'Ringkasan Aset', href: '/dashboard/assets/overview', icon: LayoutDashboard, permission: 'assets.view' },
+      { name: 'Inventaris Aset', href: '/dashboard/assets', icon: HardDrive, permission: 'assets.view' },
       { name: 'Hardware Audits', href: '/dashboard/hardware-audits', icon: Cpu, permission: 'hardware_audits.view' },
       { name: 'Software Licenses', href: '/dashboard/licenses', icon: Key, permission: 'licenses.view' },
     ],
@@ -128,7 +129,7 @@ export const navGroups: NavGroup[] = [
 ];
 
 const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: string }[] = [
-  { prefix: '/dashboard/access', permission: 'access.users.view', moduleName: 'Access Control' },
+  { prefix: '/dashboard/assets/overview', permission: 'assets.view', moduleName: 'Asset Management Dashboard' },
   { prefix: '/dashboard/assets', permission: 'assets.view', moduleName: 'IT Asset Inventory' },
   { prefix: '/dashboard/hardware-audits', permission: 'hardware_audits.view', moduleName: 'Hardware Audits' },
   { prefix: '/dashboard/licenses', permission: 'licenses.view', moduleName: 'Software Licenses' },
@@ -136,6 +137,10 @@ const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: st
   { prefix: '/dashboard/infrastructure', permission: 'infrastructure.view', moduleName: 'Accurate & Server Infrastructure' },
   { prefix: '/dashboard/attendance', permission: 'attendance.view', moduleName: 'HR Attendance' },
   { prefix: '/dashboard/master', permission: 'master.view', moduleName: 'Master Data' },
+  { prefix: '/dashboard/access', permission: 'access.users.view', moduleName: 'Access Control' },
+  { prefix: '/dashboard/employee/overview', permission: '', moduleName: 'Employee Workspace' },
+  { prefix: '/dashboard/management/overview', permission: '', moduleName: 'Management Workspace' },
+  { prefix: '/dashboard/welcome', permission: '', moduleName: 'Welcome Overview' },
 ];
 
 const DashboardLayoutContext = React.createContext<boolean>(false);
@@ -175,6 +180,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const normRole = (user.roleName || (user as { role?: string }).role || '').toLowerCase().replace(/[\s_-]+/g, '');
     return normRole.includes('hr') || normRole.includes('attendance');
   })();
+
+  const dashboardHref = getDashboardHrefForUser(user);
+
+  const mainNavGroup: NavGroup = {
+    title: 'Utama',
+    items: [
+      {
+        name: 'Dashboard',
+        href: dashboardHref,
+        icon: LayoutDashboard,
+      },
+    ],
+  };
 
   const hasSubItemAccess = (subItem: NavSubItem): boolean => {
     const normRole = (user.roleName || (user as { role?: string }).role || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -216,49 +234,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return true;
   };
 
-  const visibleNavGroups = navGroups
-    .filter((group) => {
-      // Requirement 2: Remove top-level Master Data menu for HR Attendance role
-      if (isHrRole && group.title.toLowerCase() === 'master data') {
-        return false;
-      }
-      return true;
-    })
-    .map((group) => ({
-      ...group,
-      items: group.items
-        .filter(hasItemAccess)
-        .map((item) => {
-          if (item.children) {
-            return {
-              ...item,
-              children: item.children.filter(hasSubItemAccess),
-            };
-          }
-          return item;
-        }),
-    }))
-    .filter((group) => group.items.length > 0);
+  const visibleNavGroups = [
+    mainNavGroup,
+    ...navGroups
+      .filter((group) => {
+        // Requirement 2: Remove top-level Master Data menu for HR Attendance role
+        if (isHrRole && group.title.toLowerCase() === 'master data') {
+          return false;
+        }
+        return true;
+      })
+      .map((group) => ({
+        ...group,
+        items: group.items
+          .filter(hasItemAccess)
+          .map((item) => {
+            if (item.children) {
+              return {
+                ...item,
+                children: item.children.filter(hasSubItemAccess),
+              };
+            }
+            return item;
+          }),
+      }))
+      .filter((group) => group.items.length > 0),
+  ];
 
   const matchedRouteRule = ROUTE_PERMISSION_MAP.find(
     (entry) => pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`)
   );
 
-  const canAccessCurrentRoute = (() => {
-    if (!matchedRouteRule) return true;
-    const normRole = (user.roleName || (user as { role?: string }).role || '').toLowerCase().replace(/[\s_-]+/g, '');
-    if (normRole === 'superadmin' || user.permissions?.includes('*')) return true;
-
-    if (matchedRouteRule.prefix === '/dashboard/access') {
-      return Boolean(
-        normRole === 'admin' ||
-        user.permissions?.includes('access.users.view') ||
-        user.permissions?.includes('access.roles.manage')
-      );
-    }
-
-    return Boolean(user.permissions && user.permissions.includes(matchedRouteRule.permission));
-  })();
+  const canAccessCurrentRoute = canAccessRoute(pathname, user);
 
   // Flatten all navigable links for breadcrumbs and 403 access list
   const allNavigableItems: { name: string; href: string; groupTitle: string; parentName?: string }[] = [];
@@ -277,14 +284,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const currentNavigableItem = allNavigableItems
     .sort((a, b) => b.href.length - a.href.length)
-    .find((item) => item.href === pathname || (item.href !== '/dashboard/attendance' && pathname.startsWith(`${item.href}/`))) ||
-    allNavigableItems.find((item) => item.href === pathname);
+    .find((item) => {
+      if (item.href === '/dashboard/assets') {
+        return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
+      }
+      return item.href === pathname || (item.href !== '/dashboard/attendance' && pathname.startsWith(`${item.href}/`));
+    }) ||
+    allNavigableItems[0];
 
   const isSubmenuActive = (item: NavItem): boolean => {
     if (!item.children) return false;
-    return item.children.some(
-      (c) => pathname === c.href || (c.href !== '/dashboard/attendance' && pathname.startsWith(`${c.href}/`))
-    );
+    return item.children.some((child) => pathname === child.href || (child.href !== '/dashboard/attendance' && pathname.startsWith(`${child.href}/`)));
   };
 
   const isSubmenuOpen = (item: NavItem): boolean => {
@@ -296,7 +306,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const toggleSubmenu = (itemName: string) => {
     setOpenSubmenus((prev) => {
-      const current = prev[itemName] !== undefined ? prev[itemName] : true;
+      const current = prev[itemName] !== undefined ? prev[itemName] : false;
       return {
         ...prev,
         [itemName]: !current,
@@ -323,7 +333,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
-          <Link href={isHrRole ? '/dashboard/attendance/overview' : '/dashboard/master/departments'} className="flex items-center gap-3 overflow-hidden group">
+          <Link href={dashboardHref} className="flex items-center gap-3 overflow-hidden group">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 group-hover:scale-105 transition-transform">
               <Image src="/branding/gajianich-cat-favicon.png" alt="" width={36} height={36} className="w-9 h-9 object-contain" />
             </div>
@@ -467,7 +477,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }
 
                 // Case B: Standard Nav Item
-                const isActive = item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`));
+                const isActive = item.href && (() => {
+                  if (item.href === '/dashboard/assets') {
+                    return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
+                  }
+                  if (item.href === dashboardHref && pathname === dashboardHref) {
+                    return true;
+                  }
+                  if (item.href === pathname) {
+                    return true;
+                  }
+                  return pathname.startsWith(`${item.href}/`);
+                })();
 
                 return (
                   <Link
@@ -604,7 +625,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   Akses Modul Tidak Diizinkan
                 </h2>
                 <p className="text-xs text-slate-500 leading-relaxed mb-6">
-                  Peran akun Anda (<span className="font-semibold text-slate-700">{user.roleName || (user as { role?: string }).role || 'User'}</span>) tidak memiliki izin <code className="px-1.5 py-0.5 bg-slate-100 text-red-600 rounded text-[11px] font-mono">{matchedRouteRule?.permission}</code> untuk mengakses modul <span className="font-semibold text-slate-700">{matchedRouteRule?.moduleName}</span>.
+                  Peran akun Anda (<span className="font-semibold text-slate-700">{user.roleName || (user as { role?: string }).role || 'User'}</span>) tidak memiliki izin <code className="px-1.5 py-0.5 bg-slate-100 text-red-600 rounded text-[11px] font-mono">{matchedRouteRule?.permission || 'khusus'}</code> untuk mengakses modul <span className="font-semibold text-slate-700">{matchedRouteRule?.moduleName || pathname}</span>.
                 </p>
 
                 {allNavigableItems.length > 0 && (

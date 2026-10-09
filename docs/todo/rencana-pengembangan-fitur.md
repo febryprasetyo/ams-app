@@ -32,7 +32,7 @@ Referensi:
 - [Design spec](../superpowers/specs/2026-10-08-asset-dashboard-role-landing-design.md)
 - [Implementation plan](../superpowers/plans/2026-10-08-asset-dashboard-role-landing.md)
 
-## Prioritas 2: HR Reconciliation Manual User/Employee Filter dan Selection
+## Prioritas 2: HR Reconciliation Manual User/Employee Filter dan Selection (Selesai)
 
 Tujuan: memberi HR cara untuk menemukan dan memilih karyawan secara manual saat hasil rekonsiliasi custodian tidak menemukan kecocokan yang tepat.
 

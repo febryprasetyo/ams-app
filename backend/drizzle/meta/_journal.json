@@ -84,6 +84,13 @@
       "when": 1790761738924,
       "tag": "0011_sharp_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791518676157,
+      "tag": "0012_little_selene",
+      "breakpoints": true
     }
   ],
   "version": "7"

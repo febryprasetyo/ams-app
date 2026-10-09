@@ -102,14 +102,15 @@ test('review cannot acknowledge away immutable parser errors', () => {
   assert.throws(() => applyCommand(data, { type: 'review', batchId: data.batches.at(-1).id, rowId: 1, employeeId: identity.employeeId, skipped: false, reason: 'Ditinjau' }), /Durasi/);
 });
 
-test('same source and content hash reuses existing batch', () => {
+test('re-uploading same file with same content hash always creates a new draft batch', () => {
   let data = fixture();
   const rows = parseImportRows(JSON.stringify([{ externalNoId: data.identities[0].externalNoId, workDate: '2026-09-26', scanIn: '08:00', scanOut: '16:00', lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0 }]));
   const cmd = { type: 'import', sourceId: 1, filename: 'same.xls', fileHash: 'test-content-hash', rows };
   data = applyCommand(data, cmd);
   const count = data.batches.length;
   data = applyCommand(data, { ...cmd, filename: 'renamed.xls' });
-  assert.equal(data.batches.length, count);
+  assert.equal(data.batches.length, count + 1);
+  assert.notEqual(data.batches[data.batches.length - 1].id, data.batches[data.batches.length - 2].id);
 });
 
 test("import command defaults to active source if sourceId is omitted", () => {

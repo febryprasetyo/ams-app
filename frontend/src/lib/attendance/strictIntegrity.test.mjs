@@ -217,3 +217,83 @@ test('route /dashboard/attendance/settings is restricted to Admin, denied for HR
   assert.equal(canAccessRoute('/dashboard/attendance/settings', hrdBiasa), false);
   assert.equal(canAccessRoute('/dashboard/attendance/settings', hrStaff), false);
 });
+
+test("delete draft batch removes it from dataset (via action: delete and type: delete_batch)", () => {
+  let data = (() => { const s = createSeed(); s.batches.push({ id: 1, filename: "test.xls", sourceId: 1, status: "DRAFT", createdAt: new Date().toISOString(), rows: [] }); return s; })();
+  assert.equal(data.batches.length, 1);
+  const draftBatchId = data.batches[0].id;
+
+  // Delete via command.action === "delete"
+  data = applyCommand(data, { type: "batch", batchId: draftBatchId, action: "delete" });
+  assert.equal(data.batches.length, 0);
+
+  // Add another batch and test type: "delete_batch"
+  data.batches.push({
+    id: 99,
+    filename: "test-delete.xls",
+    sourceId: 1,
+    status: "CANCELLED",
+    createdAt: new Date().toISOString(),
+    rows: []
+  });
+  assert.equal(data.batches.length, 1);
+  data = applyCommand(data, { type: "delete_batch", batchId: 99 });
+  assert.equal(data.batches.length, 0);
+});
+
+test("deleting COMMITTED batch throws error (cannot delete committed batch)", () => {
+  let data = (() => { const s = createSeed(); s.batches.push({ id: 1, filename: "test.xls", sourceId: 1, status: "DRAFT", createdAt: new Date().toISOString(), rows: [] }); return s; })();
+  data.batches[0].status = "COMMITTED";
+
+  assert.throws(
+    () => applyCommand(data, { type: "batch", batchId: data.batches[0].id, action: "delete" }),
+    /Batch yang sudah tersimpan final tidak dapat dihapus/
+  );
+
+  assert.throws(
+    () => applyCommand(data, { type: "delete_batch", batchId: data.batches[0].id }),
+    /Batch yang sudah tersimpan final tidak dapat dihapus/
+  );
+});
+
+test("re-uploading identical file always creates a distinct draft batch", () => {
+  let data = (() => { const s = createSeed(); s.batches.push({ id: 1, filename: "test.xls", sourceId: 1, status: "DRAFT", createdAt: new Date().toISOString(), rows: [] }); return s; })();
+  const initialCount = data.batches.length;
+  const sampleRows = [
+    {
+      id: 1,
+      externalNoId: "1",
+      employeeId: 1,
+      workDate: "2026-09-25",
+      scanIn: "08:00",
+      scanOut: "17:00",
+      lateMinutes: 0,
+      earlyMinutes: 0,
+      overtimeMinutes: 0,
+      reviewStatus: "READY",
+      note: "OK",
+      issues: []
+    }
+  ];
+
+  data = applyCommand(data, {
+    type: "import",
+    filename: "absensi-september.xls",
+    fileHash: "same-hash-12345",
+    rows: sampleRows
+  });
+  assert.equal(data.batches.length, initialCount + 1);
+  const firstUploadedBatchId = data.batches.at(-1).id;
+
+  // Upload same file again with same hash
+  data = applyCommand(data, {
+    type: "import",
+    filename: "absensi-september.xls",
+    fileHash: "same-hash-12345",
+    rows: sampleRows
+  });
+  assert.equal(data.batches.length, initialCount + 2);
+  const secondUploadedBatchId = data.batches.at(-1).id;
+
+  assert.notEqual(firstUploadedBatchId, secondUploadedBatchId);
+});

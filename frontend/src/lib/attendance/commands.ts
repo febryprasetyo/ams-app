@@ -132,14 +132,6 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         ?? data.sources[0];
       const sourceId = activeSource?.id ?? command.sourceId ?? 1;
       if (data.sources.length > 0 && !activeSource && command.sourceId) throw new Error('Pilih sumber aktif.');
-      if (command.fileHash) {
-        const existing = data.batches.find(b => b.sourceId === sourceId && b.fileHash === command.fileHash);
-        if (existing) {
-          action = 'Impor ditemukan kembali';
-          detail = `${command.filename} · batch ${existing.id}`;
-          break;
-        }
-      }
       const batch: ImportBatch = { id: nextId(data.batches), filename: command.filename, sourceId, fileHash: command.fileHash, createdAt: now, status: 'DRAFT', rows: command.rows };
       batch.rows = batch.rows.map(r => resolveRow(data, batch, r));
       data.batches.push(batch); action = 'Impor dibuat'; detail = `${batch.filename} · ${batch.rows.length} baris`; break;
@@ -213,9 +205,21 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       }
       action = 'Baris impor direview'; detail = `${batch.filename} · baris ${row.id}`; break;
     }
+    case 'delete_batch': {
+      const batch = data.batches.find(b => b.id === command.batchId);
+      if (!batch) throw new Error('Batch tidak ditemukan.');
+      if (batch.status === 'COMMITTED') throw new Error('Batch yang sudah tersimpan final tidak dapat dihapus.');
+      data.batches = data.batches.filter(b => b.id !== command.batchId);
+      action = 'Draft impor dihapus'; detail = batch.filename; break;
+    }
     case 'batch': {
       const batch = data.batches.find(b => b.id === command.batchId);
       if (!batch) throw new Error('Batch tidak ditemukan.');
+      if (command.action === 'delete') {
+        if (batch.status === 'COMMITTED') throw new Error('Batch yang sudah tersimpan final tidak dapat dihapus.');
+        data.batches = data.batches.filter(b => b.id !== command.batchId);
+        action = 'Draft impor dihapus'; detail = batch.filename; break;
+      }
       if (command.action === 'commit' && batch.status === 'COMMITTED') return input;
       if (command.action === 'reopen') {
         if (batch.status !== 'CANCELLED') throw new Error('Hanya batch dibatalkan yang dapat dibuka ulang.');

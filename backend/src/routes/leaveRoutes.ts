@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  getActiveEmployeesForLeaves,
   getLeaveBalanceSummary,
   calculateWorkingDays,
   createLeaveRequest,
@@ -7,11 +8,13 @@ import {
   getLeaveRequests,
   getHolidays,
 } from '../controllers/leaveController';
-import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Endpoint publik / helper perhitungan (bisa dipanggil saat preview kalkulasi)
+// Endpoint daftar karyawan untuk form cuti
+router.get('/employees', getActiveEmployeesForLeaves);
+
+// Endpoint perhitungan & kalender libur
 router.get('/balance-summary', getLeaveBalanceSummary);
 router.post('/calculate-days', calculateWorkingDays);
 router.get('/holidays', getHolidays);

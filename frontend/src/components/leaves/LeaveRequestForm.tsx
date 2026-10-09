@@ -13,9 +13,9 @@ import {
   ArrowRight,
   Info,
   CalendarCheck,
-  Printer
+  PenTool
 } from 'lucide-react';
-import type { LeaveBalanceSummary, CalculateLeaveDurationOutput } from '@/types/leaves';
+import type { LeaveBalanceSummary } from '@/types/leaves';
 
 interface EmployeeOption {
   id: number;
@@ -28,7 +28,7 @@ interface EmployeeOption {
 export function LeaveRequestForm() {
   const router = useRouter();
 
-  // State
+  // State Karyawan
   const [employeesList, setEmployeesList] = useState<EmployeeOption[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
   const [balanceSummary, setBalanceSummary] = useState<LeaveBalanceSummary | null>(null);
@@ -41,32 +41,45 @@ export function LeaveRequestForm() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Handover Fields
-  const [handoverToId, setHandoverToId] = useState<number | ''>('');
-  const [handoverTask, setHandoverTask] = useState('');
-  const [emergencyPhone, setEmergencyPhone] = useState('');
+  // Revisi 2: Jumlah cuti yang diambil INPUT MANUAL (bukan hasil hitung tanggal)
+  const [manualDurationDays, setManualDurationDays] = useState<number | ''>(1);
+  const [manualResumeWorkDate, setManualResumeWorkDate] = useState<string>('');
 
-  // Calculation State
-  const [daysCalculation, setDaysCalculation] = useState<CalculateLeaveDurationOutput | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
+  // Handover (Revisi 3: Opsional / kosongan untuk tulis tangan manual)
+  const [emergencyPhone, setEmergencyPhone] = useState('');
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // 1. Load active employees list
+  // 1. Revisi 1: Memuat daftar karyawan dari /api/leaves/employees dengan fallback
   useEffect(() => {
     async function loadEmployees() {
       try {
-        const res = await fetch('/api/v1/employees?status=Active');
+        let items: EmployeeOption[] = [];
+        
+        // Panggil endpoint /api/leaves/employees terlebih dahulu
+        const res = await fetch('/api/leaves/employees');
         if (res.ok) {
-          const data = await res.json();
-          const items = Array.isArray(data) ? data : data.data || [];
+          items = await res.json();
+        } else {
+          // Fallback ke token auth jika ada
+          const token = localStorage.getItem('token');
+          const resV1 = await fetch('/api/v1/employees?status=Active', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (resV1.ok) {
+            const dataV1 = await resV1.json();
+            items = Array.isArray(dataV1) ? dataV1 : dataV1.data || [];
+          }
+        }
+
+        if (Array.isArray(items) && items.length > 0) {
           setEmployeesList(items);
 
           // Default ke Febri Joko Prasetyo jika ada, atau employee pertama
-          const defaultEmp = items.find((e: any) => e.employeeCode === '50079') || items[0];
+          const defaultEmp = items.find((e) => e.employeeCode === '50079') || items[0];
           if (defaultEmp) {
             setSelectedEmployeeId(defaultEmp.id);
           }
@@ -78,7 +91,7 @@ export function LeaveRequestForm() {
     loadEmployees();
   }, []);
 
-  // 2. Fetch balance when selectedEmployeeId changes
+  // 2. Fetch saldo saat karyawan dipilih
   useEffect(() => {
     if (!selectedEmployeeId) return;
 
@@ -100,65 +113,59 @@ export function LeaveRequestForm() {
     loadBalance();
   }, [selectedEmployeeId]);
 
-  // 3. Reactive calculation when startDate or endDate changes
+  // 3. Rekomendasi otomatis tanggal kembali bekerja saat tanggal selesai berubah (user tetap bisa ganti)
   useEffect(() => {
-    if (!startDate || !endDate) {
-      setDaysCalculation(null);
-      return;
-    }
-
-    async function computeDays() {
-      setIsCalculating(true);
+    if (endDate && !manualResumeWorkDate) {
+      // Perkiraan default: hari kalender berikutnya
       try {
-        const res = await fetch('/api/leaves/calculate-days', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            startDate,
-            endDate,
-            employeeId: selectedEmployeeId || undefined,
-          }),
-        });
-        if (res.ok) {
-          const result = await res.json();
-          setDaysCalculation(result);
+        const [y, m, d] = endDate.split('-').map(Number);
+        const next = new Date(Date.UTC(y, m - 1, d));
+        next.setUTCDate(next.getUTCDate() + 1);
+        // Jika jatuh di Sabtu (6), geser ke Senin (+2 hari)
+        if (next.getUTCDay() === 6) {
+          next.setUTCDate(next.getUTCDate() + 2);
+        } else if (next.getUTCDay() === 0) {
+          next.setUTCDate(next.getUTCDate() + 1);
         }
-      } catch (err) {
-        console.error('Failed to calculate days:', err);
-      } finally {
-        setIsCalculating(false);
+        const yStr = next.getUTCFullYear();
+        const mStr = String(next.getUTCMonth() + 1).padStart(2, '0');
+        const dStr = String(next.getUTCDate()).padStart(2, '0');
+        setManualResumeWorkDate(`${yStr}-${mStr}-${dStr}`);
+      } catch (e) {
+        // ignore
       }
     }
-    computeDays();
-  }, [startDate, endDate, selectedEmployeeId]);
+  }, [endDate, manualResumeWorkDate]);
 
-  // Handle Submit
+  // Handle Submit Form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
     if (!selectedEmployeeId) {
-      setErrorMessage('Pilih karyawan pemohon terlebih dahulu');
+      setErrorMessage('Pilih nama karyawan pemohon terlebih dahulu');
       return;
     }
     if (!startDate || !endDate) {
-      setErrorMessage('Tentukan rentang tanggal mulai dan selesai');
+      setErrorMessage('Tentukan rentang Dari Tanggal dan s/d Tanggal cuti');
+      return;
+    }
+    if (!manualDurationDays || Number(manualDurationDays) <= 0) {
+      setErrorMessage('Jumlah cuti yang diambil harus diisi manual (minimal 1 hari)');
       return;
     }
     if (!reason.trim()) {
       setErrorMessage('Alasan cuti wajib diisi');
       return;
     }
-    if (!daysCalculation || !daysCalculation.isValid || daysCalculation.durationDays <= 0) {
-      setErrorMessage('Rentang tanggal tidak memiliki hari kerja efektif');
-      return;
-    }
+
+    const durationNum = Number(manualDurationDays);
 
     if (leaveType === 'ANNUAL' && balanceSummary) {
-      if (daysCalculation.durationDays > balanceSummary.availableBalance) {
+      if (durationNum > balanceSummary.availableBalance) {
         setErrorMessage(
-          `Saldo cuti tahunan tidak mencukupi. Sisa saldo: ${balanceSummary.availableBalance} hari, permohonan: ${daysCalculation.durationDays} hari.`
+          `Saldo cuti tahunan tidak mencukupi. Sisa saldo tersedia: ${balanceSummary.availableBalance} hari, jumlah cuti yang diajukan: ${durationNum} hari.`
         );
         return;
       }
@@ -176,8 +183,8 @@ export function LeaveRequestForm() {
           reason,
           startDate,
           endDate,
-          handoverToEmployeeId: handoverToId ? Number(handoverToId) : undefined,
-          handoverTask: handoverTask || undefined,
+          durationDays: durationNum, // Input manual!
+          resumeWorkDate: manualResumeWorkDate || undefined,
           emergencyPhone: emergencyPhone || undefined,
         }),
       });
@@ -186,29 +193,30 @@ export function LeaveRequestForm() {
       if (!res.ok) {
         setErrorMessage(json.error || 'Gagal mengajukan permohonan cuti');
       } else {
-        setSuccessMessage('Permohonan cuti berhasil diajukan!');
-        // Buka langsung tampilan dokumen F4 untuk pratinjau / cetak
+        setSuccessMessage('Permohonan cuti berhasil disimpan!');
         if (json.data && json.data.id) {
           setTimeout(() => {
             router.push(`/dashboard/leaves/${json.data.id}/print`);
-          }, 800);
+          }, 600);
         }
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Terjadi kesalahan sistem');
+      setErrorMessage(err.message || 'Terjadi kesalahan saat memproses data');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Estimasi realtime sisa saldo berdasarkan input manual
+  const durationNum = typeof manualDurationDays === 'number' ? manualDurationDays : 0;
   const remainingAfterEstimate =
-    balanceSummary && daysCalculation && leaveType === 'ANNUAL'
-      ? Math.max(0, balanceSummary.availableBalance - daysCalculation.durationDays)
+    balanceSummary && leaveType === 'ANNUAL'
+      ? Math.max(0, balanceSummary.availableBalance - durationNum)
       : balanceSummary?.availableBalance ?? 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
-      {/* Alert Messages */}
+      {/* Alert Error */}
       {errorMessage && (
         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -219,48 +227,54 @@ export function LeaveRequestForm() {
         </div>
       )}
 
+      {/* Alert Sukses */}
       {successMessage && (
         <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm">
           <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Sukses</p>
-            <p>{successMessage} Mengalihkan ke dokumen cetak F4...</p>
+            <p>{successMessage} Membuka dokumen format F4...</p>
           </div>
         </div>
       )}
 
-      {/* 1. Pemilihan Karyawan & Ringkasan Identitas */}
+      {/* 1. DATA KARYAWAN */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <User className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base font-bold text-slate-800">1. Data Karyawan Pemohon</h2>
+            <h2 className="text-base font-bold text-slate-800">1. Data Karyawan</h2>
           </div>
           <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
-            Form Number : 001
+            Form Number : 001 / REV. 170208-1-W
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-              Pilih Karyawan
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Nama Karyawan <span className="text-red-500">*</span>
             </label>
             <select
               value={selectedEmployeeId}
               onChange={(e) => setSelectedEmployeeId(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              className="w-full px-3 py-2.5 text-sm font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white shadow-sm"
+              required
             >
+              <option value="">-- Pilih Karyawan --</option>
               {employeesList.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.fullName} ({emp.employeeCode}) {emp.position ? `- ${emp.position}` : ''}
                 </option>
               ))}
             </select>
+            {employeesList.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">Memuat daftar nama karyawan...</p>
+            )}
           </div>
 
           {balanceSummary && (
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-slate-500 block">Departemen:</span>
                 <span className="font-semibold text-slate-800">{balanceSummary.employee.department}</span>
@@ -282,7 +296,7 @@ export function LeaveRequestForm() {
         </div>
       </div>
 
-      {/* 2. Kartu Hak dan Sisa Cuti Karyawan */}
+      {/* 2. HAK DAN SISA CUTI KARYAWAN */}
       {balanceSummary && (
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-700 pb-3">
@@ -297,15 +311,19 @@ export function LeaveRequestForm() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-              <div className="text-xs text-slate-400">Hak Cuti Dasar</div>
-              <div className="text-2xl font-bold text-white mt-1">{balanceSummary.baseQuota} <span className="text-xs font-normal text-slate-400">Hari</span></div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Sesuai Peraturan</div>
+              <div className="text-xs text-slate-400">Jumlah Hak Cuti</div>
+              <div className="text-2xl font-bold text-white mt-1">
+                {balanceSummary.baseQuota} <span className="text-xs font-normal text-slate-400">Hari</span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Kuota Dasar</div>
             </div>
 
             <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-              <div className="text-xs text-slate-400">Cuti Bersama Resmi</div>
-              <div className="text-2xl font-bold text-amber-400 mt-1">{balanceSummary.collectiveLeaveDays} <span className="text-xs font-normal text-slate-400">Hari</span></div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Memotong Kuota</div>
+              <div className="text-xs text-slate-400">Cuti Bersama</div>
+              <div className="text-2xl font-bold text-amber-400 mt-1">
+                {balanceSummary.collectiveLeaveDays} <span className="text-xs font-normal text-slate-400">Hari</span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Memotong Hak Cuti</div>
             </div>
 
             <div className="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
@@ -313,43 +331,39 @@ export function LeaveRequestForm() {
               <div className="text-2xl font-bold text-emerald-400 mt-1">
                 {balanceSummary.cleanAnnualQuota} <span className="text-xs font-normal text-slate-400">Hari</span>
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">12 - {balanceSummary.collectiveLeaveDays} Hari</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">
+                {balanceSummary.baseQuota} - {balanceSummary.collectiveLeaveDays} = {balanceSummary.cleanAnnualQuota} Hari
+              </div>
             </div>
 
-            <div className="bg-emerald-950/50 p-3.5 rounded-xl border border-emerald-600/40">
-              <div className="text-xs text-emerald-300 font-medium">Sisa Siap Ambil</div>
+            <div className="bg-emerald-950/60 p-3.5 rounded-xl border border-emerald-600/50">
+              <div className="text-xs text-emerald-300 font-semibold">Sisa Hak Cuti</div>
               <div className="text-2xl font-extrabold text-emerald-300 mt-1">
                 {balanceSummary.availableBalance} <span className="text-xs font-normal text-emerald-400">Hari</span>
               </div>
-              <div className="text-[11px] text-emerald-400/80 mt-0.5">
-                {daysCalculation && daysCalculation.durationDays > 0 ? (
-                  <span>Sisa akhir: <strong className="text-white">{remainingAfterEstimate} Hari</strong></span>
-                ) : (
-                  'Tersedia saat ini'
-                )}
+              <div className="text-[11px] text-emerald-400 mt-0.5">
+                Sisa setelah pengajuan: <strong className="text-white text-xs">{remainingAfterEstimate} Hari</strong>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 3. Detail Cuti yang Akan Diambil */}
+      {/* 3. CUTI YANG AKAN DIAMBIL */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-indigo-600" />
             <h2 className="text-base font-bold text-slate-800">3. Cuti yang Akan Diambil</h2>
           </div>
-          {daysCalculation && daysCalculation.durationDays > 0 && (
-            <span className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold">
-              {daysCalculation.durationDays} Hari Kerja Efektif
-            </span>
-          )}
+          <span className="text-xs font-medium text-slate-500">
+            Jumlah cuti diisi manual sesuai kebutuhan
+          </span>
         </div>
 
         {/* Pilihan Jenis Cuti */}
         <div className="space-y-2">
-          <label className="block text-xs font-semibold text-slate-600 uppercase">Jenis Cuti</label>
+          <label className="block text-xs font-semibold text-slate-700 uppercase">Jenis Cuti</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label
               className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
@@ -368,7 +382,7 @@ export function LeaveRequestForm() {
               />
               <div>
                 <div className="text-sm font-bold">Cuti Tahunan *)</div>
-                <div className="text-xs text-slate-500">Mengurangi saldo cuti tahunan mandiri karyawan</div>
+                <div className="text-xs text-slate-500">Mengurangi saldo cuti tahunan karyawan</div>
               </div>
             </label>
 
@@ -396,7 +410,7 @@ export function LeaveRequestForm() {
 
           {leaveType === 'SPECIAL' && (
             <div className="pt-2">
-              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
                 Kategori Cuti Khusus
               </label>
               <select
@@ -414,11 +428,11 @@ export function LeaveRequestForm() {
           )}
         </div>
 
-        {/* Rentang Tanggal */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        {/* Input Tanggal & Input Manual Jumlah Hari */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-              Dari Tanggal
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Dari Tanggal <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -430,8 +444,8 @@ export function LeaveRequestForm() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-              s/d Tanggal
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              s/d Tanggal <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -442,104 +456,89 @@ export function LeaveRequestForm() {
               required
             />
           </div>
-        </div>
 
-        {/* Hasil Perhitungan Hari Kerja & Tanggal Masuk */}
-        {daysCalculation && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <span className="text-xs text-emerald-800 font-semibold block uppercase">
-                Hari Kerja Efektif:
-              </span>
-              <span className="text-xl font-bold text-emerald-950">
-                {daysCalculation.durationDays} Hari
-              </span>
-            </div>
-
-            <div>
-              <span className="text-xs text-emerald-800 font-semibold block uppercase">
-                Kembali Bekerja Tanggal:
-              </span>
-              <span className="text-base font-bold text-emerald-950">
-                {daysCalculation.resumeWorkDate}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Alasan Cuti */}
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-            Alasan Cuti
-          </label>
-          <textarea
-            rows={2}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Contoh: Keperluan Keluarga / Mudik Tahunan"
-            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-            required
-          />
-        </div>
-      </div>
-
-      {/* 4. Serah Terima Tugas Selama Cuti (Handover) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <FileText className="w-5 h-5 text-amber-600" />
-          <h2 className="text-base font-bold text-slate-800">4. Serah Terima Tugas Selama Cuti</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Revisi 2: Jumlah Cuti yang Diambil (Input Manual) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-              Kepada (Rekan Kerja Pengganti)
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Jumlah Cuti Diambil (Hari) <span className="text-red-500">*</span>
             </label>
-            <select
-              value={handoverToId}
-              onChange={(e) => setHandoverToId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
-            >
-              <option value="">-- Pilih Rekan Penerima Tugas (Opsional) --</option>
-              {employeesList
-                .filter((e) => e.id !== selectedEmployeeId)
-                .map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.fullName} ({emp.position || emp.departmentName || '-'})
-                  </option>
-                ))}
-            </select>
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={manualDurationDays}
+                onChange={(e) => setManualDurationDays(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Misal: 2"
+                className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-600 bg-blue-50/30 text-blue-900"
+                required
+              />
+              <span className="absolute right-3 top-2 text-xs font-semibold text-blue-700">Hari</span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Input manual (misal: Jumat & Senin dihitung 2 hari).
+            </p>
+          </div>
+        </div>
+
+        {/* Tanggal Kembali Bekerja */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Kembali Bekerja Tanggal
+            </label>
+            <input
+              type="date"
+              value={manualResumeWorkDate}
+              onChange={(e) => setManualResumeWorkDate(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">Hari pertama masuk kerja setelah cuti selesai.</p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-              Nomor Telp yang Bisa Dihubungi Selama Cuti
+            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+              Nomor Telp Darurat (Selama Cuti)
             </label>
             <input
               type="text"
               value={emergencyPhone}
               onChange={(e) => setEmergencyPhone(e.target.value)}
               placeholder="Contoh: 0812-3456-7890"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             />
           </div>
         </div>
 
+        {/* Alasan Cuti */}
         <div>
-          <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
-            Tugas yang Akan Diserahkan
+          <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
+            Alasan Cuti <span className="text-red-500">*</span>
           </label>
           <textarea
             rows={2}
-            value={handoverTask}
-            onChange={(e) => setHandoverTask(e.target.value)}
-            placeholder="Rincian pekerjaan operasional yang didelegasikan selama cuti"
-            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Contoh: Keperluan Keluarga"
+            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+            required
           />
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* 4. Revisi 3: Serah Terima Tugas Dikosongkan untuk Tulis Tangan */}
+      <div className="bg-amber-50/70 p-5 rounded-2xl border border-amber-200 shadow-sm flex items-start gap-3">
+        <PenTool className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-900 leading-relaxed">
+          <p className="font-bold text-amber-950 mb-0.5">Seksi Serah Terima Tugas Selama Cuti</p>
+          <p>
+            Sesuai format operasional, bagian serah terima tugas (Kepada, Tugas yang diserahkan, dan Tanda Tangan Penerima) 
+            akan dicetak berupa <strong>kolom bergaris titik-titik kosong</strong> pada dokumen F4 agar dapat diisi dan ditandatangani secara <strong>tulis tangan manual</strong> oleh rekan penerima tugas.
+          </p>
+        </div>
+      </div>
+
+      {/* Tombol Aksi */}
       <div className="flex items-center justify-end gap-3 pt-4">
         <button
           type="button"
@@ -552,9 +551,9 @@ export function LeaveRequestForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-xl shadow-sm transition cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 rounded-xl shadow-sm transition cursor-pointer"
         >
-          {isSubmitting ? 'Memproses...' : 'Ajukan & Buat Form F4'}
+          {isSubmitting ? 'Menyimpan...' : 'Ajukan Cuti & Cetak Form F4'}
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

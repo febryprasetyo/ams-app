@@ -51,6 +51,8 @@ export interface LeaveRequestFormData {
   reason: string;
   startDate: string;
   endDate: string;
+  durationDays: number;           // Input manual!
+  resumeWorkDate?: string;        // Input manual atau rekomendasi
   handoverToEmployeeId?: number;
   handoverTask?: string;
   emergencyPhone?: string;

@@ -30,6 +30,8 @@ const createLeaveRequestSchema = z.object({
   reason: z.string().min(1, 'Alasan cuti wajib diisi').max(500),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  durationDays: z.coerce.number().positive('Jumlah cuti minimal 1 hari'), // Input manual dari pengguna!
+  resumeWorkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD').optional().nullable(),
   handoverToEmployeeId: z.coerce.number().positive().optional().nullable(),
   handoverTask: z.string().max(1000).optional().nullable(),
   emergencyPhone: z.string().max(50).optional().nullable(),
@@ -52,6 +54,30 @@ async function getEmployeeProfile(empId: number) {
     .where(eq(employees.id, empId));
 
   return emp || null;
+}
+
+// 0. GET /employees (Daftar karyawan aktif untuk dropdown)
+export async function getActiveEmployeesForLeaves(req: Request, res: Response) {
+  try {
+    const list = await db
+      .select({
+        id: employees.id,
+        fullName: employees.fullName,
+        employeeCode: employees.employeeCode,
+        position: employees.position,
+        departmentId: employees.departmentId,
+        departmentName: departments.name,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(eq(employees.status, 'Active'))
+      .orderBy(employees.fullName);
+
+    return res.status(200).json(list);
+  } catch (error) {
+    console.error('Error getActiveEmployeesForLeaves:', error);
+    return res.status(500).json({ error: 'Gagal memuat daftar karyawan' });
+  }
 }
 
 // 1. GET /balance-summary
@@ -99,7 +125,6 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
         .returning();
       balance = inserted;
     } else if (balance.collectiveLeaveDeduction !== collectiveLeaveDays) {
-      // Perbarui jika kalender cuti bersama telah diperbarui oleh HR
       const [updated] = await db
         .update(leaveBalances)
         .set({ collectiveLeaveDeduction: collectiveLeaveDays, updatedAt: new Date() })
@@ -122,12 +147,8 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
       .orderBy(desc(leaveRequests.startDate))
       .limit(5);
 
-    // Bentuk daftar history items untuk dicetak di seksi Hak & Sisa Cuti
-    // Sertakan rincian cuti bersama jika ada
     const historyItems: Array<{ no: number; description: string }> = [];
-    
-    // Gabungkan entri cuti bersama ke list jika relevan
-    collectiveLeaves.slice(0, 2).forEach((cl, idx) => {
+    collectiveLeaves.slice(0, 2).forEach((cl) => {
       historyItems.push({
         no: historyItems.length + 1,
         description: `1 = ${cl.description}`,
@@ -143,7 +164,6 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
       }
     });
 
-    // Isi slot kosong hingga 5 item jika belum penuh
     while (historyItems.length < 5) {
       historyItems.push({
         no: historyItems.length + 1,
@@ -193,7 +213,6 @@ export async function calculateWorkingDays(req: Request, res: Response) {
     const { startDate, endDate } = parsed.data;
     const startYear = Number(startDate.split('-')[0]);
 
-    // Ambil hari libur & cuti bersama pada tahun tersebut
     const holidays = await db
       .select({ date: leaveHolidayCalendars.holidayDate })
       .from(leaveHolidayCalendars)
@@ -214,7 +233,7 @@ export async function calculateWorkingDays(req: Request, res: Response) {
   }
 }
 
-// 3. POST /requests
+// 3. POST /requests (Mendukung Input Manual durationDays)
 export async function createLeaveRequest(req: Request, res: Response) {
   try {
     const parsed = createLeaveRequestSchema.safeParse(req.body);
@@ -237,15 +256,15 @@ export async function createLeaveRequest(req: Request, res: Response) {
       .where(eq(leaveHolidayCalendars.year, startYear));
     const holidayDates = holidays.map((h) => h.holidayDate);
 
-    // Hitung hari kerja efektif
-    const daysCalc = calculateLeaveWorkingDays({
-      startDate: data.startDate,
-      endDate: data.endDate,
-      holidayDates,
-    });
-
-    if (!daysCalc.isValid || daysCalc.durationDays <= 0) {
-      return res.status(400).json({ error: 'Rentang tanggal tidak valid atau tidak memiliki hari kerja efektif' });
+    // Hitung rekomendasi tanggal kembali jika tidak diinput manual
+    let finalResumeWorkDate = data.resumeWorkDate;
+    if (!finalResumeWorkDate) {
+      const daysCalc = calculateLeaveWorkingDays({
+        startDate: data.startDate,
+        endDate: data.endDate,
+        holidayDates,
+      });
+      finalResumeWorkDate = daysCalc.resumeWorkDate;
     }
 
     // Ambil saldo
@@ -274,12 +293,12 @@ export async function createLeaveRequest(req: Request, res: Response) {
       collectiveLeaveDays: balance.collectiveLeaveDeduction,
       usedQuota: balance.usedQuota,
       carriedOverQuota: balance.carriedOverQuota,
-      requestedDays: daysCalc.durationDays,
+      requestedDays: data.durationDays, // Gunakan input manual!
     });
 
-    if (data.leaveType === 'ANNUAL' && !balanceCalc.hasSufficientBalance) {
+    if (data.leaveType === 'ANNUAL' && data.durationDays > balanceCalc.availableBefore) {
       return res.status(400).json({
-        error: `Saldo cuti tahunan tidak mencukupi. Sisa saldo: ${balanceCalc.availableBefore} hari, pengajuan: ${daysCalc.durationDays} hari.`,
+        error: `Saldo cuti tahunan tidak mencukupi. Sisa saldo: ${balanceCalc.availableBefore} hari, pengajuan: ${data.durationDays} hari.`,
       });
     }
 
@@ -289,6 +308,11 @@ export async function createLeaveRequest(req: Request, res: Response) {
       .from(leaveRequests);
     const seq = (countResult?.count || 0) + 1;
     const requestNumber = formatLeaveRequestNumber(new Date(), seq);
+
+    const snapshotRemaining =
+      data.leaveType === 'ANNUAL'
+        ? Math.max(0, balanceCalc.availableBefore - data.durationDays)
+        : balanceCalc.availableBefore;
 
     // Database transaction
     const createdRequest = await db.transaction(async (tx) => {
@@ -302,8 +326,8 @@ export async function createLeaveRequest(req: Request, res: Response) {
           reason: data.reason,
           startDate: data.startDate,
           endDate: data.endDate,
-          durationDays: daysCalc.durationDays,
-          resumeWorkDate: daysCalc.resumeWorkDate,
+          durationDays: data.durationDays, // Input manual
+          resumeWorkDate: finalResumeWorkDate,
           handoverToEmployeeId: data.handoverToEmployeeId || null,
           handoverTask: data.handoverTask || null,
           emergencyPhone: data.emergencyPhone || null,
@@ -312,16 +336,16 @@ export async function createLeaveRequest(req: Request, res: Response) {
           snapshotBaseQuota: balance.baseQuota,
           snapshotCollectiveLeave: balance.collectiveLeaveDeduction,
           snapshotAvailableBefore: balanceCalc.availableBefore,
-          snapshotRemainingAfter: data.leaveType === 'ANNUAL' ? balanceCalc.remainingAfter : balanceCalc.availableBefore,
+          snapshotRemainingAfter: snapshotRemaining,
         })
         .returning();
 
-      // Jika cuti tahunan, potong kuota terpakai
+      // Jika cuti tahunan, potong kuota terpakai sesuai input manual
       if (data.leaveType === 'ANNUAL') {
         await tx
           .update(leaveBalances)
           .set({
-            usedQuota: balance.usedQuota + daysCalc.durationDays,
+            usedQuota: balance.usedQuota + data.durationDays,
             updatedAt: new Date(),
           })
           .where(eq(leaveBalances.id, balance.id));
@@ -391,7 +415,6 @@ export async function getLeaveRequestById(req: Request, res: Response) {
       handoverEmployee = await getEmployeeProfile(request.handoverToEmployeeId);
     }
 
-    // Ambil persetujuan 4 tahap
     const approvalsList = await db
       .select()
       .from(leaveApprovals)
@@ -402,7 +425,6 @@ export async function getLeaveRequestById(req: Request, res: Response) {
     const hrdApproval = approvalsList.find((a) => a.stage === 'HRD') || null;
     const higherSupApproval = approvalsList.find((a) => a.stage === 'HIGHER_SUPERVISOR') || null;
 
-    // Ambil histori cuti snapshot
     const prevLeaves = await db
       .select()
       .from(leaveRequests)
@@ -463,9 +485,9 @@ export async function getLeaveRequestById(req: Request, res: Response) {
       hrdNotes: request.hrdNotes || '',
       handover: {
         recipientId: request.handoverToEmployeeId,
-        recipientName: handoverEmployee?.fullName || '-',
-        taskDescription: request.handoverTask || '-',
-        emergencyPhone: request.emergencyPhone || '-',
+        recipientName: handoverEmployee?.fullName || '',
+        taskDescription: request.handoverTask || '',
+        emergencyPhone: request.emergencyPhone || '',
       },
       approvals: {
         applicant: {
@@ -499,11 +521,7 @@ export async function getLeaveRequestById(req: Request, res: Response) {
 // 5. GET /requests (List)
 export async function getLeaveRequests(req: Request, res: Response) {
   try {
-    const employeeId = req.query.employeeId ? Number(req.query.employeeId) : undefined;
-    const year = req.query.year ? Number(req.query.year) : undefined;
-    const status = req.query.status ? String(req.query.status) : undefined;
-
-    let query = db
+    const records = await db
       .select({
         id: leaveRequests.id,
         requestNumber: leaveRequests.requestNumber,
@@ -523,7 +541,6 @@ export async function getLeaveRequests(req: Request, res: Response) {
       .leftJoin(employees, eq(leaveRequests.employeeId, employees.id))
       .orderBy(desc(leaveRequests.createdAt));
 
-    const records = await query;
     return res.status(200).json(records);
   } catch (error) {
     console.error('Error getLeaveRequests:', error);

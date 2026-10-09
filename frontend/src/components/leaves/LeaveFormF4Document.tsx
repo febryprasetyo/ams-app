@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { FullLeaveDocumentData } from '@/types/leaves';
-import { Printer, ArrowLeft, Check, Download } from 'lucide-react';
+import { Printer, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface LeaveFormF4DocumentProps {
@@ -120,7 +120,6 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               alt="Logo CMC"
               className="h-10 w-auto object-contain"
               onError={(e) => {
-                // Fallback jika logo tidak ter-render
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
@@ -288,12 +287,12 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
         {/* 5. Seksi CATATAN HRD */}
         <div className="mb-2">
           <div className="section-title">CATATAN HRD</div>
-          <div className="border border-black border-t-0 p-2 min-h-[42px] text-[10px]">
+          <div className="border border-black border-t-0 p-2 min-h-[40px] text-[10px]">
             {data.hrdNotes || <span className="text-transparent">.</span>}
           </div>
         </div>
 
-        {/* 6. Seksi SERAH TERIMA TUGAS SELAMA CUTI */}
+        {/* 6. Seksi SERAH TERIMA TUGAS SELAMA CUTI (Revisi 3: Kosongan Format Garis untuk Tulis Tangan) */}
         <div className="mb-2">
           <div className="section-title">SERAH TERIMA TUGAS SELAMA CUTI</div>
           <table className="table-f4 text-[10.5px]">
@@ -301,12 +300,16 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               <tr>
                 <td className="w-[30%]">Kepada</td>
                 <td className="w-[2%] text-center border-l-0 border-r-0">:</td>
-                <td className="border-l-0 font-medium">{data.handover.recipientName || '-'}</td>
+                <td className="border-l-0 tracking-widest text-gray-400">
+                  ....................................................................................................................
+                </td>
               </tr>
               <tr>
                 <td>Tugas yang akan diserahkan</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
-                <td className="border-l-0 font-medium">{data.handover.taskDescription || '-'}</td>
+                <td className="border-l-0 tracking-widest text-gray-400">
+                  ....................................................................................................................
+                </td>
               </tr>
               <tr>
                 <td>
@@ -314,12 +317,20 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                   <div className="text-[9.5px] italic text-gray-700">(selama cuti)</div>
                 </td>
                 <td className="text-center border-l-0 border-r-0">:</td>
-                <td className="border-l-0 font-semibold">{data.handover.emergencyPhone || '-'}</td>
+                <td className="border-l-0 font-medium">
+                  {data.handover.emergencyPhone ? (
+                    <span className="font-semibold text-black">{data.handover.emergencyPhone}</span>
+                  ) : (
+                    <span className="tracking-widest text-gray-400">
+                      ....................................................................................................................
+                    </span>
+                  )}
+                </td>
               </tr>
               <tr>
-                <td className="h-[28px] align-bottom">Tanda Tangan Penerima</td>
-                <td className="text-center border-l-0 border-r-0 align-bottom">:</td>
-                <td className="border-l-0 align-bottom italic text-[9.5px] text-gray-600">
+                <td className="h-[32px] align-bottom pb-1">Tanda Tangan Penerima</td>
+                <td className="text-center border-l-0 border-r-0 align-bottom pb-1">:</td>
+                <td className="border-l-0 align-bottom pb-1 italic text-[9.5px] text-gray-600">
                   ( ............................................................ )
                 </td>
               </tr>

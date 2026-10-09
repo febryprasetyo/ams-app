@@ -33,6 +33,14 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
         return false;
       });
   const employeeId = row.employeeId ?? employee?.id ?? null;
+  if (row.attendanceStatus && row.attendanceStatus !== 'PRESENT') {
+    if (!employeeId) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Karyawan tidak ditemukan di Master Data.' };
+    if (data.records.some(r => r.employeeId === employeeId && r.workDate === row.workDate)
+      || batch.rows.some(r => r.id !== row.id && r.reviewStatus !== 'SKIPPED' && r.externalNoId === row.externalNoId && r.workDate === row.workDate)) {
+      return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Catatan duplikat. Lewati baris dan koreksi catatan final jika diperlukan.' };
+    }
+    return { ...row, employeeId, reviewStatus: 'READY', note: row.note || `Status ketidakhadiran: ${row.attendanceStatus}` };
+  }
   if (!row.scanIn && !row.scanOut) return { ...row, employeeId, reviewStatus: 'SKIPPED', note: 'Kedua scan kosong; tidak disimpulkan alpha.' };
   if (!employeeId) return { ...row, employeeId, reviewStatus: 'BLOCKED', note: 'Karyawan tidak ditemukan di Master Data.' };
   if (data.records.some(r => r.employeeId === employeeId && r.workDate === row.workDate)
@@ -178,13 +186,13 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
           throw new Error(row.issues?.[0] || row.note);
         }
 
-        const resolved = resolveRow(data, batch, { ...row, reviewStatus: 'NEEDS_REVIEW' });
+        const resolved = resolveRow(data, batch, { ...row, reviewStatus: 'NEEDS_REVIEW', attendanceStatus: command.attendanceStatus || row.attendanceStatus });
         if (command.employeeId) {
           resolved.employeeId = command.employeeId;
         }
 
         if (resolved.reviewStatus === 'BLOCKED') {
-          if (row.scanIn && row.scanOut && (row.employeeId || resolved.employeeId)) {
+          if ((command.attendanceStatus && command.attendanceStatus !== 'PRESENT') || (row.scanIn && row.scanOut && (row.employeeId || resolved.employeeId))) {
             resolved.reviewStatus = 'READY';
           } else {
             throw new Error(resolved.note);
@@ -192,12 +200,14 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         }
         if (resolved.reviewStatus === 'SKIPPED') throw new Error(resolved.note);
 
+        const attStatus = command.attendanceStatus || row.attendanceStatus || 'PRESENT';
         Object.assign(row, resolved, {
-          scanIn: row.scanIn,
-          scanOut: row.scanOut,
-          lateMinutes: row.lateMinutes,
-          overtimeMinutes: row.overtimeMinutes,
+          scanIn: attStatus !== 'PRESENT' ? null : row.scanIn,
+          scanOut: attStatus !== 'PRESENT' ? null : row.scanOut,
+          lateMinutes: attStatus !== 'PRESENT' ? 0 : row.lateMinutes,
+          overtimeMinutes: attStatus !== 'PRESENT' ? 0 : row.overtimeMinutes,
           reviewStatus: 'READY',
+          attendanceStatus: attStatus,
           note: command.reason.trim(),
         });
       }
@@ -226,7 +236,7 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
               keys.add(key);
             }
             for (const row of rows) {
-              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
+              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: row.attendanceStatus || 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
               data.records.push(record);
             }
             batch.status = 'COMMITTED';
@@ -259,7 +269,7 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
               throw new Error('Tidak ada baris data valid yang dapat disimpan.');
             }
             for (const row of toCommit) {
-              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
+              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: row.attendanceStatus || 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
               data.records.push(record);
             }
             batch.status = 'COMMITTED';

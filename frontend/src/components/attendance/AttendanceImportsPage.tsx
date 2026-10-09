@@ -10,7 +10,7 @@ import { Heading, SearchInput, Pagination, Empty, FormDialog } from './shared';
 import { parseAttendanceBiff } from '@/lib/attendance/biff';
 import { computeFileHash } from '@/lib/attendance/hash';
 import { dateLabel, durationLabel } from '@/lib/attendance/domain';
-import type { ImportRow } from '@/lib/attendance/types';
+import type { ImportRow, AttendanceStatus } from '@/lib/attendance/types';
 
 const batchLabels = { DRAFT: 'Draft', COMMITTED: 'Tersimpan', CANCELLED: 'Dibatalkan' };
 const reviewLabels = { READY: 'Siap disimpan', NEEDS_REVIEW: 'Perlu review', BLOCKED: 'Terblokir', SKIPPED: 'Dilewati' };
@@ -80,12 +80,7 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
         <p>Periksa baris bermasalah. Pastikan No. ID atau nama karyawan sudah terdaftar di Master Data Karyawan. Untuk konflik tanggal ganda, lewati baris yang tidak digunakan.</p>
       </div>
     )}
-    {!isStrict && batch.status === 'DRAFT' && (
-      <div className="flex gap-2 rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs leading-5 text-indigo-950">
-        <AlertCircle size={16} className="mt-0.5 shrink-0 text-indigo-600" />
-        <p><strong>Mode Cepat Aktif:</strong> Anda dapat langsung menekan tombol <strong>Simpan absensi</strong>. Baris terpetakan akan langsung disimpan, sedangkan baris dengan catatan tanggal ganda (duplikat) atau karyawan yang tidak terdaftar akan otomatis dilewati (SKIPPED).</p>
-      </div>
-    )}
+
   </>}\n  <div className="flex flex-wrap items-center justify-between gap-4">
     <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} placeholder={batch ? "Cari nomor mesin atau karyawan" : "Cari nama file impor"} />
     <span className="text-xs font-medium text-slate-500">{total} {batch ? "baris data" : "file impor"}</span>
@@ -97,14 +92,19 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
       description={`${review.externalNoId} · ${dateLabel(review.workDate)} · ${review.note}`}
       fields={[
         {
-          name: 'decision',
-          label: 'Keputusan baris',
+          name: 'attendanceStatus',
+          label: 'Status Kehadiran / Tindakan Baris',
           type: 'select',
-          value: review.reviewStatus === 'SKIPPED' ? 'skip' : 'use',
+          value: review.reviewStatus === 'SKIPPED' ? 'SKIPPED' : (review.attendanceStatus || 'PRESENT'),
           options: [
-            { value: 'use', label: 'Gunakan baris ini' },
-            { value: 'skip', label: 'Lewati baris ini' },
+            { value: 'PRESENT', label: '🟢 Hadir (Jam scan masuk & pulang aktif)' },
+            { value: 'SAKIT', label: '🟡 Sakit (Surat Keterangan Dokter)' },
+            { value: 'IZIN', label: '🔵 Izin Resmi (Disetujui)' },
+            { value: 'CUTI', label: '🟣 Cuti Tahunan' },
+            { value: 'ALPHA', label: '🔴 Alpha / Mangkir (Tanpa Keterangan)' },
+            { value: 'SKIPPED', label: '⚪ Lewati Baris Ini (Data tidak disimpan ke absensi)' },
           ],
+          hint: 'Tentukan status kehadiran untuk baris ini, atau pilih "Lewati" jika data tidak digunakan.',
         },
         {
           name: 'employeeId',
@@ -112,34 +112,34 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
           type: 'select',
           value: review.employeeId ?? '',
           options: [
-            { value: '', label: '— Pilih Karyawan —' },
+            { value: '', label: '— Pilih Karyawan dari Master Data —' },
             ...data.employees.map(e => ({
               value: e.id,
               label: `${e.employeeCode ? `${e.employeeCode} - ` : ''}${e.fullName}`,
             })),
           ],
-          hint: 'Pilih karyawan jika baris belum terpetakan otomatis atau ingin dialihkan.',
+          hint: 'Pilih karyawan jika No. ID mesin belum terhubung otomatis ke Master Data Karyawan.',
         },
         {
           name: 'scanIn',
-          label: 'Jam Masuk',
+          label: 'Jam Masuk (HH:mm)',
           type: 'time',
           value: review.scanIn ?? '',
-          hint: 'Pilih jam masuk menggunakan time picker (HH:mm)',
+          hint: 'Hanya berlaku untuk status Hadir. Biarkan kosong jika Sakit/Izin/Cuti/Alpha.',
         },
         {
           name: 'scanOut',
-          label: 'Jam Pulang',
+          label: 'Jam Pulang (HH:mm)',
           type: 'time',
           value: review.scanOut ?? '',
-          hint: 'Pilih jam pulang menggunakan time picker (HH:mm)',
+          hint: 'Hanya berlaku untuk status Hadir. Biarkan kosong jika Sakit/Izin/Cuti/Alpha.',
         },
         {
           name: 'lateMinutes',
           label: 'Durasi Terlambat (menit)',
           type: 'number',
           value: review.lateMinutes ?? 0,
-          hint: 'Durasi keterlambatan dalam menit (0 jika tepat waktu)',
+          hint: 'Durasi keterlambatan dalam menit (0 jika tepat waktu atau tidak hadir)',
         },
         {
           name: 'overtimeMinutes',
@@ -158,26 +158,32 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
       ]}
       onClose={() => setReview(null)}
       onSubmit={async f => {
-        const decision = String(f.get('decision') || 'use');
+        const statusVal = String(f.get('attendanceStatus') || 'PRESENT');
+        const isSkipped = statusVal === 'SKIPPED';
+        const attendanceStatus = isSkipped ? 'PRESENT' : (statusVal as AttendanceStatus);
+
         const rawEmployeeId = f.get('employeeId');
         const empId = rawEmployeeId && String(rawEmployeeId).trim() ? Number(rawEmployeeId) : review.employeeId;
+
+        const isPresent = attendanceStatus === 'PRESENT' && !isSkipped;
         const rawScanIn = f.get('scanIn');
         const rawScanOut = f.get('scanOut');
         const rawLate = f.get('lateMinutes');
         const rawOvertime = f.get('overtimeMinutes');
 
-        const scanIn = rawScanIn !== null ? String(rawScanIn).trim() || null : review.scanIn;
-        const scanOut = rawScanOut !== null ? String(rawScanOut).trim() || null : review.scanOut;
-        const lateMinutes = rawLate !== null && String(rawLate).trim() !== '' ? Number(rawLate) : (review.lateMinutes ?? 0);
-        const overtimeMinutes = rawOvertime !== null && String(rawOvertime).trim() !== '' ? Number(rawOvertime) : (review.overtimeMinutes ?? 0);
+        const scanIn = isPresent ? (rawScanIn !== null ? String(rawScanIn).trim() || null : review.scanIn) : null;
+        const scanOut = isPresent ? (rawScanOut !== null ? String(rawScanOut).trim() || null : review.scanOut) : null;
+        const lateMinutes = isPresent ? (rawLate !== null && String(rawLate).trim() !== '' ? Number(rawLate) : (review.lateMinutes ?? 0)) : 0;
+        const overtimeMinutes = isPresent ? (rawOvertime !== null && String(rawOvertime).trim() !== '' ? Number(rawOvertime) : (review.overtimeMinutes ?? 0)) : 0;
 
         await execute({
           type: 'review',
           batchId: batch.id,
           rowId: review.id,
           employeeId: empId,
-          skipped: decision === 'skip',
-          reason: String(f.get('reason') || '').trim(),
+          attendanceStatus: isSkipped ? undefined : attendanceStatus,
+          skipped: isSkipped,
+          reason: String(f.get('reason') || '').trim() || (isSkipped ? 'Dilewati oleh HR' : `Diset sebagai ${attendanceStatus}`),
           values: {
             scanIn,
             scanOut,

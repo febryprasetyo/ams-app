@@ -1,22 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, BadgeCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Settings, BadgeCheck, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading } from './shared';
 
 export default function AttendanceSettingsPage() {
+  const { user } = useAuth();
   const { data, execute } = useAttendance();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canManage = data.meta.canManageAccess;
+  const normRole = (user?.roleName || (user as { role?: string })?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isAdmin = ['superadmin', 'itadmin', 'admin'].includes(normRole) || Boolean(user?.permissions?.includes('*'));
   const isStrict = data.meta.strictIntegrity !== false;
 
   const handleToggle = async () => {
-    if (!canManage) {
-      setError('Hanya Administrator HR yang memiliki izin mengubah pengaturan ini.');
+    if (!isAdmin) {
+      setError('Hanya Administrator Sistem yang memiliki izin mengubah pengaturan ini.');
       return;
     }
 
@@ -38,6 +41,24 @@ export default function AttendanceSettingsPage() {
       setBusy(false);
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <Heading
+          title="Pengaturan Absensi"
+          description="Konfigurasi kebijakan sistem dan kontrol integritas data absensi."
+        />
+        <div className="rounded-xl border border-red-200 bg-red-50/70 p-8 text-center max-w-xl mx-auto my-6 shadow-xs">
+          <ShieldAlert className="mx-auto text-red-600 mb-3" size={36} />
+          <h3 className="text-base font-bold text-red-950">Akses Terbatas: Administrator Only</h3>
+          <p className="mt-2 text-xs leading-relaxed text-red-800">
+            Halaman pengaturan integritas absensi ini hanya dapat diakses dan diubah oleh <strong>Administrator Sistem</strong>, bukan oleh staff atau HRD biasa.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -101,9 +122,9 @@ export default function AttendanceSettingsPage() {
               type="button"
               role="switch"
               aria-checked={isStrict}
-              disabled={busy || !canManage}
+              disabled={busy}
               onClick={handleToggle}
-              title={canManage ? 'Klik untuk mengubah mode integritas' : 'Hanya Administrator yang dapat mengubah'}
+              title="Klik untuk mengubah mode integritas"
               className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                 isStrict ? 'bg-emerald-600' : 'bg-slate-300'
               }`}
@@ -117,16 +138,10 @@ export default function AttendanceSettingsPage() {
             </button>
           </div>
         </div>
-
-        {!canManage && (
-          <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-            Akun Anda tidak memiliki hak akses administrator untuk mengubah pengaturan ini.
-          </div>
-        )}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-xs text-slate-600 leading-relaxed">
-        <p className="font-semibold text-slate-800 mb-1">Catatan Keamanan & Integritas:</p>
+        <p className="font-semibold text-slate-800 mb-1">Catatan Kebijakan & Integritas:</p>
         <ul className="list-disc pl-4 space-y-1">
           <li>Pengaturan ini berlaku secara global untuk seluruh batch impor absensi di modul HR.</li>
           <li>Mode Nonaktif direkomendasikan hanya untuk keperluan pengembangan (*development*), pengetesan unggah data banyak, atau uji coba massal.</li>

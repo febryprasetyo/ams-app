@@ -30,6 +30,14 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
     moduleName: 'Welcome Overview',
   },
 
+  // HR Attendance Settings (Admin Only - restricted from ordinary HRD)
+  {
+    prefix: '/dashboard/attendance/settings',
+    permission: 'attendance.manage',
+    adminOnly: true,
+    moduleName: 'Pengaturan Absensi',
+  },
+
   // Administration
   {
     prefix: '/dashboard/access',

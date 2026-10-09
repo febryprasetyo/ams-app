@@ -163,3 +163,57 @@ test('set_strict_integrity command updates system global strictIntegrity in meta
   assert.equal(next.batches.find(b => b.id === 1).status, 'COMMITTED');
   assert.equal(next.records.filter(r => r.workDate === '2026-09-21').length, 2);
 });
+
+import { canAccessRoute } from '../access/routes.ts';
+
+test('review row allows setting attendanceStatus (SAKIT) and commits successfully as SAKIT', () => {
+  let data = createSeed();
+  data.batches.push({
+    id: 1,
+    filename: 'test-sakit.xls',
+    sourceId: 1,
+    createdAt: new Date().toISOString(),
+    status: 'DRAFT',
+    rows: [
+      { id: 1, externalNoId: '001', employeeId: 1, workDate: '2026-09-21', scanIn: null, scanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0, reviewStatus: 'BLOCKED', note: 'Scan belum lengkap' },
+    ],
+  });
+
+  // HR reviews the row as SAKIT with reason
+  data = applyCommand(data, {
+    type: 'review',
+    batchId: 1,
+    rowId: 1,
+    employeeId: 1,
+    attendanceStatus: 'SAKIT',
+    skipped: false,
+    reason: 'Surat keterangan dokter terlampir',
+  });
+
+  const row = data.batches.find(b => b.id === 1).rows[0];
+  assert.equal(row.reviewStatus, 'READY');
+  assert.equal(row.attendanceStatus, 'SAKIT');
+  assert.equal(row.scanIn, null);
+  assert.equal(row.scanOut, null);
+
+  // Commit batch
+  data = applyCommand(data, { type: 'batch', batchId: 1, action: 'commit' });
+  const record = data.records.find(r => r.workDate === '2026-09-21');
+  assert.ok(record);
+  assert.equal(record.attendanceStatus, 'SAKIT');
+  assert.equal(record.scanIn, null);
+  assert.equal(record.scanOut, null);
+  assert.equal(record.lateMinutes, 0);
+});
+
+test('route /dashboard/attendance/settings is restricted to Admin, denied for HRD biasa', () => {
+  const superAdmin = { roleName: 'SuperAdmin', permissions: ['*'] };
+  const itAdmin = { roleName: 'ITAdmin', permissions: ['attendance.manage', 'master.manage'] };
+  const hrdBiasa = { roleName: 'HRD', permissions: ['attendance.view', 'attendance.import'] };
+  const hrStaff = { roleName: 'HR_STAFF', permissions: ['attendance.view'] };
+
+  assert.equal(canAccessRoute('/dashboard/attendance/settings', superAdmin), true);
+  assert.equal(canAccessRoute('/dashboard/attendance/settings', itAdmin), true);
+  assert.equal(canAccessRoute('/dashboard/attendance/settings', hrdBiasa), false);
+  assert.equal(canAccessRoute('/dashboard/attendance/settings', hrStaff), false);
+});

@@ -45,6 +45,7 @@ export interface ImportRow {
   shift?: string | null; scheduleIn?: string | null; scheduleOut?: string | null;
   rawScanIn?: string | null; rawScanOut?: string | null; normalized?: boolean;
   issues?: string[];
+  attendanceStatus?: AttendanceStatus;
 }
 export interface ImportBatch {
   id: number; filename: string; sourceId: number; fileHash?: string; createdAt: string;
@@ -79,7 +80,7 @@ export type AttendanceCommand =
   | { type: 'delete_grant'; id: number }
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
   | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
-  | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }
+  | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; attendanceStatus?: AttendanceStatus; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }
   | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen'; strictIntegrity?: boolean }
   | { type: 'toggle_strict_integrity'; batchId: number; enabled: boolean }
   | { type: 'set_strict_integrity'; enabled: boolean }

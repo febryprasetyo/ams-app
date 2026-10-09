@@ -23,6 +23,7 @@ import {
   disposeAsset,
   getAssetHistory,
 } from '../controllers/assetLifecycleController';
+import { getAssetDashboardSummary } from '../controllers/assetDashboardController';
 import { authenticateToken, requirePermission } from '../middleware/auth';
 
 const router = Router();
@@ -57,6 +58,9 @@ router.delete('/categories/:id', deleteAssets, deleteCategory);
 router.get('/import/template', createAssets, downloadAssetImportTemplate);
 router.post('/import/preview', createAssets, uploadXlsx.single('file'), previewAssetImport);
 router.post('/import/commit', createAssets, uploadXlsx.single('file'), commitAssetImportUpload);
+
+// --- Asset Dashboard Summary (must be registered before /:id) ---
+router.get('/dashboard-summary', viewAssets, getAssetDashboardSummary);
 
 // --- Asset Inventory ---
 router.get('/', viewAssets, getAssets);

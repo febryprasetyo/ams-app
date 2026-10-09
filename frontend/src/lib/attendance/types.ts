@@ -49,6 +49,7 @@ export interface ImportRow {
 export interface ImportBatch {
   id: number; filename: string; sourceId: number; fileHash?: string; createdAt: string;
   status: 'DRAFT' | 'COMMITTED' | 'CANCELLED'; rows: ImportRow[];
+  strictIntegrity?: boolean;
 }
 export interface AuditEntry { id: number; createdAt: string; actor: string; action: string; detail: string }
 export interface Revision {
@@ -79,7 +80,8 @@ export type AttendanceCommand =
   | { type: 'lock'; workDate: string; locked: boolean; reason: string }
   | { type: 'import'; filename: string; sourceId?: number; fileHash?: string; rows: ImportRow[] }
   | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }
-  | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen' }
+  | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen'; strictIntegrity?: boolean }
+  | { type: 'toggle_strict_integrity'; batchId: number; enabled: boolean }
   | { type: 'record_attendance'; employeeId: number; workDate: string; attendanceStatus: AttendanceStatus; shiftId?: number; scanIn?: string | null; scanOut?: string | null; reason?: string }
   | { type: 'shift'; action: 'create' | 'update' | 'delete'; shift: WorkShift }
   | { type: 'assign_shift'; assignment: ShiftAssignment }

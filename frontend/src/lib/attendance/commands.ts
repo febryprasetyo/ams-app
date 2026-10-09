@@ -43,7 +43,7 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
 export function applyCommand(input: AttendanceDataset, command: AttendanceCommand): AttendanceDataset {
   const admin = input.meta.role === 'HR_ADMIN';
   if ((command.type === 'grant' || command.type === 'delete_grant') ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
-  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
+  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift', 'toggle_strict_integrity'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
   const data = structuredClone(input);
   const now = new Date().toISOString();
   let action = ''; let detail = '';
@@ -214,23 +214,67 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         if (batch.status !== 'DRAFT') throw new Error('Batch sudah tidak dapat diubah.');
         if (command.action === 'cancel') batch.status = 'CANCELLED';
         else {
-          const rows = batch.rows.filter(r => r.reviewStatus !== 'SKIPPED');
-          if (!rows.length || rows.some(r => r.reviewStatus !== 'READY' || resolveRow(data, batch, r).reviewStatus !== 'READY')) throw new Error('Selesaikan review seluruh baris sebelum menyimpan.');
-          const keys = new Set<string>();
-          for (const row of rows) {
-            unlocked(data, row.workDate);
-            const key = `${row.employeeId}:${row.workDate}`;
-            if (keys.has(key)) throw new Error('Catatan duplikat untuk karyawan dan tanggal yang sama.');
-            keys.add(key);
+          const isStrict = command.strictIntegrity !== undefined ? command.strictIntegrity : (batch.strictIntegrity !== false);
+          if (isStrict) {
+            const rows = batch.rows.filter(r => r.reviewStatus !== 'SKIPPED');
+            if (!rows.length || rows.some(r => r.reviewStatus !== 'READY' || resolveRow(data, batch, r).reviewStatus !== 'READY')) throw new Error('Selesaikan review seluruh baris sebelum menyimpan.');
+            const keys = new Set<string>();
+            for (const row of rows) {
+              unlocked(data, row.workDate);
+              const key = `${row.employeeId}:${row.workDate}`;
+              if (keys.has(key)) throw new Error('Catatan duplikat untuk karyawan dan tanggal yang sama.');
+              keys.add(key);
+            }
+            for (const row of rows) {
+              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
+              data.records.push(record);
+            }
+            batch.status = 'COMMITTED';
+          } else {
+            const keys = new Set<string>();
+            const toCommit: ImportRow[] = [];
+            for (const row of batch.rows) {
+              if (row.reviewStatus === 'SKIPPED') continue;
+              const resolved = resolveRow(data, batch, row);
+              const employeeId = row.employeeId ?? resolved.employeeId;
+              if (!employeeId) {
+                row.reviewStatus = 'SKIPPED';
+                row.note = 'Dilewati otomatis (karyawan tidak terdaftar di master data)';
+                continue;
+              }
+              const key = `${employeeId}:${row.workDate}`;
+              const existsInRecords = data.records.some(r => r.employeeId === employeeId && r.workDate === row.workDate);
+              if (existsInRecords || keys.has(key)) {
+                row.reviewStatus = 'SKIPPED';
+                row.note = 'Dilewati otomatis karena catatan duplikat pada tanggal yang sama.';
+                continue;
+              }
+              keys.add(key);
+              unlocked(data, row.workDate);
+              row.employeeId = employeeId;
+              row.reviewStatus = 'READY';
+              toCommit.push(row);
+            }
+            if (!toCommit.length) {
+              throw new Error('Tidak ada baris data valid yang dapat disimpan.');
+            }
+            for (const row of toCommit) {
+              const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
+              data.records.push(record);
+            }
+            batch.status = 'COMMITTED';
           }
-          for (const row of rows) {
-            const record: AttendanceRecord = { id: nextId(data.records), employeeId: row.employeeId!, workDate: row.workDate, shift: row.shift ?? null, scheduleIn: row.scheduleIn ?? null, scheduleOut: row.scheduleOut ?? null, scanIn: row.scanIn, scanOut: row.scanOut, rawScanIn: row.rawScanIn === undefined ? row.scanIn : row.rawScanIn, rawScanOut: row.rawScanOut === undefined ? row.scanOut : row.rawScanOut, lateMinutes: row.lateMinutes, earlyMinutes: row.earlyMinutes, overtimeMinutes: row.overtimeMinutes, attendanceStatus: 'PRESENT', isDayOff: false, normalized: row.normalized ?? false, revision: 1, sourceBatchId: batch.id };
-            data.records.push(record);
-          }
-          batch.status = 'COMMITTED';
         }
       }
       action = command.action === 'commit' ? 'Impor disimpan' : command.action === 'cancel' ? 'Impor dibatalkan' : 'Draft dibuka ulang'; detail = batch.filename; break;
+    }
+    case 'toggle_strict_integrity': {
+      const batch = data.batches.find(b => b.id === command.batchId);
+      if (!batch) throw new Error('Batch tidak ditemukan.');
+      batch.strictIntegrity = command.enabled;
+      action = command.enabled ? 'Integritas ketat diaktifkan' : 'Integritas ketat dinonaktifkan';
+      detail = `${batch.filename} · ${command.enabled ? 'Strict ON' : 'Strict OFF'}`;
+      break;
     }
         case 'record_attendance': {
       const emp = data.employees.find(e => e.id === command.employeeId);

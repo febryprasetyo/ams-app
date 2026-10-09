@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, BadgeCheck } from 'lucide-react';
 import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading, SearchInput, Pagination, Empty, FormDialog } from './shared';
@@ -51,21 +51,86 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
   const total = batchId ? rows.length : batches.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(total / 10)));
   const currentRows = rows.slice((currentPage - 1) * 10, currentPage * 10);
+  const isStrict = batch?.strictIntegrity !== false;
   const blocking = batch?.rows.some(r => ['BLOCKED', 'NEEDS_REVIEW'].includes(r.reviewStatus));
   const perform = async () => {
     if (!batch || !action) return;
     setBusy(true); setError('');
-    try { await execute({ type: 'batch', batchId: batch.id, action }); setAction(null); setNotice(action === 'commit' ? 'Absensi tersimpan. Rekap sudah diperbarui.' : action === 'cancel' ? 'Draft dibatalkan.' : 'Draft dibuka kembali untuk review.'); }
+    try { await execute({ type: 'batch', batchId: batch.id, action, strictIntegrity: isStrict }); setAction(null); setNotice(action === 'commit' ? 'Absensi tersimpan. Rekap sudah diperbarui.' : action === 'cancel' ? 'Draft dibatalkan.' : 'Draft dibuka kembali untuk review.'); }
     catch (err) { setError(err instanceof Error ? err.message : 'Aksi gagal.'); }
     finally { setBusy(false); }
   };
   if (batchId && !batch) return <div className="hr-panel"><Empty text="Batch impor tidak ditemukan." /><Link className="hr-btn m-4" href="/dashboard/attendance/imports">Kembali ke daftar impor</Link></div>;
   return <div className="space-y-6"><Heading title={batch ? 'Review Impor Absensi' : 'Impor Absensi'} description={batch ? `${batch.filename} · ${batchLabels[batch.status]} · ${batch.rows.length} baris` : 'Unggah file mesin, periksa identitas dan anomali, lalu simpan ke data absensi.'}>
-    {batch ? <><Link className="hr-btn" href="/dashboard/attendance/imports">Semua impor</Link>{canWrite && batch.status === 'DRAFT' && <><button className="hr-btn" onClick={() => { setAction('cancel'); setError(''); }}>Batalkan draft</button><button className="hr-btn-primary" disabled={blocking || batch.rows.every(r => r.reviewStatus === 'SKIPPED')} onClick={() => { setAction('commit'); setError(''); }}><CheckCircle2 size={15} />Simpan absensi</button></>}{canWrite && batch.status === 'CANCELLED' && <button className="hr-btn" onClick={() => { setAction('reopen'); setError(''); }}>Buka ulang draft</button>}</> : canReview && <button className="hr-btn-primary" onClick={() => setUploadOpen(true)}><Upload size={15} />Impor Excel</button>}
+    {batch ? <><Link className="hr-btn" href="/dashboard/attendance/imports">Semua impor</Link>{canWrite && batch.status === 'DRAFT' && <><button className="hr-btn" onClick={() => { setAction('cancel'); setError(''); }}>Batalkan draft</button><button className="hr-btn-primary" disabled={(isStrict && blocking) || batch.rows.every(r => r.reviewStatus === 'SKIPPED')} onClick={() => { setAction('commit'); setError(''); }}><CheckCircle2 size={15} />Simpan absensi</button></>}{canWrite && batch.status === 'CANCELLED' && <button className="hr-btn" onClick={() => { setAction('reopen'); setError(''); }}>Buka ulang draft</button>}</> : canReview && <button className="hr-btn-primary" onClick={() => setUploadOpen(true)}><Upload size={15} />Impor Excel</button>}
   </Heading>
   {notice && <p className="hr-notice" role="status">{notice}</p>}
-  {batch && <><div className="hr-panel grid grid-cols-2 divide-x divide-slate-200 sm:grid-cols-4">{Object.entries(reviewLabels).map(([key, label]) => <button key={key} className={`p-4 text-left hover:bg-slate-50 ${reviewStatus === key ? 'bg-red-50' : ''}`} onClick={() => { setReviewStatus(reviewStatus === key ? 'all' : key); setPage(1); }}><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-xl font-semibold">{batch.rows.filter(r => r.reviewStatus === key).length}</p></button>)}</div>{blocking && batch.status === 'DRAFT' && <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><AlertCircle size={16} className="mt-0.5 shrink-0" /><p>Periksa baris bermasalah. Pastikan No. ID atau nama karyawan sudah terdaftar di Master Data Karyawan. Untuk konflik tanggal ganda, lewati baris yang tidak digunakan.</p></div>}</>}
-  <div className="flex flex-wrap items-center justify-between gap-4">
+  {batch && <>
+    {batch.status === 'DRAFT' && canWrite && (
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-start gap-3">
+          <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isStrict ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
+            <BadgeCheck size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-900">Integritas Data Ketat (Strict Integrity)</span>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${isStrict ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                {isStrict ? 'Aktif (Produksi)' : 'Nonaktif (Uji Coba / Cepat)'}
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {isStrict
+                ? 'Wajib menyelesaikan review semua baris bermasalah atau terblokir sebelum absensi dapat disimpan.'
+                : 'Review manual dilewati. Semua baris terpetakan langsung disimpan, baris tanggal ganda atau tanpa karyawan otomatis dilewati.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isStrict}
+          onClick={async () => {
+            try {
+              await execute({ type: 'toggle_strict_integrity', batchId: batch.id, enabled: !isStrict });
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Gagal mengubah mode integritas.');
+            }
+          }}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${
+            isStrict ? 'bg-indigo-600' : 'bg-slate-300'
+          }`}
+        >
+          <span className="sr-only">Toggle Integritas Ketat</span>
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              isStrict ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+    )}
+    <div className="hr-panel grid grid-cols-2 divide-x divide-slate-200 sm:grid-cols-4">
+      {Object.entries(reviewLabels).map(([key, label]) => (
+        <button key={key} className={`p-4 text-left hover:bg-slate-50 ${reviewStatus === key ? 'bg-red-50' : ''}`} onClick={() => { setReviewStatus(reviewStatus === key ? 'all' : key); setPage(1); }}>
+          <p className="text-xs text-slate-500">{label}</p>
+          <p className="mt-1 text-xl font-semibold">{batch.rows.filter(r => r.reviewStatus === key).length}</p>
+        </button>
+      ))}
+    </div>
+    {blocking && batch.status === 'DRAFT' && isStrict && (
+      <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+        <AlertCircle size={16} className="mt-0.5 shrink-0" />
+        <p>Periksa baris bermasalah. Pastikan No. ID atau nama karyawan sudah terdaftar di Master Data Karyawan. Untuk konflik tanggal ganda, lewati baris yang tidak digunakan.</p>
+      </div>
+    )}
+    {!isStrict && batch.status === 'DRAFT' && (
+      <div className="flex gap-2 rounded-lg border border-indigo-200 bg-indigo-50/70 p-3 text-xs leading-5 text-indigo-950">
+        <AlertCircle size={16} className="mt-0.5 shrink-0 text-indigo-600" />
+        <p><strong>Mode Cepat Aktif:</strong> Anda dapat langsung menekan tombol <strong>Simpan absensi</strong>. Baris terpetakan akan langsung disimpan, sedangkan baris dengan catatan tanggal ganda (duplikat) atau karyawan yang tidak terdaftar akan otomatis dilewati (SKIPPED).</p>
+      </div>
+    )}
+  </>}\n  <div className="flex flex-wrap items-center justify-between gap-4">
     <SearchInput value={q} onChange={v => { setQ(v); setPage(1); }} placeholder={batch ? "Cari nomor mesin atau karyawan" : "Cari nama file impor"} />
     <span className="text-xs font-medium text-slate-500">{total} {batch ? "baris data" : "file impor"}</span>
   </div>
@@ -168,6 +233,6 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
     />
   )}
   {uploadOpen && <UploadDialog onClose={() => setUploadOpen(false)} />}
-  <ModalShell isOpen={!!action} onClose={() => setAction(null)} title={action === 'commit' ? 'Simpan hasil review?' : action === 'cancel' ? 'Batalkan draft?' : 'Buka ulang draft?'} isLoading={busy} footer={<><button className="hr-btn" disabled={busy} onClick={() => setAction(null)}>Kembali</button><button className="hr-btn-primary" disabled={busy} onClick={perform}>{busy ? 'Memproses…' : 'Konfirmasi'}</button></>}><p className="text-sm text-slate-600">{action === 'commit' ? 'Hanya baris siap disimpan yang menjadi catatan final. Baris dilewati tetap tersimpan sebagai bukti. Tanggal terkunci dan duplikasi diperiksa kembali.' : 'Riwayat dan data sumber tetap dipertahankan.'}</p>{error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}</ModalShell>
+  <ModalShell isOpen={!!action} onClose={() => setAction(null)} title={action === 'commit' ? 'Simpan hasil review?' : action === 'cancel' ? 'Batalkan draft?' : 'Buka ulang draft?'} isLoading={busy} footer={<><button className="hr-btn" disabled={busy} onClick={() => setAction(null)}>Kembali</button><button className="hr-btn-primary" disabled={busy} onClick={perform}>{busy ? 'Memproses…' : 'Konfirmasi'}</button></>}><p className="text-sm text-slate-600">{action === 'commit' ? (isStrict ? 'Hanya baris siap disimpan yang menjadi catatan final. Baris dilewati tetap tersimpan sebagai bukti. Tanggal terkunci dan duplikasi diperiksa kembali.' : 'Mode Integritas Ketat nonaktif: Seluruh baris valid dan terpetakan akan langsung disimpan. Baris duplikat atau tanpa karyawan otomatis dilewati.') : 'Riwayat dan data sumber tetap dipertahankan.'}</p>{error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}</ModalShell>
   </div>;
 }

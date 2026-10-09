@@ -91,29 +91,32 @@ export function RecordAttendanceDialog({
         </div>
 
         <div className="space-y-1.5">
-          <label className="font-bold text-slate-800 block">Status Kehadiran / Keterangan</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <label className="font-semibold text-slate-800 block text-xs">Status Kehadiran</label>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
-              { val: 'PRESENT', label: '🟢 Hadir Manual', desc: 'Isi jam masuk & pulang' },
-              { val: 'SAKIT', label: '🟡 Sakit (S)', desc: 'Surat dokter / sakit' },
-              { val: 'CUTI', label: '🔵 Cuti (C)', desc: 'Cuti tahunan / bersama' },
-              { val: 'IZIN', label: '🟣 Izin (I)', desc: 'Izin keperluan resmi' },
-              { val: 'ALPHA', label: '🔴 Mangkir (A)', desc: 'Tidak ada kabar' },
-            ].map(item => (
-              <button
-                key={item.val}
-                type="button"
-                onClick={() => setStatus(item.val as AttendanceStatus)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  status === item.val
-                    ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 text-emerald-950 font-bold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span className="block text-xs">{item.label}</span>
-                <span className="block text-[10px] text-slate-500 mt-0.5">{item.desc}</span>
-              </button>
-            ))}
+              { val: 'PRESENT', label: 'Hadir' },
+              { val: 'SAKIT', label: 'Sakit (S)' },
+              { val: 'IZIN', label: 'Izin (I)' },
+              { val: 'CUTI', label: 'Cuti (C)' },
+              { val: 'ALPHA', label: 'Alpha (A)' },
+            ].map(item => {
+              const isSelected = status === item.val;
+              return (
+                <button
+                  key={item.val}
+                  type="button"
+                  onClick={() => setStatus(item.val as AttendanceStatus)}
+                  className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-600/20 shadow-xs font-bold'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-emerald-600' : 'bg-slate-300'}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -156,7 +159,7 @@ export function RecordAttendanceDialog({
             rows={2}
             value={reason}
             onChange={e => setReason(e.target.value)}
-            placeholder="Contoh: Sakit demam surat dokter terlampir, atau lupa scan pagi..."
+            placeholder="Contoh: Surat keterangan dokter terlampir, tugas luar kantor, dll."
             className="hr-input w-full"
           />
         </label>

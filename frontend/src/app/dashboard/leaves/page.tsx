@@ -38,7 +38,7 @@ export default function LeaveRequestsListPage() {
   useEffect(() => {
     async function fetchLeaves() {
       try {
-        const res = await fetch('/api/leaves/requests');
+        const res = await fetch('/api/v1/leaves/requests');
         if (res.ok) {
           const data = await res.json();
           setLeaves(Array.isArray(data) ? data : []);

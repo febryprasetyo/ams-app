@@ -53,14 +53,14 @@ export function LeaveRequestForm() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // 1. Revisi 1: Memuat daftar karyawan dari /api/leaves/employees dengan fallback
+  // 1. Revisi 1: Memuat daftar karyawan dari /api/v1/leaves/employees dengan fallback
   useEffect(() => {
     async function loadEmployees() {
       try {
         let items: EmployeeOption[] = [];
         
-        // Panggil endpoint /api/leaves/employees terlebih dahulu
-        const res = await fetch('/api/leaves/employees');
+        // Panggil endpoint /api/v1/leaves/employees terlebih dahulu
+        const res = await fetch('/api/v1/leaves/employees');
         if (res.ok) {
           items = await res.json();
         } else {
@@ -99,7 +99,7 @@ export function LeaveRequestForm() {
       setIsLoadingBalance(true);
       try {
         const year = new Date().getFullYear();
-        const res = await fetch(`/api/leaves/balance-summary?employeeId=${selectedEmployeeId}&year=${year}`);
+        const res = await fetch(`/api/v1/leaves/balance-summary?employeeId=${selectedEmployeeId}&year=${year}`);
         if (res.ok) {
           const data = await res.json();
           setBalanceSummary(data);
@@ -173,7 +173,7 @@ export function LeaveRequestForm() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/leaves/requests', {
+      const res = await fetch('/api/v1/leaves/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

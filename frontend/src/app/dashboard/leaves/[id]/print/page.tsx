@@ -20,7 +20,7 @@ export default function LeavePrintPage() {
 
     async function fetchDoc() {
       try {
-        const res = await fetch(`/api/leaves/requests/${id}`);
+        const res = await fetch(`/api/v1/leaves/requests/${id}`);
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
           setError(json.error || 'Gagal memuat dokumen permohonan cuti');

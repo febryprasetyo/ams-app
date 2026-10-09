@@ -5,7 +5,8 @@ export interface UserItem {
   roleId: number | null;
   role: string;
   employeeId: number | null;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
+  mustChangePassword?: boolean;
   createdAt: string;
   updatedAt: string;
   roleCode?: string | null;
@@ -46,7 +47,7 @@ export interface UserFormData {
   password?: string;
   roleId: number;
   employeeId?: number | null;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
 }
 
 export interface RoleFormData {

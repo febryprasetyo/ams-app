@@ -189,7 +189,7 @@ export default function EmployeeImportModal({
       onClose={handleModalClose}
       title="Import Master Data Karyawan"
       subtitle="Unggah data karyawan format Excel kompatibel Talenta (33 Kolom)"
-      icon={<FileSpreadsheet className="w-5 h-5 text-red-600" />}
+      icon={<FileSpreadsheet className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-3xl"
       isLoading={isLoadingPreview || isSubmitting}
       footer={
@@ -199,7 +199,7 @@ export default function EmployeeImportModal({
               type="button"
               onClick={handleDownloadTemplate}
               disabled={downloadingTemplate}
-              className="text-xs font-mono font-medium text-slate-600 hover:text-red-600 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="text-xs font-mono font-medium text-slate-600 hover:text-emerald-600 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               {downloadingTemplate ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -220,7 +220,7 @@ export default function EmployeeImportModal({
                 type="button"
                 onClick={handleProcessPreview}
                 disabled={!file || isLoadingPreview}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 {isLoadingPreview ? (
                   <>
@@ -260,7 +260,7 @@ export default function EmployeeImportModal({
                 type="button"
                 onClick={handleConfirmCommit}
                 disabled={!previewData?.valid || isSubmitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer shadow-sm"
               >
                 {isSubmitting ? (
                   <>
@@ -300,8 +300,8 @@ export default function EmployeeImportModal({
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
               isDragging
-                ? 'border-red-500 bg-red-50/50'
-                : 'border-slate-200 hover:border-red-400 bg-slate-50/50 hover:bg-slate-50'
+                ? 'border-emerald-500 bg-emerald-50/50'
+                : 'border-slate-200 hover:border-emerald-400 bg-slate-50/50 hover:bg-slate-50'
             }`}
           >
             <input
@@ -311,7 +311,7 @@ export default function EmployeeImportModal({
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="hidden"
             />
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
               <Upload className="w-6 h-6" />
             </div>
             <p className="text-sm font-semibold text-slate-800">
@@ -327,7 +327,7 @@ export default function EmployeeImportModal({
           {/* Guidelines Box */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-600 space-y-2">
             <p className="font-bold text-slate-800 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-blue-600" />
+              <Building2 className="w-4 h-4 text-emerald-600" />
               <span>Ketentuan Import Karyawan:</span>
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-500 text-[11px] leading-relaxed">
@@ -392,11 +392,11 @@ export default function EmployeeImportModal({
                 {previewData?.summary.errorCount}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
-              <p className="text-[10px] font-mono text-blue-600 uppercase">
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+              <p className="text-[10px] font-mono text-emerald-600 uppercase">
                 Dept. Baru
               </p>
-              <p className="text-lg font-bold font-mono text-blue-700 mt-0.5">
+              <p className="text-lg font-bold font-mono text-emerald-700 mt-0.5">
                 {previewData?.summary.newDepartmentsCount}
               </p>
             </div>
@@ -404,8 +404,8 @@ export default function EmployeeImportModal({
 
           {/* Department Auto-Create Notice */}
           {deptNotice && (
-            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-mono flex items-start gap-2.5">
-              <Building2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono flex items-start gap-2.5">
+              <Building2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <span>{deptNotice}</span>
             </div>
           )}

@@ -128,7 +128,7 @@ export default function LogMaintenanceModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>Save Log</span>

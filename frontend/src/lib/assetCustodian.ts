@@ -141,3 +141,38 @@ export interface CustodianAssetsResponse {
   custodian: CustodianSummary;
   assets: CustodianHeldAsset[];
 }
+
+export function getDefaultReconciliationMatchTab(matchesCount: number): "suggested" | "manual" {
+  return matchesCount > 0 ? "suggested" : "manual";
+}
+
+export function filterEmployeeCandidates(
+  employees: EmployeeCandidate[],
+  search: string,
+): EmployeeCandidate[] {
+  const query = search.trim().toLowerCase();
+  if (!query) return employees;
+  return employees.filter((employee) => {
+    const fullName = (employee.fullName || "").toLowerCase();
+    const employeeCode = (employee.employeeCode || "").toLowerCase();
+    const departmentName = (employee.departmentName || "").toLowerCase();
+    return (
+      fullName.includes(query) ||
+      employeeCode.includes(query) ||
+      departmentName.includes(query)
+    );
+  });
+}
+
+export function getEmployeeConflictAdvisory(employee?: EmployeeCandidate): {
+  hasConflict: boolean;
+  activeCustodianId: number | null;
+} {
+  if (!employee || employee.custodianId == null) {
+    return { hasConflict: false, activeCustodianId: null };
+  }
+  return {
+    hasConflict: true,
+    activeCustodianId: employee.custodianId,
+  };
+}

@@ -95,6 +95,7 @@ async function seed() {
     ALTER TABLE roles ADD COLUMN IF NOT EXISTS is_system boolean DEFAULT false NOT NULL;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id bigint REFERENCES roles(id);
     ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_id bigint REFERENCES employees(id) ON DELETE SET NULL;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password boolean DEFAULT false NOT NULL;
   `);
   console.log('  ✓ Verified table columns in database');
 
@@ -165,7 +166,7 @@ async function seed() {
   if (!superAdminUser) {
     const passwordHash = await bcrypt.hash('Admin123!', 10);
     const [inserted] = await db.insert(users).values({
-      username: 'System SuperAdmin',
+      username: 'admin',
       email: 'admin@company.com',
       passwordHash,
       role: 'SuperAdmin',

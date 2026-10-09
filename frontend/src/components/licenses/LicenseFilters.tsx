@@ -44,7 +44,7 @@ export default function LicenseFilters({
             placeholder="Search software name, key, vendor..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-sans text-slate-800"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-sans text-slate-800"
           />
           {search && (
             <button
@@ -61,7 +61,7 @@ export default function LicenseFilters({
           <select
             value={selectedType}
             onChange={(e) => onTypeChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-slate-700 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer"
           >
             <option value="">All License Types</option>
             <option value="CD / Dongle">CD / Dongle</option>
@@ -76,7 +76,7 @@ export default function LicenseFilters({
           <select
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-slate-700 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer"
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
@@ -90,7 +90,7 @@ export default function LicenseFilters({
           <select
             value={selectedVendor}
             onChange={(e) => onVendorChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-slate-700 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer"
           >
             <option value="">All Vendors</option>
             {vendors.map((v) => (
@@ -106,7 +106,7 @@ export default function LicenseFilters({
           <select
             value={selectedLocation}
             onChange={(e) => onLocationChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium text-slate-700 cursor-pointer"
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 cursor-pointer"
           >
             <option value="">All Locations / PT</option>
             {locations.map((loc) => (

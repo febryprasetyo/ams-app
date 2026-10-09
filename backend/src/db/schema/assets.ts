@@ -26,6 +26,8 @@ export const assets = pgTable('assets', {
   serialNumber: varchar('serial_number', { length: 100 }),
   status: varchar('status', { length: 30 }).default('Available').notNull(), // Available, Assigned, Maintenance, Disposed, Lost
   condition: varchar('condition', { length: 30 }).default('Good').notNull(), // Good, Fair, Poor, Damaged
+  purchaseDate: timestamp('purchase_date'),
+  warrantyExpiry: timestamp('warranty_expiry'),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

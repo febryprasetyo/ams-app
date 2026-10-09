@@ -14,7 +14,7 @@ export default function AssetInformationCard({ asset }: AssetInformationCardProp
     <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 md:col-span-2">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <HardDrive className="w-4 h-4 text-red-600" />
+          <HardDrive className="w-4 h-4 text-emerald-600" />
           <span>Asset Information</span>
         </h3>
         <div className="flex items-center gap-2">
@@ -56,7 +56,7 @@ export default function AssetInformationCard({ asset }: AssetInformationCardProp
         </div>
         <div>
           <span className="text-slate-400 text-[10px] uppercase block mb-1">Assigned User</span>
-          <span className="font-bold text-red-600">
+          <span className="font-bold text-emerald-600">
             {asset.assignedEmployeeName
               ? `${asset.assignedEmployeeName} (${asset.assignedEmployeeCode || ''})`
               : 'Stock / Pool'}

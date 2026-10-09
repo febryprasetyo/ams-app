@@ -3,6 +3,9 @@ import test from 'node:test';
 import {
   buildCustodianSelectionPayload,
   canManageCustodians,
+  filterEmployeeCandidates,
+  getDefaultReconciliationMatchTab,
+  getEmployeeConflictAdvisory,
   prepareManualCustodian,
 } from './assetCustodian.ts';
 
@@ -95,4 +98,53 @@ test('custodian metadata and reconciliation controls are admin-only', () => {
   assert.equal(canManageCustodians('it_admin'), true);
   assert.equal(canManageCustodians('ITStaff'), false);
   assert.equal(canManageCustodians(undefined), false);
+});
+
+test("getDefaultReconciliationMatchTab chooses suggested when matches exist and manual otherwise", () => {
+  assert.equal(getDefaultReconciliationMatchTab(3), "suggested");
+  assert.equal(getDefaultReconciliationMatchTab(1), "suggested");
+  assert.equal(getDefaultReconciliationMatchTab(0), "manual");
+});
+
+test("filterEmployeeCandidates filters candidates by name, code, or department case-insensitively", () => {
+  const candidates = [
+    { id: 1, employeeCode: "EMP-001", fullName: "Budi Santoso", departmentName: "IT Support" },
+    { id: 2, employeeCode: "EMP-002", fullName: "Siti Rahma", departmentName: "Finance" },
+    { id: 3, employeeCode: "EMP-003", fullName: "Ahmad Fauzi", departmentName: "Human Resources" },
+  ];
+
+  assert.deepEqual(filterEmployeeCandidates(candidates, ""), candidates);
+  assert.deepEqual(filterEmployeeCandidates(candidates, "   "), candidates);
+  assert.deepEqual(filterEmployeeCandidates(candidates, "budi"), [candidates[0]]);
+  assert.deepEqual(filterEmployeeCandidates(candidates, "emp-002"), [candidates[1]]);
+  assert.deepEqual(filterEmployeeCandidates(candidates, "human"), [candidates[2]]);
+  assert.deepEqual(filterEmployeeCandidates(candidates, "nonexistent"), []);
+});
+
+test("getEmployeeConflictAdvisory detects whether employee already has an active custodian", () => {
+  const employeeWithoutCustodian = {
+    id: 1,
+    employeeCode: "EMP-001",
+    fullName: "Budi Santoso",
+    custodianId: null,
+  };
+  const employeeWithCustodian = {
+    id: 2,
+    employeeCode: "EMP-002",
+    fullName: "Siti Rahma",
+    custodianId: 88,
+  };
+
+  assert.deepEqual(
+    getEmployeeConflictAdvisory(employeeWithoutCustodian),
+    { hasConflict: false, activeCustodianId: null },
+  );
+  assert.deepEqual(
+    getEmployeeConflictAdvisory(employeeWithCustodian),
+    { hasConflict: true, activeCustodianId: 88 },
+  );
+  assert.deepEqual(
+    getEmployeeConflictAdvisory(undefined),
+    { hasConflict: false, activeCustodianId: null },
+  );
 });

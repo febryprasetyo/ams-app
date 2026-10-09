@@ -12,6 +12,9 @@ import infrastructureRoutes from './routes/infrastructureRoutes';
 import hardwareAuditRoutes from './routes/hardwareAuditRoutes';
 import roleRoutes from './routes/roleRoutes';
 import userRoutes from './routes/userRoutes';
+import leaveRoutes from './routes/leaveRoutes';
+import systemSettingRoutes from './routes/systemSettingRoutes';
+import attendanceRoutes from './routes/attendanceRoutes';
 import { checkDatabase } from './db';
 
 export interface AppOptions {
@@ -56,6 +59,12 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use('/api/v1/hardware-audits', hardwareAuditRoutes);
   app.use('/api/v1/roles', roleRoutes);
   app.use('/api/v1/users', userRoutes);
+  app.use('/api/v1/leaves', leaveRoutes);
+  app.use('/api/leaves', leaveRoutes);
+  app.use('/api/v1/system/settings', systemSettingRoutes);
+  app.use('/api/v1/settings', systemSettingRoutes);
+  app.use('/api/v1/attendance', attendanceRoutes);
+  app.use('/api/attendance', attendanceRoutes);
 
   return app;
 }

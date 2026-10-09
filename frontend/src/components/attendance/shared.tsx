@@ -108,7 +108,29 @@ export function FormDialog({ title, description, fields, onClose, onSubmit, subm
             ) : field.type === 'textarea' ? (
               <textarea rows={3} className="hr-input" name={field.name} defaultValue={field.value} required={field.required} disabled={busy} />
             ) : (
-              <input className="hr-input" name={field.name} type={field.type ?? 'text'} defaultValue={field.value} required={field.required} disabled={field.disabled || busy} min={field.type === 'number' ? 0 : undefined} step={field.type === 'number' ? 1 : undefined} />
+              <input
+                className="hr-input"
+                name={field.name}
+                type={field.type ?? 'text'}
+                defaultValue={field.value}
+                required={field.required}
+                disabled={field.disabled || busy}
+                min={field.type === 'number' ? 0 : undefined}
+                step={field.type === 'number' ? 1 : undefined}
+                onClick={
+                  field.type === 'time' || field.type === 'date'
+                    ? e => {
+                        try {
+                          if (typeof e.currentTarget.showPicker === 'function') {
+                            e.currentTarget.showPicker();
+                          }
+                        } catch {
+                          // ignore if showPicker is unsupported or already active
+                        }
+                      }
+                    : undefined
+                }
+              />
             )}
             {field.hint && <span className="block font-normal text-slate-500">{field.hint}</span>}
           </label>
@@ -119,19 +141,44 @@ export function FormDialog({ title, description, fields, onClose, onSubmit, subm
   );
 }
 
-export function Totals({ late, overtime, count }: { late: number; overtime: number; count: number }) {
+export function Totals({
+  late,
+  overtime,
+  count,
+  sakit = 0,
+  izin = 0,
+  cuti = 0,
+}: {
+  late: number;
+  overtime: number;
+  count: number;
+  sakit?: number;
+  izin?: number;
+  cuti?: number;
+}) {
+  const items = [
+    { label: 'Tepat waktu / Hadir', value: String(count) },
+    { label: 'Keterlambatan', value: durationLabel(late) },
+    { label: 'Lembur', value: durationLabel(overtime) },
+    { label: 'Izin', value: String(izin) },
+    { label: 'Sakit', value: String(sakit) },
+    { label: 'Cuti', value: String(cuti) },
+  ];
+
   return (
-    <div className="hr-panel grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      {[
-        { label: 'Total keterlambatan', value: durationLabel(late), color: 'text-red-700' },
-        { label: 'Total lembur', value: durationLabel(overtime), color: 'text-slate-900' },
-        { label: 'Catatan final', value: String(count), color: 'text-slate-900' }
-      ].map(item => (
-        <div className="px-5 py-5" key={item.label}>
-          <p className="text-xs text-slate-500">{item.label}</p>
-          <p className={`mt-2 text-xl font-semibold tabular-nums ${item.color}`}>{item.value}</p>
-        </div>
-      ))}
+    <div className="hr-panel overflow-x-auto">
+      <div className="grid min-w-[700px] grid-cols-6 divide-x divide-slate-200">
+        {items.map(item => (
+          <div className="px-4 py-3.5 text-left" key={item.label}>
+            <span className="block text-base font-bold tabular-nums text-slate-900">
+              {item.value}
+            </span>
+            <span className="mt-0.5 block text-[10px] font-medium leading-4 text-slate-600 truncate">
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

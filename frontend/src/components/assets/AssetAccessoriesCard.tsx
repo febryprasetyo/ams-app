@@ -14,10 +14,10 @@ export default function AssetAccessoriesCard({ asset }: AssetAccessoriesCardProp
     <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Headphones className="w-4 h-4 text-purple-600" />
+          <Headphones className="w-4 h-4 text-amber-600" />
           <span>Attached Accessories</span>
         </h3>
-        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
           {asset.accessories?.length || 0} ITEMS
         </span>
       </div>

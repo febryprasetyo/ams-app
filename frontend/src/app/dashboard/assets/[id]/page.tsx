@@ -99,7 +99,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <DashboardLayout>
         <div className="py-24 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-red-600 mx-auto" />
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
           <p className="mt-3 text-sm text-slate-500 font-mono">Loading Asset Information...</p>
         </div>
       </DashboardLayout>
@@ -139,13 +139,13 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
           <div>
             <Link
               href="/dashboard/assets"
-              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-red-600 mb-2 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-500 hover:text-emerald-600 mb-2 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Asset Catalog</span>
             </Link>
             <div className="flex items-center gap-3">
-              <span className="text-xl font-extrabold font-mono text-red-600 px-3 py-1 bg-red-50 border border-red-200 rounded-xl">
+              <span className="text-xl font-extrabold font-mono text-emerald-600 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-xl">
                 {asset.assetCode}
               </span>
               <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{asset.name}</h1>
@@ -166,9 +166,9 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
 
             <button
               onClick={() => setIsPrintModalOpen(true)}
-              className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
+              className="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold rounded-xl text-xs shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Printer className="w-4 h-4 text-red-600" />
+              <Printer className="w-4 h-4 text-emerald-600" />
               <span>Print Asset Tag QR</span>
             </button>
 
@@ -197,12 +197,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
           <AssetInformationCard asset={asset} />
 
           {/* Asset Scannable QR Code Badge Preview */}
-          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-red-50/20 border border-slate-200 flex flex-col justify-between items-center text-center">
+          <div className="glass-panel p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-emerald-50/20 border border-slate-200 flex flex-col justify-between items-center text-center">
             <div className="w-full border-b border-slate-200 pb-3 flex items-center justify-between">
               <span className="text-xs font-bold font-mono text-slate-900 uppercase">
                 AMS Property Tag
               </span>
-              <ShieldCheck className="w-4 h-4 text-red-600" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
             </div>
 
             <div className="my-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-center w-full max-w-[220px]">

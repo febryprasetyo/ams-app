@@ -92,9 +92,9 @@ export default function CustodianMetadataModal({
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isEdit ? (
-              <Pencil className="h-5 w-5 text-red-600" />
+              <Pencil className="h-5 w-5 text-emerald-600" />
             ) : (
-              <UserRound className="h-5 w-5 text-red-600" />
+              <UserRound className="h-5 w-5 text-emerald-600" />
             )}
             <div>
               <h2 className="font-bold text-slate-900">
@@ -132,7 +132,7 @@ export default function CustodianMetadataModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Mutiara Azizah R"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -141,7 +141,7 @@ export default function CustodianMetadataModal({
             <select
               value={locationId}
               onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Unknown / no location</option>
               {locations.map((loc) => (
@@ -158,7 +158,7 @@ export default function CustodianMetadataModal({
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder="e.g. Finance, Marketing, IT"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -171,7 +171,7 @@ export default function CustodianMetadataModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={isEdit ? 'IT-only notes' : 'Internal notes...'}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-red-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -186,7 +186,7 @@ export default function CustodianMetadataModal({
             <button
               type="submit"
               disabled={submitting || !name.trim()}
-              className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-40 cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-40 cursor-pointer"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

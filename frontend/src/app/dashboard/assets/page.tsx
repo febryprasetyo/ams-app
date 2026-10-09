@@ -203,7 +203,7 @@ export default function AssetsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <HardDrive className="w-6 h-6 text-red-600" />
+              <HardDrive className="w-6 h-6 text-emerald-600" />
               <span>IT Asset & Hardware Inventory</span>
             </h1>
             <p className="text-xs text-slate-500 font-mono mt-1">
@@ -230,10 +230,10 @@ export default function AssetsPage() {
 
                 <Link
                   href="/dashboard/hardware-audits"
-                  className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
                   title="Lihat antrean scan hardware dari portable tool flashdisk"
                 >
-                  <Cpu className="w-3.5 h-3.5 text-sky-600" />
+                  <Cpu className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Hardware Audits</span>
                 </Link>
 
@@ -248,7 +248,7 @@ export default function AssetsPage() {
 
                 <button
                   onClick={handleOpenCreateModal}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-md shadow-red-600/20 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Register Asset</span>

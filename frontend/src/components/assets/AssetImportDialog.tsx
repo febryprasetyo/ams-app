@@ -122,7 +122,7 @@ export default function AssetImportDialog({
           <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-mono max-w-md mx-auto">
             <div>
               <span className="text-slate-400 block text-[10px] uppercase">Computers</span>
-              <span className="font-bold text-blue-600 text-base">
+              <span className="font-bold text-emerald-600 text-base">
                 {importSuccess.computersCreated}
               </span>
             </div>
@@ -134,7 +134,7 @@ export default function AssetImportDialog({
             </div>
             <div>
               <span className="text-slate-400 block text-[10px] uppercase">Accessories</span>
-              <span className="font-bold text-purple-600 text-base">
+              <span className="font-bold text-amber-600 text-base">
                 {importSuccess.accessoriesCreated}
               </span>
             </div>

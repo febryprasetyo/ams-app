@@ -132,7 +132,7 @@ export default function LicenseFormModal({
           ? `Update details for ${initialLicense.name}`
           : 'Register a new software license into the inventory'
       }
-      icon={<Key className="w-5 h-5 text-blue-600" />}
+      icon={<Key className="w-5 h-5 text-emerald-600" />}
       maxWidthClass="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,7 +154,7 @@ export default function LicenseFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Microsoft 365 Business, Adobe Photoshop"
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -167,7 +167,7 @@ export default function LicenseFormModal({
               value={licenseKey}
               onChange={(e) => setLicenseKey(e.target.value)}
               placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
-              className="w-full px-3.5 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm font-mono bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -176,7 +176,7 @@ export default function LicenseFormModal({
             <select
               value={licenseType}
               onChange={(e) => setLicenseType(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="Perpetual">Perpetual</option>
               <option value="Subscription">Subscription</option>
@@ -190,7 +190,7 @@ export default function LicenseFormModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="Active">Active</option>
               <option value="Expired">Expired</option>
@@ -203,7 +203,7 @@ export default function LicenseFormModal({
             <select
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="">-- Select Vendor --</option>
               {vendors.map((v) => (
@@ -219,7 +219,7 @@ export default function LicenseFormModal({
             <select
               value={locationId}
               onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             >
               <option value="">-- Select Location --</option>
               {locations.map((loc) => (
@@ -240,7 +240,7 @@ export default function LicenseFormModal({
               required
               value={totalSeats}
               onChange={(e) => setTotalSeats(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -251,7 +251,7 @@ export default function LicenseFormModal({
               value={cost}
               onChange={(e) => setCost(e.target.value)}
               placeholder="e.g. 1500000"
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -261,7 +261,7 @@ export default function LicenseFormModal({
               type="date"
               value={purchaseDate}
               onChange={(e) => setPurchaseDate(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -271,7 +271,7 @@ export default function LicenseFormModal({
               type="date"
               value={expirationDate}
               onChange={(e) => setExpirationDate(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
 
@@ -282,7 +282,7 @@ export default function LicenseFormModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional license notes, contract terms, or renewal details..."
-              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
             />
           </div>
         </div>
@@ -299,7 +299,7 @@ export default function LicenseFormModal({
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-2 disabled:opacity-50"
           >
             {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>{initialLicense ? 'Save Changes' : 'Create License'}</span>

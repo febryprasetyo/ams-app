@@ -11,7 +11,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import {
   canManageCustodians,
+  type CustodianSearchResponse,
   type CustodianSummary,
+  type EmployeeCandidate,
 } from '@/lib/assetCustodian';
 
 export default function CustodianReconciliationPage() {
@@ -20,6 +22,7 @@ export default function CustodianReconciliationPage() {
 
   const [candidates, setCandidates] = useState<ReconciliationItem[]>([]);
   const [activeCustodians, setActiveCustodians] = useState<CustodianSummary[]>([]);
+  const [allEmployees, setAllEmployees] = useState<EmployeeCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -34,10 +37,11 @@ export default function CustodianReconciliationPage() {
     try {
       const [reconcileRes, searchRes] = await Promise.all([
         api.get<ReconciliationItem[]>('/asset-custodians/reconciliation-candidates'),
-        api.get<{ custodians: CustodianSummary[] }>('/asset-custodians?status=ACTIVE'),
+        api.get<CustodianSearchResponse>('/asset-custodians?status=ACTIVE'),
       ]);
       setCandidates(Array.isArray(reconcileRes) ? reconcileRes : []);
       setActiveCustodians(Array.isArray(searchRes?.custodians) ? searchRes.custodians : []);
+      setAllEmployees(Array.isArray(searchRes?.employees) ? searchRes.employees : []);
     } catch (err: unknown) {
       setError((err as Error).message || 'Failed to load reconciliation candidates');
     } finally {
@@ -170,6 +174,7 @@ export default function CustodianReconciliationPage() {
                 key={item.custodian.id}
                 item={item}
                 activeCustodians={activeCustodians}
+                allEmployees={allEmployees}
                 isBusy={busyId === item.custodian.id}
                 linkSelection={linkSelections[item.custodian.id] || ''}
                 onLinkSelectionChange={(val) =>

@@ -32,6 +32,7 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 100 }).notNull().unique(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  mustChangePassword: boolean('must_change_password').default(false).notNull(),
   roleId: bigint('role_id', { mode: 'number' }).references(() => roles.id),
   role: varchar('role', { length: 50 }).default('SuperAdmin').notNull(),
   employeeId: bigint('employee_id', { mode: 'number' }).references(() => employees.id, { onDelete: 'set null' }),

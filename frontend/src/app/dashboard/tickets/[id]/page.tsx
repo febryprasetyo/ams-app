@@ -111,7 +111,7 @@ export default function TicketDetailPage({
     return (
       <DashboardLayout>
         <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
           <span>Loading ticket workspace & discussion timeline...</span>
         </div>
       </DashboardLayout>
@@ -124,7 +124,7 @@ export default function TicketDetailPage({
         <div className="space-y-4">
           <Link
             href="/dashboard/tickets"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-emerald-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Ticket Queue</span>
@@ -134,7 +134,7 @@ export default function TicketDetailPage({
             <p className="font-bold text-sm">{error || 'Ticket not found'}</p>
             <button
               onClick={() => router.push('/dashboard/tickets')}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
             >
               Return to Ticket Catalog
             </button>
@@ -154,7 +154,7 @@ export default function TicketDetailPage({
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard/tickets"
-              className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors shadow-2xs cursor-pointer"
+              className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-colors shadow-2xs cursor-pointer"
               title="Back to Tickets"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -165,7 +165,7 @@ export default function TicketDetailPage({
                 <span
                   className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-md border ${
                     isReq
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-red-50 text-red-600 border-red-200'
                   }`}
                 >
@@ -224,7 +224,7 @@ export default function TicketDetailPage({
             <div className="glass-panel p-6 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-red-600" />
+                  <FileText className="w-4 h-4 text-emerald-600" />
                   <span>Ticket Description & Details</span>
                 </h3>
                 <span className="text-[11px] font-mono text-slate-400">

@@ -13,10 +13,10 @@ export default function ComputerSpecsCard({ asset }: ComputerSpecsCardProps) {
     <div className="glass-panel p-6 rounded-3xl bg-white space-y-4 border border-slate-200">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Cpu className="w-4 h-4 text-blue-600" />
+          <Cpu className="w-4 h-4 text-emerald-600" />
           <span>Hardware & System Specifications</span>
         </h3>
-        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
           {asset.categoryName?.toUpperCase()}
         </span>
       </div>

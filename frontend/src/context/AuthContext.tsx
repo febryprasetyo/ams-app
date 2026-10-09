@@ -7,11 +7,13 @@ import { checkUserPermission } from '@/lib/access/permissions';
 
 export interface User {
   id: number;
+  username: string;
   email: string;
   fullName: string;
   roleId?: number;
   roleName: string;
   permissions?: string[];
+  mustChangePassword?: boolean;
 }
 
 export interface AuthContextType {
@@ -49,22 +51,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               user?: {
                 userId?: number;
                 id?: number;
+                username?: string;
                 email: string;
                 fullName?: string;
                 roleId?: number;
                 roleName: string;
                 permissions?: string[];
+                mustChangePassword?: boolean;
               };
             }>('/auth/me');
 
             if (meRes?.user) {
               const updatedUser: User = {
                 id: meRes.user.userId ?? meRes.user.id ?? 0,
+                username: meRes.user.username || (storedUser ? JSON.parse(storedUser).username : ''),
                 email: meRes.user.email,
                 fullName: meRes.user.fullName || (storedUser ? JSON.parse(storedUser).fullName : meRes.user.email),
                 roleId: meRes.user.roleId,
                 roleName: meRes.user.roleName,
                 permissions: meRes.user.permissions || [],
+                mustChangePassword: Boolean(meRes.user.mustChangePassword),
               };
               setUser(updatedUser);
               localStorage.setItem('user', JSON.stringify(updatedUser));

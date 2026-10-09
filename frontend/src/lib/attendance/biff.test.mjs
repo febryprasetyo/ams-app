@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseAttendanceBiff } from './biff.ts';
+import { readFileSync } from 'node:fs';
+import { parseAttendanceBiff, parseAttendanceWorkbook } from './biff.ts';
+import XLSX from 'xlsx';
 
 function record(type, payload = Buffer.alloc(0)) { const h = Buffer.alloc(4); h.writeUInt16LE(type); h.writeUInt16LE(payload.length, 2); return Buffer.concat([h, payload]); }
 function fixture(overrides = {}) {
@@ -31,4 +33,43 @@ test('broken signatures, truncated streams and impossible dates fail explicitly'
   assert.throws(() => parseAttendanceBiff(new Uint8Array([1, 2, 3, 4])));
   const bytes = fixture(); assert.throws(() => parseAttendanceBiff(bytes.slice(0, -2)), /terpotong|rusak/);
   assert.throws(() => parseAttendanceBiff(fixture({ Tanggal: '30/02/2025' })), /Tanggal/);
+});
+
+test('real OLE2 Excel file (docs/21-7.xls) parses all rows and converts serial dates', () => {
+  const fileBytes = readFileSync(new URL('../../../../docs/21-7.xls', import.meta.url));
+  const rows = parseAttendanceBiff(new Uint8Array(fileBytes));
+  assert.equal(rows.length, 3261);
+  const row1 = rows[0];
+  assert.equal(row1.externalNoId, '1');
+  assert.equal(row1.employeeName, 'Dwi Fianti');
+  assert.equal(row1.workDate, '2026-09-20');
+  assert.equal(row1.reviewStatus, 'SKIPPED');
+
+  const row2 = rows[1];
+  assert.equal(row2.workDate, '2026-09-21');
+  assert.equal(row2.scanIn, '07:15');
+  assert.equal(row2.scanOut, '17:00');
+  assert.equal(row2.overtimeMinutes, 60);
+  assert.equal(row2.reviewStatus, 'READY');
+});
+
+test('modern .xlsx format parses correctly with serial date and formatted string', () => {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['No. ID', 'Nama', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Scan Masuk', 'Scan Pulang', 'Terlambat', 'Plg. Cepat', 'Lembur'],
+    ['101', 'Budi Santoso', 46285, '08:00', '17:00', '08:05', '17:15', '00:05', '', '00:15'],
+    ['102', 'Siti Rahma', '21/09/2026', '08:00', '17:00', '08:00', '17:00', '', '', '']
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet 1');
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const rows = parseAttendanceWorkbook(new Uint8Array(buf));
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].externalNoId, '101');
+  assert.equal(rows[0].workDate, '2026-09-20');
+  assert.equal(rows[0].lateMinutes, 5);
+  assert.equal(rows[0].overtimeMinutes, 15);
+  assert.equal(rows[1].externalNoId, '102');
+  assert.equal(rows[1].workDate, '2026-09-21');
+  assert.equal(rows[1].lateMinutes, 0);
+  assert.equal(rows[1].reviewStatus, 'READY');
 });

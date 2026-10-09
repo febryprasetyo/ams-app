@@ -46,7 +46,7 @@ export default function EmployeeTable({
   if (loading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500 font-mono text-xs">
-        <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
         <span>Fetching employee directory...</span>
       </div>
     );
@@ -81,14 +81,14 @@ export default function EmployeeTable({
           {employees.map((emp) => {
             const isActive = (emp.status || '').toLowerCase() === 'active';
             return (
-              <tr key={emp.id} className="hover:bg-red-50/30 transition-colors group">
+              <tr key={emp.id} className="hover:bg-emerald-50/30 transition-colors group">
                 <td className="py-4 px-5 font-mono">
-                  <span className="px-2.5 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 font-bold">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                     {emp.employeeCode}
                   </span>
                 </td>
                 <td className="py-4 px-5">
-                  <p className="font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                  <p className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
                     {emp.fullName}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">{emp.position || 'Staff'}</p>
@@ -111,13 +111,13 @@ export default function EmployeeTable({
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold ${
                       isActive
-                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
-                        isActive ? 'bg-red-600' : 'bg-slate-400'
+                        isActive ? 'bg-emerald-600' : 'bg-slate-400'
                       }`}
                     />
                     {emp.status}
@@ -127,7 +127,7 @@ export default function EmployeeTable({
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onEdit(emp)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
+                      className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                       title="Edit Employee"
                     >
                       <Pencil className="w-4 h-4" />

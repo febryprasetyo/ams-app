@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import ModalShell from '@/components/ui/ModalShell';
-import { UserItem } from '@/lib/access/types';
-import { KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
+import React from "react";
+import ModalShell from "@/components/ui/ModalShell";
+import { UserItem } from "@/lib/access/types";
+import { KeyRound, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface ResetPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserItem | null;
-  onSubmit: (userId: number, newPassword: string) => Promise<void>;
+  onSubmit: (userId: number) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -20,43 +20,20 @@ export default function ResetPasswordModal({
   onSubmit,
   isLoading = false,
 }: ResetPasswordModalProps) {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  if (!user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!user) return;
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    try {
-      await onSubmit(user.id, password);
-      setPassword('');
-      setConfirmPassword('');
-      onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to reset password');
-    }
+    await onSubmit(user.id);
+    onClose();
   };
 
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title="Reset User Password"
-      subtitle={user ? `Set a new sign-in password for ${user.username} (${user.email})` : 'Set new password'}
+      title="Reset Password Akun"
+      subtitle={`Buat password temporary baru untuk ${user.username} (${user.email})`}
       icon={<KeyRound className="w-5 h-5 text-amber-600" />}
       maxWidthClass="max-w-md"
       isLoading={isLoading}
@@ -68,7 +45,7 @@ export default function ResetPasswordModal({
             disabled={isLoading}
             className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            Cancel
+            Batal
           </button>
           <button
             type="submit"
@@ -77,55 +54,33 @@ export default function ResetPasswordModal({
             className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>Update Password</span>
+            <span>Reset & Buat Password Baru</span>
           </button>
         </>
       }
     >
       <form id="reset-password-form" onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            New Password <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 8 characters"
-              className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+        {/* Notice */}
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-[11px] leading-relaxed">
+            <span className="font-bold">Konfirmasi Reset Password:</span> Sistem akan otomatis membuatkan password temporary baru. Password lama akan langsung tidak berlaku dan pengguna diwajibkan membuat password baru saat login berikutnya.
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Confirm New Password <span className="text-red-500">*</span>
-          </label>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            required
-            minLength={8}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Repeat new password"
-            className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-          />
+        <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1.5 text-slate-700">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Username:</span>
+            <span className="font-mono font-bold text-slate-900">{user.username}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Email:</span>
+            <span className="font-mono text-slate-700">{user.email}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Role:</span>
+            <span className="font-medium text-slate-800">{user.roleName || user.role}</span>
+          </div>
         </div>
       </form>
     </ModalShell>

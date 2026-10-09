@@ -38,6 +38,7 @@ import {
   ClipboardList,
   FileBarChart,
   History,
+  Settings,
 } from 'lucide-react';
 
 export interface NavSubItem {
@@ -102,6 +103,7 @@ export const navGroups: NavGroup[] = [
           { name: 'Departemen Absensi', href: '/dashboard/attendance/master/departments', icon: Building2, permission: 'attendance.view' },
           { name: 'Shift & Jam Kerja', href: '/dashboard/attendance/master/shifts', icon: Clock, permission: 'attendance.view' },
           { name: 'Akses Absensi', href: '/dashboard/attendance/access', icon: ShieldCheck, permission: 'attendance.manage' },
+          { name: 'Pengaturan Absensi', href: '/dashboard/attendance/settings', icon: Settings, permission: 'attendance.manage' },
         ],
       },
     ],

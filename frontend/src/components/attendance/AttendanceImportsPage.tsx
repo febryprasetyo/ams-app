@@ -51,7 +51,7 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
   const total = batchId ? rows.length : batches.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(total / 10)));
   const currentRows = rows.slice((currentPage - 1) * 10, currentPage * 10);
-  const isStrict = batch?.strictIntegrity !== false;
+  const isStrict = batch?.strictIntegrity !== undefined ? batch.strictIntegrity : (data.meta.strictIntegrity !== false);
   const blocking = batch?.rows.some(r => ['BLOCKED', 'NEEDS_REVIEW'].includes(r.reviewStatus));
   const perform = async () => {
     if (!batch || !action) return;
@@ -66,50 +66,6 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
   </Heading>
   {notice && <p className="hr-notice" role="status">{notice}</p>}
   {batch && <>
-    {batch.status === 'DRAFT' && canWrite && (
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-start gap-3">
-          <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isStrict ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'}`}>
-            <BadgeCheck size={20} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-900">Integritas Data Ketat (Strict Integrity)</span>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${isStrict ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                {isStrict ? 'Aktif (Produksi)' : 'Nonaktif (Uji Coba / Cepat)'}
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {isStrict
-                ? 'Wajib menyelesaikan review semua baris bermasalah atau terblokir sebelum absensi dapat disimpan.'
-                : 'Review manual dilewati. Semua baris terpetakan langsung disimpan, baris tanggal ganda atau tanpa karyawan otomatis dilewati.'}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isStrict}
-          onClick={async () => {
-            try {
-              await execute({ type: 'toggle_strict_integrity', batchId: batch.id, enabled: !isStrict });
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Gagal mengubah mode integritas.');
-            }
-          }}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${
-            isStrict ? 'bg-indigo-600' : 'bg-slate-300'
-          }`}
-        >
-          <span className="sr-only">Toggle Integritas Ketat</span>
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-              isStrict ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
-      </div>
-    )}
     <div className="hr-panel grid grid-cols-2 divide-x divide-slate-200 sm:grid-cols-4">
       {Object.entries(reviewLabels).map(([key, label]) => (
         <button key={key} className={`p-4 text-left hover:bg-slate-50 ${reviewStatus === key ? 'bg-red-50' : ''}`} onClick={() => { setReviewStatus(reviewStatus === key ? 'all' : key); setPage(1); }}>

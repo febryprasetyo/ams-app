@@ -138,3 +138,28 @@ test('toggle_strict_integrity command updates batch strictIntegrity mode', () =>
   const toggledOn = applyCommand(toggledOff, { type: 'toggle_strict_integrity', batchId: 1, enabled: true });
   assert.equal(toggledOn.batches.find(b => b.id === 1).strictIntegrity, true);
 });
+
+test('set_strict_integrity command updates system global strictIntegrity in meta', () => {
+  let data = createSeed();
+  assert.equal(data.meta.strictIntegrity, undefined);
+
+  data = applyCommand(data, { type: 'set_strict_integrity', enabled: false });
+  assert.equal(data.meta.strictIntegrity, false);
+
+  data.batches.push({
+    id: 1,
+    filename: 'test-global.xls',
+    sourceId: 1,
+    createdAt: new Date().toISOString(),
+    status: 'DRAFT',
+    rows: [
+      { id: 1, externalNoId: '001', employeeId: 1, workDate: '2026-09-21', scanIn: '08:00', scanOut: '17:00', lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0, reviewStatus: 'READY', note: 'Siap' },
+      { id: 2, externalNoId: '002', employeeId: 2, workDate: '2026-09-21', scanIn: '08:05', scanOut: '17:00', lateMinutes: 5, earlyMinutes: 0, overtimeMinutes: 0, reviewStatus: 'NEEDS_REVIEW', note: 'Data dinormalisasi' },
+    ],
+  });
+
+  // Batch without explicit strictIntegrity should follow data.meta.strictIntegrity (which is false)
+  const next = applyCommand(data, { type: 'batch', batchId: 1, action: 'commit' });
+  assert.equal(next.batches.find(b => b.id === 1).status, 'COMMITTED');
+  assert.equal(next.records.filter(r => r.workDate === '2026-09-21').length, 2);
+});

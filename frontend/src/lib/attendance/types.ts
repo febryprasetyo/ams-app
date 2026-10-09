@@ -60,7 +60,7 @@ export interface AttendanceGrant { id: number; principalKey: string; displayName
 export interface AttendanceLock { workDate: string; reason: string; createdAt: string }
 export interface AttendanceDataset {
   schemaVersion: 1;
-  meta: { defaultDate: string; periodStart: string; actor: string; role: AttendanceRole; canManageAccess: boolean; sourceFile?: string; sourceHash?: string; sourceRows?: number };
+  meta: { defaultDate: string; periodStart: string; actor: string; role: AttendanceRole; canManageAccess: boolean; strictIntegrity?: boolean; sourceFile?: string; sourceHash?: string; sourceRows?: number };
   departments: MasterItem[]; locations: MasterItem[]; sources: MasterItem[];
   employees: Employee[]; identities: Identity[]; records: AttendanceRecord[];
   batches: ImportBatch[]; audit: AuditEntry[]; revisions: Revision[];
@@ -82,6 +82,8 @@ export type AttendanceCommand =
   | { type: 'review'; batchId: number; rowId: number; employeeId: number | null; skipped: boolean; reason: string; values?: { scanIn?: string | null; scanOut?: string | null; lateMinutes?: number; overtimeMinutes?: number } }
   | { type: 'batch'; batchId: number; action: 'commit' | 'cancel' | 'reopen'; strictIntegrity?: boolean }
   | { type: 'toggle_strict_integrity'; batchId: number; enabled: boolean }
+  | { type: 'set_strict_integrity'; enabled: boolean }
+  | { type: 'set_strict_integrity'; enabled: boolean }
   | { type: 'record_attendance'; employeeId: number; workDate: string; attendanceStatus: AttendanceStatus; shiftId?: number; scanIn?: string | null; scanOut?: string | null; reason?: string }
   | { type: 'shift'; action: 'create' | 'update' | 'delete'; shift: WorkShift }
   | { type: 'assign_shift'; assignment: ShiftAssignment }

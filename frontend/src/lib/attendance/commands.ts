@@ -43,7 +43,7 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
 export function applyCommand(input: AttendanceDataset, command: AttendanceCommand): AttendanceDataset {
   const admin = input.meta.role === 'HR_ADMIN';
   if ((command.type === 'grant' || command.type === 'delete_grant') ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
-  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift', 'toggle_strict_integrity'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
+  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift', 'toggle_strict_integrity', 'set_strict_integrity'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
   const data = structuredClone(input);
   const now = new Date().toISOString();
   let action = ''; let detail = '';
@@ -214,7 +214,7 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         if (batch.status !== 'DRAFT') throw new Error('Batch sudah tidak dapat diubah.');
         if (command.action === 'cancel') batch.status = 'CANCELLED';
         else {
-          const isStrict = command.strictIntegrity !== undefined ? command.strictIntegrity : (batch.strictIntegrity !== false);
+          const isStrict = command.strictIntegrity !== undefined ? command.strictIntegrity : (batch.strictIntegrity !== undefined ? batch.strictIntegrity : (data.meta.strictIntegrity !== false));
           if (isStrict) {
             const rows = batch.rows.filter(r => r.reviewStatus !== 'SKIPPED');
             if (!rows.length || rows.some(r => r.reviewStatus !== 'READY' || resolveRow(data, batch, r).reviewStatus !== 'READY')) throw new Error('Selesaikan review seluruh baris sebelum menyimpan.');
@@ -274,6 +274,12 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       batch.strictIntegrity = command.enabled;
       action = command.enabled ? 'Integritas ketat diaktifkan' : 'Integritas ketat dinonaktifkan';
       detail = `${batch.filename} · ${command.enabled ? 'Strict ON' : 'Strict OFF'}`;
+      break;
+    }
+    case 'set_strict_integrity': {
+      data.meta.strictIntegrity = command.enabled;
+      action = command.enabled ? 'Integritas ketat sistem diaktifkan' : 'Integritas ketat sistem dinonaktifkan';
+      detail = command.enabled ? 'Strict ON (Produksi)' : 'Strict OFF (Uji Coba)';
       break;
     }
         case 'record_attendance': {

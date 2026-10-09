@@ -53,5 +53,7 @@ GEMINI.md
 *.xlsx
 docs/WhatsApp Image*
 /docs/*
+!/docs/todo/
+!/docs/todo/**
 /design-system/*
 /hardware-collector/*

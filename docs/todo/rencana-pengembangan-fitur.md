@@ -4,7 +4,7 @@ Status: draft
 
 Dokumen ini mencatat prioritas pengembangan berikutnya. Detail implementasi yang sudah tersedia tetap dirujuk dari dokumen desain dan rencana teknis terkait.
 
-## Prioritas 1: Asset Management Dashboard dan Role-Based Super App Landing
+## Prioritas 1: Asset Management Dashboard dan Role-Based Super App Landing (Selesai)
 
 Tujuan: menyediakan halaman awal yang relevan untuk setiap peran, serta dashboard aset operasional untuk tim Admin dan IT.
 

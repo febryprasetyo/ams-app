@@ -34,6 +34,16 @@ function Provider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'ams:attendance-workspace:v2') {
+        setReload(v => v + 1);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     repository.load(controller.signal).then(value => {
       if (!controller.signal.aborted) {
@@ -68,7 +78,7 @@ function Provider({ children }: { children: React.ReactNode }) {
 
     const isSuperAdmin = user.permissions?.includes('*') || (user.roleName || '').toLowerCase() === 'superadmin';
     const isHrAdmin = user.permissions?.includes('attendance.manage') || (user.roleName || '').toLowerCase().includes('admin');
-    const isHrStaff = user.permissions?.includes('attendance.view');
+    const isHrStaff = user.permissions?.includes('attendance.view') || user.permissions?.includes('attendance.import') || Boolean((user.roleName || '').toLowerCase().includes('hr'));
 
     if (isSuperAdmin || isHrAdmin) return 'HR_ADMIN';
     if (isHrStaff) return 'HR_STAFF';
@@ -113,7 +123,7 @@ function Provider({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       ) : (
-        <AttendanceContext.Provider value={{ data: resolvedData!, execute, canWrite: effectiveRole === 'HR_ADMIN', canReview: effectiveRole !== 'REPORT_VIEWER' }}>
+        <AttendanceContext.Provider value={{ data: resolvedData!, execute, canWrite: effectiveRole === 'HR_ADMIN' || effectiveRole === 'HR_STAFF' || Boolean(user?.permissions?.includes('attendance.import')), canReview: effectiveRole !== 'REPORT_VIEWER' }}>
           {children}
         </AttendanceContext.Provider>
       )}

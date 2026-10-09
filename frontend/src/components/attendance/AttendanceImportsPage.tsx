@@ -54,7 +54,7 @@ export default function AttendanceImportsPage({ batchId }: { batchId?: number })
   const total = batchId ? rows.length : batches.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(total / 10)));
   const currentRows = rows.slice((currentPage - 1) * 10, currentPage * 10);
-  const isStrict = batch?.strictIntegrity !== undefined ? batch.strictIntegrity : (data.meta.strictIntegrity !== false);
+  const isStrict = data.meta.strictIntegrity !== false;
   const blocking = batch?.rows.some(r => ['BLOCKED', 'NEEDS_REVIEW'].includes(r.reviewStatus));
   const perform = async () => {
     if (!batch || !action) return;

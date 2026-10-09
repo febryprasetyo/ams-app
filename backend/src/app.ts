@@ -13,6 +13,7 @@ import hardwareAuditRoutes from './routes/hardwareAuditRoutes';
 import roleRoutes from './routes/roleRoutes';
 import userRoutes from './routes/userRoutes';
 import leaveRoutes from './routes/leaveRoutes';
+import systemSettingRoutes from './routes/systemSettingRoutes';
 import { checkDatabase } from './db';
 
 export interface AppOptions {
@@ -59,6 +60,8 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/leaves', leaveRoutes);
   app.use('/api/leaves', leaveRoutes);
+  app.use('/api/v1/system/settings', systemSettingRoutes);
+  app.use('/api/v1/settings', systemSettingRoutes);
 
   return app;
 }

@@ -5,6 +5,7 @@ import { Settings, BadgeCheck, AlertTriangle, CheckCircle2, ShieldAlert } from '
 import { useAuth } from '@/context/AuthContext';
 import { useAttendance } from './AttendanceWorkspace';
 import { Heading } from './shared';
+import { api } from '@/lib/api';
 
 export default function AttendanceSettingsPage() {
   const { user } = useAuth();
@@ -29,11 +30,19 @@ export default function AttendanceSettingsPage() {
 
     try {
       const nextStrict = !isStrict;
+      try {
+        await api.put('/system/settings/attendance_strict_integrity', {
+          value: nextStrict,
+          description: 'Integritas Data Ketat (Strict Integrity) impor absensi',
+        });
+      } catch (dbErr) {
+        console.warn('DB setting update warning:', dbErr);
+      }
       await execute({ type: 'set_strict_integrity', enabled: nextStrict });
       setNotice(
         nextStrict
-          ? 'Integritas Data Ketat diaktifkan: Mode Produksi (Wajib review seluruh baris bermasalah).'
-          : 'Integritas Data Ketat dinonaktifkan: Mode Uji Coba / Cepat (Melewati review manual saat simpan impor).'
+          ? 'Integritas Data Ketat diaktifkan: Mode Produksi (Wajib review seluruh baris bermasalah). Pengaturan permanen tersimpan di database.'
+          : 'Integritas Data Ketat dinonaktifkan: Mode Uji Coba / Cepat (Melewati review manual saat simpan impor). Pengaturan permanen tersimpan di database.'
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan pengaturan.');

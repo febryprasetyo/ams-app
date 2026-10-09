@@ -50,8 +50,10 @@ function resolveRow(data: AttendanceDataset, batch: ImportBatch, row: ImportRow)
 }
 export function applyCommand(input: AttendanceDataset, command: AttendanceCommand): AttendanceDataset {
   const admin = input.meta.role === 'HR_ADMIN';
+  const canManage = admin || input.meta.role === 'HR_STAFF';
   if ((command.type === 'grant' || command.type === 'delete_grant') ? !input.meta.canManageAccess : input.meta.role === 'REPORT_VIEWER') throw new Error('Tidak memiliki akses untuk perubahan ini.');
-  if (!admin && ['correct', 'employee', 'master', 'identity', 'lock', 'batch', 'record_attendance', 'shift', 'assign_shift', 'toggle_strict_integrity', 'set_strict_integrity'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
+  if (!admin && ['employee', 'master', 'identity', 'lock', 'toggle_strict_integrity', 'set_strict_integrity'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR Admin.');
+  if (!canManage && ['correct', 'batch', 'delete_batch', 'record_attendance', 'shift', 'assign_shift'].includes(command.type)) throw new Error('Perubahan ini memerlukan akses HR.');
   const data = structuredClone(input);
   const now = new Date().toISOString();
   let action = ''; let detail = '';
@@ -228,7 +230,7 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         if (batch.status !== 'DRAFT') throw new Error('Batch sudah tidak dapat diubah.');
         if (command.action === 'cancel') batch.status = 'CANCELLED';
         else {
-          const isStrict = command.strictIntegrity !== undefined ? command.strictIntegrity : (batch.strictIntegrity !== undefined ? batch.strictIntegrity : (data.meta.strictIntegrity !== false));
+          const isStrict = command.strictIntegrity !== undefined ? command.strictIntegrity : (data.meta.strictIntegrity !== false);
           if (isStrict) {
             const rows = batch.rows.filter(r => r.reviewStatus !== 'SKIPPED');
             if (!rows.length || rows.some(r => r.reviewStatus !== 'READY' || resolveRow(data, batch, r).reviewStatus !== 'READY')) throw new Error('Selesaikan review seluruh baris sebelum menyimpan.');
@@ -292,6 +294,9 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
     }
     case 'set_strict_integrity': {
       data.meta.strictIntegrity = command.enabled;
+      for (const b of data.batches) {
+        b.strictIntegrity = command.enabled;
+      }
       action = command.enabled ? 'Integritas ketat sistem diaktifkan' : 'Integritas ketat sistem dinonaktifkan';
       detail = command.enabled ? 'Strict ON (Produksi)' : 'Strict OFF (Uji Coba)';
       break;

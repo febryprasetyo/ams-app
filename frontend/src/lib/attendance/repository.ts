@@ -66,6 +66,14 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
             isActive: d.isActive !== false,
           }));
         }
+
+        const settingRes = await api.get<{ key: string; value: any }>('/system/settings/attendance_strict_integrity');
+        if (settingRes && typeof settingRes.value === 'boolean') {
+          current.meta.strictIntegrity = settingRes.value;
+          for (const b of current.batches) {
+            b.strictIntegrity = settingRes.value;
+          }
+        }
       } catch {
         // Fallback silently if offline or token not yet ready
       }
@@ -80,6 +88,16 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
       const operation = queue.then(async () => {
         const data = await load();
         const result = applyCommand(data, command);
+        if (command.type === 'set_strict_integrity' && typeof window !== 'undefined') {
+          try {
+            await api.put('/system/settings/attendance_strict_integrity', {
+              value: command.enabled,
+              description: 'Integritas Data Ketat (Strict Integrity) impor absensi',
+            });
+          } catch {
+            // fallback gracefully
+          }
+        }
         if (typeof window !== 'undefined') {
           localStorage.setItem(sharedKey, JSON.stringify(result));
           if (accountKey) sessionStorage.setItem(accountKey, JSON.stringify(result));

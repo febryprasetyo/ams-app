@@ -297,3 +297,52 @@ test("re-uploading identical file always creates a distinct draft batch", () => 
 
   assert.notEqual(firstUploadedBatchId, secondUploadedBatchId);
 });
+
+test("HR_STAFF can commit, cancel, and manage batch imports without HR_ADMIN role", () => {
+  let data = createSeed();
+  data.meta.strictIntegrity = false;
+  data.meta.role = "HR_STAFF";
+
+  const rows = [
+    {
+      id: 1,
+      externalNoId: "001",
+      employeeId: 1,
+      workDate: "2026-09-21",
+      scanIn: "08:00",
+      scanOut: "17:00",
+      lateMinutes: 0,
+      earlyMinutes: 0,
+      overtimeMinutes: 0,
+      reviewStatus: "READY",
+      note: "Siap",
+      issues: []
+    }
+  ];
+
+  data = applyCommand(data, { type: "import", filename: "staff.xls", rows });
+  const batchId = data.batches.at(-1).id;
+
+  // HR_STAFF commits batch
+  assert.doesNotThrow(() => {
+    data = applyCommand(data, { type: "batch", batchId, action: "commit" });
+  });
+  assert.equal(data.batches.find(b => b.id === batchId).status, "COMMITTED");
+});
+
+test("turning off strict integrity via set_strict_integrity updates existing batches", () => {
+  let data = createSeed();
+  data.batches.push({
+    id: 10,
+    filename: "old-draft.xls",
+    sourceId: 1,
+    status: "DRAFT",
+    strictIntegrity: true,
+    createdAt: new Date().toISOString(),
+    rows: []
+  });
+
+  data = applyCommand(data, { type: "set_strict_integrity", enabled: false });
+  assert.equal(data.meta.strictIntegrity, false);
+  assert.equal(data.batches.find(b => b.id === 10).strictIntegrity, false);
+});

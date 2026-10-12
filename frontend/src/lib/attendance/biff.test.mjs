@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { parseAttendanceBiff, parseAttendanceWorkbook } from './biff.ts';
 import XLSX from 'xlsx';
+
+const realXlsUrl = new URL('../../../../docs/21-7.xls', import.meta.url);
 
 function record(type, payload = Buffer.alloc(0)) { const h = Buffer.alloc(4); h.writeUInt16LE(type); h.writeUInt16LE(payload.length, 2); return Buffer.concat([h, payload]); }
 function fixture(overrides = {}) {
@@ -35,8 +37,10 @@ test('broken signatures, truncated streams and impossible dates fail explicitly'
   assert.throws(() => parseAttendanceBiff(fixture({ Tanggal: '30/02/2025' })), /Tanggal/);
 });
 
-test('real OLE2 Excel file (docs/21-7.xls) parses all rows and converts serial dates', () => {
-  const fileBytes = readFileSync(new URL('../../../../docs/21-7.xls', import.meta.url));
+test('real OLE2 Excel file (docs/21-7.xls) parses all rows and converts serial dates', {
+  skip: !existsSync(realXlsUrl) ? 'docs/21-7.xls is not present in CI environment' : false
+}, () => {
+  const fileBytes = readFileSync(realXlsUrl);
   const rows = parseAttendanceBiff(new Uint8Array(fileBytes));
   assert.equal(rows.length, 3261);
   const row1 = rows[0];

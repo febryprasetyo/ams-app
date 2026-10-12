@@ -92,3 +92,27 @@ test('GET /health/ready returns 503 without leaking error message when database 
     server.close();
   }
 });
+
+test('POST /api/v1/auth/login throttles excessive requests with 429', async () => {
+  const app = createApp({ databaseCheck: async () => {} });
+  const server = app.listen(0);
+  const address = server.address() as { port: number };
+
+  try {
+    let lastStatus = 200;
+    for (let i = 0; i < 6; i++) {
+      const res = await fetch(`http://127.0.0.1:${address.port}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': '10.99.88.77',
+        },
+        body: JSON.stringify({ username: 'invalid_user', password: 'wrong_password' }),
+      });
+      lastStatus = res.status;
+    }
+    assert.equal(lastStatus, 429, '6th request must be throttled with HTTP 429');
+  } finally {
+    server.close();
+  }
+});

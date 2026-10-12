@@ -17,16 +17,47 @@ import systemSettingRoutes from './routes/systemSettingRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
 import { checkDatabase } from './db';
 
+import { loadEnv } from './config/env';
+
 export interface AppOptions {
   databaseCheck?: () => Promise<void>;
+  corsOptions?: cors.CorsOptions;
 }
 
 export function createApp(options: AppOptions = {}): express.Express {
   const app = express();
   const dbCheck = options.databaseCheck || checkDatabase;
 
+  let corsConfig = options.corsOptions;
+  if (!corsConfig) {
+    let allowedOrigins: string[] | undefined;
+    try {
+      const env = loadEnv();
+      allowedOrigins = env.corsAllowedOrigins;
+    } catch {
+      // Fallback for isolated unit tests
+    }
+
+    corsConfig = {
+      origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, same-origin Nginx reverse proxy)
+        if (!origin) {
+          return callback(null, true);
+        }
+        if (process.env.NODE_ENV !== 'production') {
+          return callback(null, true);
+        }
+        if (allowedOrigins && allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS policy'));
+      },
+      credentials: true,
+    };
+  }
+
   app.use(helmet());
-  app.use(cors());
+  app.use(cors(corsConfig));
   app.use(express.json());
 
   // Health and readiness endpoints

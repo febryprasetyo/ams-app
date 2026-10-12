@@ -6,6 +6,12 @@ import { BRAND_DESCRIPTION, BRAND_NAME } from '@/lib/gajianichBrand';
 export const metadata: Metadata = {
   title: `${BRAND_NAME} | ${BRAND_DESCRIPTION}`,
   description: BRAND_DESCRIPTION,
+  applicationName: BRAND_NAME,
+  icons: {
+    icon: "/favicon.ico?v=gajianich-1",
+    apple: "/branding/gajianich-cat-favicon.png",
+  },
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

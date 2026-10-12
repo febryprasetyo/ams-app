@@ -91,3 +91,13 @@ test('loadEnv: in production accepts robust distinct secrets and parses CORS ori
   assert.strictEqual(env.nodeEnv, 'production');
   assert.deepStrictEqual(env.corsAllowedOrigins, ['https://ams.company.com', 'https://app.company.com']);
 });
+
+test('loadEnv: production rejects the untouched production template secrets', () => {
+  assert.throws(() => loadEnv({
+    DATABASE_URL: 'postgresql://ams_app:a83fca982736bd984f@localhost:5432/ams_prod_db',
+    JWT_SECRET: 'generate-random-secret-min-32-chars-via-openssl-rand-hex-32',
+    JWT_REFRESH_SECRET: 'generate-different-random-secret-min-32-chars-via-openssl-rand-hex-32',
+    AGENT_API_KEY: 'generate-agent-api-key-min-32-chars-via-openssl-rand-hex-32',
+    NODE_ENV: 'production',
+  }), /placeholder/);
+});

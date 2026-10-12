@@ -55,7 +55,10 @@ export const db = drizzle(getPool(), {
 export async function checkDatabase(): Promise<void> {
   const client = await getPool().connect();
   try {
-    await client.query('SELECT 1');
+    // Readiness includes the tables required by the attendance API, not only connectivity.
+    await client.query('SELECT key FROM system_settings LIMIT 0');
+    await client.query('SELECT id FROM attendance_batches LIMIT 0');
+    await client.query('SELECT id FROM attendance_records LIMIT 0');
   } finally {
     client.release();
   }

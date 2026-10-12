@@ -81,7 +81,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     }
 
     // 3. Anti-placeholder & dev values check
-    const placeholderRegex = /replace-with|dev-|ci-|placeholder|default|secret1234|password123/i;
+    const placeholderRegex = /replace-with|generate-|dev-|ci-|placeholder|default|secret1234|password123/i;
     if (placeholderRegex.test(jwtSecret)) {
       errors.push('JWT_SECRET contains prohibited dev/placeholder values');
     }

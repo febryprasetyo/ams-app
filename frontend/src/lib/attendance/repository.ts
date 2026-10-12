@@ -30,10 +30,10 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
     }
     if (!parsed) {
       const response = await fetch('/mock/attendance.json', { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000), cache: 'no-store' });
-      if (!response.ok) throw new Error('Data contoh gagal dimuat. Silakan coba lagi.');
+      if (!response.ok) throw new Error('Workspace absensi gagal dimuat. Silakan coba lagi.');
       parsed = await response.json();
     }
-    if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1 || !('records' in parsed) || !Array.isArray(parsed.records)) throw new Error('Format data demo tidak sesuai. Reset data demo untuk memuat ulang.');
+    if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1 || !('records' in parsed) || !Array.isArray(parsed.records)) throw new Error('Format data absensi tidak sesuai. Muat ulang workspace untuk mencoba kembali.');
     current = parsed as AttendanceDataset;
     if (!current.shifts || current.shifts.length === 0) { current.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT]; }
     if (!current.shiftAssignments) { current.shiftAssignments = []; }
@@ -148,8 +148,8 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
               value: command.enabled,
               description: 'Integritas Data Ketat (Strict Integrity) impor absensi',
             });
-          } catch {
-            // fallback gracefully
+          } catch (err) {
+            throw err;
           }
         }
 
@@ -183,7 +183,7 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
                   })),
                 });
               } catch (err) {
-                console.error('Failed to commit attendance batch to database:', err);
+                throw err;
               }
             }
           }
@@ -209,7 +209,7 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
               }],
             });
           } catch (err) {
-            console.error('Failed to save manual attendance record to database:', err);
+            throw err;
           }
         }
 

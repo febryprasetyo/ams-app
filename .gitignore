@@ -41,6 +41,12 @@ frontend/.agents/
 *AGENTS.md
 *CLAUDE.md
 GEMINI.md
+SKILL.md
+.codex/
+.claude/
+.cursor/
+.opencode/
+.aider*
 
 # AI Tools & skills
 /.superpowers/
@@ -51,6 +57,6 @@ GEMINI.md
 # Sensitive / local data & prompt references
 *.xlsx
 docs/WhatsApp Image*
-/docs/*
+/docs/
 /design-system/*
 /hardware-collector/*

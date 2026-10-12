@@ -53,6 +53,13 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   try {
     const payload = verifyToken(token);
     req.user = payload;
+    const path = (req.originalUrl || '').split('?')[0];
+    const canCompletePasswordChange =
+      (req.method === 'GET' && path === '/api/v1/auth/me') ||
+      (req.method === 'POST' && path === '/api/v1/auth/change-password');
+    if (payload.mustChangePassword && !canCompletePasswordChange) {
+      return res.status(403).json({ error: 'Password change required before accessing the application' });
+    }
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });

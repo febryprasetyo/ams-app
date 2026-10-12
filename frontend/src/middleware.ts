@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { canAccessRoute } from "@/lib/access/routes";
+import { AUTH_COOKIE_NAME } from "@/lib/authCookie";
 
 interface JwtPayload {
   userId?: number;
@@ -41,7 +42,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
   if (!token) {
     const loginUrl = new URL("/login", request.url);
@@ -54,7 +55,7 @@ export function middleware(request: NextRequest) {
   if (!payload) {
     const loginUrl = new URL("/login", request.url);
     const response = NextResponse.redirect(loginUrl);
-    response.cookies.delete("token");
+    response.cookies.delete(AUTH_COOKIE_NAME);
     return response;
   }
 

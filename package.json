@@ -14,6 +14,13 @@
     "dev:down": "docker compose -f compose.dev.yml down",
     "dev:logs": "docker compose -f compose.dev.yml logs -f",
     "dev:check": "bash scripts/validate-compose.sh dev",
+    "prod:init": "bash deploy/scripts/lan-production.sh init",
+    "prod:release": "bash deploy/scripts/lan-production.sh release",
+    "prod:status": "bash deploy/scripts/lan-production.sh status",
+    "prod:logs": "bash deploy/scripts/lan-production.sh logs",
+    "prod:backup": "bash deploy/scripts/lan-production.sh backup",
+    "prod:stop": "bash deploy/scripts/lan-production.sh stop",
+    "prod:start": "bash deploy/scripts/lan-production.sh start",
     "ci": "npm run dev:check && bash scripts/validate-compose.sh prod && npm test --prefix backend && npm run build --prefix backend && npm test --prefix frontend && npm run lint --prefix frontend && npm run build --prefix frontend"
   },
   "devDependencies": {

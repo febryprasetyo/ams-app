@@ -13,14 +13,12 @@ A comprehensive Asset Management System (AMS) and IT Service Management (ITSM) p
 
 ---
 
-## Operational Runbooks
+## Production Operations
 
-Comprehensive guides for development, infrastructure setup, deployments, and disaster recovery:
-
-1. 📖 **[Development Runbook](docs/operations/development.md)** — SSH IDE workflow, local Compose stack, database migrations, and testing.
-2. 🛠️ **[Server Setup Runbook](docs/operations/server-setup.md)** — Host preparation for Ubuntu 22.04 LTS (Docker, native PostgreSQL 16, systemd units, SSH keys).
-3. 🚀 **[Release & Deployment Runbook](docs/operations/release.md)** — Tagged release workflow, GHCR container publishing, manual approval gating, and health-checked LAN deployment.
-4. 💾 **[Database Recovery Runbook](docs/operations/database-recovery.md)** — Native PostgreSQL backups, checksum verification, and non-destructive isolated restore workflows.
+Deployment scripts and configuration are in `deploy/`. Use the isolated LAN
+workflow with `npm run prod:init`, `npm run prod:release -- <unique-version>`,
+`npm run prod:status`, and `npm run prod:backup`. Runtime credentials and backups
+are stored outside this repository. Internal documentation is kept locally.
 
 ---
 
@@ -41,10 +39,10 @@ cp backend/.env.example backend/.env
 npm run dev:up
 
 # 4. Apply database migrations
-npm run db:migrate --prefix backend
+docker compose -f compose.dev.yml exec backend npm run db:migrate
 
 # 5. (Optional) Seed initial data
-npm run seed --prefix backend
+docker compose -f compose.dev.yml exec backend npm run seed
 ```
 
 - **Frontend:** http://localhost:3000
@@ -68,7 +66,13 @@ npm run ci            # Run full local validation pipeline (lint, test, build)
 
 ## Production Architecture
 
-In production:
-- **Nginx Reverse Proxy** routes browser traffic on port 80 to Next.js (`/`) and Express.js (`/api/v1/`), providing same-origin cookies and API calls.
-- **Native PostgreSQL 16** runs directly on the host system managed by systemd, with automated daily backups (`/var/backups/ams-app/postgres`) and weekly restore verification.
-- **Deployment State Machine** (`deploy/scripts/deploy.sh`) performs zero-downtime health-gated rollouts with automatic rollback on failure and atomic version tracking.
+The active office deployment uses `deploy/compose.lan.yml`: Nginx, standalone
+Next.js, Express, and PostgreSQL in the separate `ams-live` Compose project.
+Production is available at http://192.168.10.23:8080. Development runs on port 3000.
+The database and backend have no published host ports. The LAN deployment currently uses HTTP within the office subnet.
+Use the production commands above for releases and backups.
+
+`deploy/compose.prod.yml` and the GHCR scripts are a separate deployment path
+for a host with PostgreSQL and an upstream TLS proxy. They are not the active
+LAN deployment. A container replacement can cause a brief interruption; schema
+migrations are not automatically reversed during an application rollback.

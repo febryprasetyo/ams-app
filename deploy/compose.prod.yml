@@ -21,7 +21,7 @@ services:
         max-file: "3"
 
   backend:
-    image: ghcr.io/${GHCR_OWNER:-fastpec}/ams-backend:${APP_VERSION}
+    image: ghcr.io/${GHCR_OWNER:-fastpec}/ams-backend:${APP_VERSION:?Release version required}
     container_name: ams_backend_prod
     restart: unless-stopped
     extra_hosts:
@@ -29,10 +29,11 @@ services:
     environment:
       PORT: 5000
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      AGENT_API_KEY: ${AGENT_API_KEY}
+      DATABASE_URL: ${DATABASE_URL:?Database URL required}
+      JWT_SECRET: ${JWT_SECRET:?JWT secret required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Refresh secret required}
+      AGENT_API_KEY: ${AGENT_API_KEY:?Agent key required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Production origin required}
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/health/ready || exit 1"]
       interval: 5s
@@ -45,7 +46,7 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/${GHCR_OWNER:-fastpec}/ams-frontend:${APP_VERSION}
+    image: ghcr.io/${GHCR_OWNER:-fastpec}/ams-frontend:${APP_VERSION:?Release version required}
     container_name: ams_frontend_prod
     restart: unless-stopped
     environment:

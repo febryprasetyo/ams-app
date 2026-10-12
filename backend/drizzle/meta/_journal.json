@@ -98,6 +98,13 @@
       "when": 1791526638619,
       "tag": "0013_organic_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791774914353,
+      "tag": "0014_production_attendance_settings",
+      "breakpoints": true
     }
   ],
   "version": "7"

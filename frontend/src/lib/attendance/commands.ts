@@ -106,20 +106,20 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         const target = data.grants.find(g => g.id === command.value.id);
         if (!target) throw new Error('Akses tidak ditemukan.');
         data.grants = data.grants.filter(g => g.id !== command.value.id);
-        action = 'Akses demo dihapus'; detail = target.displayName; break;
+        action = 'Akses absensi dihapus'; detail = target.displayName; break;
       }
       const v = { ...command.value, principalKey: command.value.principalKey.trim(), displayName: command.value.displayName.trim() };
       if (!v.principalKey || !v.displayName) throw new Error('Akun dan nama wajib diisi.');
       if (data.grants.some(g => g.id !== v.id && g.principalKey === v.principalKey)) throw new Error('Akun sudah mempunyai grant.');
       if (!v.id) { v.id = nextId(data.grants); data.grants.push(v); }
       else data.grants = data.grants.map(g => g.id === v.id ? v : g);
-      action = 'Akses demo diperbarui'; detail = v.displayName; break;
+      action = 'Akses absensi diperbarui'; detail = v.displayName; break;
     }
     case 'delete_grant': {
       const target = data.grants.find(g => g.id === command.id);
       if (!target) throw new Error('Akses tidak ditemukan.');
       data.grants = data.grants.filter(g => g.id !== command.id);
-      action = 'Akses demo dihapus'; detail = target.displayName; break;
+      action = 'Akses absensi dihapus'; detail = target.displayName; break;
     }
     case 'lock': {
       requireReason(command.reason);

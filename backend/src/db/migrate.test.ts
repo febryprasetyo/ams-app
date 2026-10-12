@@ -23,3 +23,11 @@ test('drizzle meta journal exists and is valid json', () => {
   const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8'));
   assert.ok(Array.isArray(journal.entries), 'Expected entries array in journal');
 });
+
+test('every SQL migration is registered in the journal used by production releases', () => {
+  const folder = path.resolve(__dirname, '../../drizzle');
+  const journal = JSON.parse(fs.readFileSync(path.join(folder, 'meta/_journal.json'), 'utf8'));
+  const registered = new Set(journal.entries.map((entry: { tag: string }) => `${entry.tag}.sql`));
+  const missing = fs.readdirSync(folder).filter(file => file.endsWith('.sql') && !registered.has(file));
+  assert.deepEqual(missing, [], `Unregistered migrations: ${missing.join(', ')}`);
+});

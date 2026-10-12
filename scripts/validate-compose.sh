@@ -96,7 +96,7 @@ elif [[ "$MODE" == "prod" ]]; then
   fi
 
   if command -v docker >/dev/null 2>&1; then
-    APP_VERSION="v1.0.0" DATABASE_URL="postgresql://user:pass@host.docker.internal:5432/ams_prod_db" JWT_SECRET="prod-secret-12345" JWT_REFRESH_SECRET="prod-refresh-12345" docker compose -f "$FILE" config >/dev/null
+    APP_VERSION="v1.0.0" DATABASE_URL="postgresql://user:pass@host.docker.internal:5432/ams_prod_db" AGENT_API_KEY="validation-agent-key" CORS_ALLOWED_ORIGINS="https://ams.example.com" JWT_SECRET="prod-secret-12345" JWT_REFRESH_SECRET="prod-refresh-12345" docker compose -f "$FILE" config >/dev/null
   fi
 
   echo "✅ Production Compose and Nginx configuration validated successfully!"

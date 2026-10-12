@@ -1,3 +1,5 @@
+import { AUTH_COOKIE_NAME } from "./authCookie";
+
 const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
     // In browser, use relative path /api/v1 for same-origin proxy routing
@@ -23,7 +25,7 @@ function getToken(): string | null {
   if (localToken) return localToken;
 
   // Fallback to cookie search
-  const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
+  const match = document.cookie.split('; ').find((cookie) => cookie.startsWith(`${AUTH_COOKIE_NAME}=`))?.split('=');
   return match ? decodeURIComponent(match[1]) : null;
 }
 

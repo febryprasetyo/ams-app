@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import ModalShell from '@/components/ui/ModalShell';
 import { Printer, Loader2 } from 'lucide-react';
+import { escapeHtml } from '@/lib/printHtml';
+import { BRAND_NAME } from '@/lib/gajianichBrand';
 import { AssetDetail } from '@/lib/assets/types';
 
 export interface PrintAssetTagModalProps {
@@ -48,7 +50,7 @@ export default function PrintAssetTagModal({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Asset Tag QR Sticker - ${asset.assetCode}</title>
+          <title>Asset Tag QR Sticker - ${escapeHtml(asset.assetCode)}</title>
           <style>
             @page {
               size: 80mm 50mm;
@@ -139,22 +141,22 @@ export default function PrintAssetTagModal({
         <body>
           <div class="tag-card">
             <div class="header">
-              <span>ERP CAHAYA ITSM</span>
+              <span>${BRAND_NAME}</span>
               <span>PROPERTY TAG</span>
             </div>
             <div class="body-content">
               <img src="${qrCodeDataUrl}" class="qr-img" />
               <div class="asset-info">
-                <div class="asset-code">${asset.assetCode}</div>
-                <div class="asset-name">${asset.name}</div>
+                <div class="asset-code">${escapeHtml(asset.assetCode)}</div>
+                <div class="asset-name">${escapeHtml(asset.name)}</div>
                 <div style="font-size: 8px; margin-top: 2px; text-transform: uppercase;">
-                  CAT: ${asset.categoryName || 'IT ASSET'}
+                  CAT: ${escapeHtml(asset.categoryName || 'IT ASSET')}
                 </div>
               </div>
             </div>
             <div class="footer-meta">
-              <span>S/N: ${asset.serialNumber || 'N/A'}</span>
-              <span>LOC: ${asset.locationName || 'HO-JKT'}</span>
+              <span>S/N: ${escapeHtml(asset.serialNumber || 'N/A')}</span>
+              <span>LOC: ${escapeHtml(asset.locationName || 'N/A')}</span>
             </div>
             <div class="notice">
               SCAN QR FOR DEVICE SPECS • DO NOT REMOVE
@@ -193,7 +195,7 @@ export default function PrintAssetTagModal({
         {/* Thermal Label Preview Card */}
         <div className="border-2 border-slate-900 rounded-2xl p-4 bg-white space-y-3 shadow-inner my-4">
           <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 text-[10px] font-bold text-slate-900">
-            <span>ERP CAHAYA ITSM</span>
+            <span>{BRAND_NAME}</span>
             <span>PROPERTY TAG</span>
           </div>
 
@@ -224,7 +226,7 @@ export default function PrintAssetTagModal({
 
           <div className="text-[10px] border-t border-slate-900 pt-1.5 flex justify-between font-bold text-slate-700">
             <span>S/N: {asset.serialNumber || 'N/A'}</span>
-            <span>LOC: {asset.locationName || 'HO-JKT'}</span>
+            <span>LOC: {asset.locationName || 'N/A'}</span>
           </div>
           <div className="text-[9px] text-slate-500 italic text-center">
             SCAN QR FOR DEVICE SPECS • DO NOT REMOVE

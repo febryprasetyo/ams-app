@@ -16,8 +16,10 @@ import {
   shouldSeedDefaultSlaPolicies,
 } from '../domain/ticketCategories';
 import { DEFAULT_PERMISSIONS, DEFAULT_ROLE_PERMISSIONS } from '../domain/rbac';
+import { getSeedCredentials } from '../domain/seedCredentials';
 
 async function seed() {
+  const credentials = getSeedCredentials();
   console.log('🌱 Starting database seed procedure...');
 
   // 0. Ensure custom tables & columns exist in PostgreSQL
@@ -164,17 +166,18 @@ async function seed() {
   const existingAdmin = await db.select().from(users).where(eq(users.email, 'admin@company.com'));
   let superAdminUser = existingAdmin[0];
   if (!superAdminUser) {
-    const passwordHash = await bcrypt.hash('Admin123!', 10);
+    const passwordHash = await bcrypt.hash(credentials.password, 12);
     const [inserted] = await db.insert(users).values({
       username: 'admin',
       email: 'admin@company.com',
       passwordHash,
+      mustChangePassword: credentials.mustChangePassword,
       role: 'SuperAdmin',
       roleId: superAdminRole?.id,
       status: 'active',
     }).returning();
     superAdminUser = inserted;
-    console.log('  ✓ Created SuperAdmin User (admin@company.com / Admin123!)');
+    console.log('  ✓ Created SuperAdmin User (username: admin; password supplied by seed configuration)');
   } else if (superAdminRole && !superAdminUser.roleId) {
     await db.update(users).set({ roleId: superAdminRole.id }).where(eq(users.id, superAdminUser.id));
   }

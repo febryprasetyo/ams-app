@@ -21,6 +21,10 @@
     "prod:backup": "bash deploy/scripts/lan-production.sh backup",
     "prod:stop": "bash deploy/scripts/lan-production.sh stop",
     "prod:start": "bash deploy/scripts/lan-production.sh start",
+    "deploy:prod": "bash deploy/scripts/deploy-to-prod.sh deploy",
+    "prod:remote:status": "bash deploy/scripts/deploy-to-prod.sh status",
+    "prod:remote:logs": "bash deploy/scripts/deploy-to-prod.sh logs",
+    "prod:remote:backup": "bash deploy/scripts/deploy-to-prod.sh backup",
     "ci": "npm run dev:check && bash scripts/validate-compose.sh prod && npm test --prefix backend && npm run build --prefix backend && npm test --prefix frontend && npm run lint --prefix frontend && npm run build --prefix frontend"
   },
   "devDependencies": {

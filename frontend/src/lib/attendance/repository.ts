@@ -17,7 +17,11 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
     if (!saved && typeof window !== 'undefined' && accountKey) {
       saved = sessionStorage.getItem(accountKey) || sessionStorage.getItem('ams:attendance-demo:v2:1');
       if (saved) {
-        localStorage.setItem(sharedKey, saved);
+        try {
+          localStorage.setItem(sharedKey, saved);
+        } catch {
+          // Ignore quota error on cache warmup
+        }
       }
     }
     let parsed: unknown;
@@ -214,8 +218,12 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
         }
 
         if (typeof window !== 'undefined') {
-          localStorage.setItem(sharedKey, JSON.stringify(result));
-          if (accountKey) sessionStorage.setItem(accountKey, JSON.stringify(result));
+          try {
+            localStorage.setItem(sharedKey, JSON.stringify(result));
+            if (accountKey) sessionStorage.setItem(accountKey, JSON.stringify(result));
+          } catch (storageErr) {
+            console.warn('LocalStorage quota reached with large dataset; data is retained in memory and synchronized via database.', storageErr);
+          }
         }
         current = result;
         return structuredClone(result);

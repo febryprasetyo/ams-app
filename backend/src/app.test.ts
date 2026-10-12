@@ -116,3 +116,47 @@ test('POST /api/v1/auth/login throttles excessive requests with 429', async () =
     server.close();
   }
 });
+
+test('app accepts large JSON payload (> 100kb) up to configured 50mb limit without 413', async () => {
+  const app = createApp({ databaseCheck: async () => {} });
+  // Add a test route to receive large body
+  app.post('/test-large-payload', (req, res) => {
+    res.status(200).json({ receivedBytes: JSON.stringify(req.body).length, count: (req.body.items || []).length });
+  });
+
+  const server = app.listen(0);
+  const address = server.address() as { port: number };
+
+  try {
+    // Generate an array of 6000 mock attendance-like items (~1.8 MB payload)
+    const largePayload = {
+      items: Array.from({ length: 6000 }, (_, idx) => ({
+        id: idx + 1,
+        employeeId: 1000 + (idx % 500),
+        workDate: '2026-10-12',
+        scanIn: '08:00',
+        scanOut: '17:00',
+        attendanceStatus: 'PRESENT',
+        note: 'Mock record for stress testing body parser limit',
+      })),
+    };
+
+    const serialized = JSON.stringify(largePayload);
+    assert.ok(serialized.length > 1024 * 1024, `Payload size should be > 1MB (actual: ${serialized.length} bytes)`);
+
+    const res = await fetch(`http://127.0.0.1:${address.port}/test-large-payload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: serialized,
+    });
+
+    assert.equal(res.status, 200, `Expected 200 OK, got ${res.status}`);
+    const data = await res.json() as { count: number };
+    assert.equal(data.count, 6000);
+  } finally {
+    server.close();
+  }
+});
+

@@ -1,0 +1,6 @@
+# Apply only to one-off migration containers, never to `compose up`.
+services:
+  backend:
+    environment:
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Separate migration owner URL required}
+      HR_AUDIT_RUNTIME_ROLE: ${HR_AUDIT_RUNTIME_ROLE:?Unprivileged runtime database role required}

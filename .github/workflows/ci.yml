@@ -53,8 +53,27 @@ jobs:
           bash scripts/validate-compose.sh dev
           bash scripts/validate-compose.sh prod
 
+      - name: Provision HR audit runtime role in ephemeral database
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
+        run: |
+          node <<'NODE'
+          const { Client } = require('pg');
+          (async () => {
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            await client.connect();
+            try {
+              await client.query('CREATE ROLE ams_ci_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS');
+            } finally {
+              await client.end();
+            }
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
+
       - name: Run Database Migrations and Seed against Ephemeral DB
         env:
+          HR_AUDIT_RUNTIME_ROLE: ams_ci_runtime
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
           JWT_SECRET: ci-jwt-secret-do-not-use-in-production-1234
           JWT_REFRESH_SECRET: ci-jwt-refresh-secret-do-not-use-in-production-1234
@@ -65,6 +84,7 @@ jobs:
 
       - name: Run Backend Tests
         env:
+          HR_AUDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ams_ci_db
           JWT_SECRET: ci-jwt-secret-do-not-use-in-production-1234
           JWT_REFRESH_SECRET: ci-jwt-refresh-secret-do-not-use-in-production-1234

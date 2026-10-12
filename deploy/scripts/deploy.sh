@@ -48,7 +48,7 @@ APP_VERSION="$TARGET_VERSION" docker compose -f "$COMPOSE_FILE" pull backend fro
 
 # 5. Run Database Migration once
 log_info "Executing journal-based database migration for $TARGET_VERSION..."
-if docker compose -f "$COMPOSE_FILE" run --rm backend npm run db:migrate; then
+if APP_VERSION="$TARGET_VERSION" docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" -f "$SCRIPT_DIR/../compose.migrate.yml" run --rm --no-deps backend node dist/db/migrate.js; then
   log_success "Database migration succeeded."
 else
   die "Database migration FAILED! Aborting deployment."

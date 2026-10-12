@@ -31,6 +31,7 @@ export const DEFAULT_PERMISSIONS: PermissionSeed[] = [
   { code: 'hardware_audits.manage', name: 'Manage Hardware Audits', module: 'hardware_audits', description: 'Konversi dan tautkan audit ke aset' },
 
   // Attendance
+  { code: 'hr.audit.view', name: 'View HR Activity Audit', module: 'attendance', description: 'Melihat riwayat perubahan data HR' },
   { code: 'attendance.view', name: 'View Attendance', module: 'attendance', description: 'Melihat rekap & kartu absensi' },
   { code: 'attendance.import', name: 'Import Attendance', module: 'attendance', description: 'Mengunggah file log absensi mesin' },
   { code: 'attendance.manage', name: 'Manage Attendance', module: 'attendance', description: 'Koreksi log & pengaturan absensi' },
@@ -76,6 +77,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'master.view',
   ],
   hr_attendance: [
+    'hr.audit.view',
     'attendance.view',
     'attendance.import',
     'attendance.manage',

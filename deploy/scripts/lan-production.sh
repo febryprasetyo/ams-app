@@ -73,6 +73,7 @@ with open(sys.argv[2], 'w') as out:
             out.write(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.relative_to(root)}\n')
 PY
     cp "$REPO_DIR/deploy/compose.lan.yml" "$RELEASE_DIR/compose.yml"
+    cp "$REPO_DIR/deploy/compose.migrate.yml" "$RELEASE_DIR/compose.migrate.yml"
     cp "$REPO_DIR/deploy/nginx.lan.conf" "$RELEASE_DIR/nginx.conf"
     git -C "$REPO_DIR" rev-parse HEAD > "$RELEASE_DIR/source-commit"
     git -C "$REPO_DIR" diff --stat > "$RELEASE_DIR/source-changes"
@@ -87,7 +88,7 @@ PY
     export APP_VERSION="$VERSION"
     compose config -q
     compose up -d --wait postgres
-    compose run --rm -T backend node dist/db/migrate.js
+    docker compose --env-file "$ENV_FILE" -p ams-live -f "$RELEASE_DIR/compose.yml" -f "$RELEASE_DIR/compose.migrate.yml" run --rm --no-deps -T backend node dist/db/migrate.js
     if test -z "$PREVIOUS"; then
       INITIAL_ADMIN_PASSWORD="$(cat "$RUNTIME_DIR/initial-admin-password")"
       export INITIAL_ADMIN_PASSWORD

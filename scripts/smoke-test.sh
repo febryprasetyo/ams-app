@@ -10,8 +10,17 @@ cleanup() {
 
 trap cleanup EXIT
 
-# 1. Start containers
-echo "📦 Starting development compose stack..."
+# Initialize the fresh database before backend readiness starts checking required tables.
+echo "📦 Starting smoke-test PostgreSQL..."
+docker compose -f compose.dev.yml up -d --wait postgres
+docker compose -f compose.dev.yml exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-ams_dev_db}" -v ON_ERROR_STOP=1 <<'SQL'
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='ams_smoke_runtime') THEN
+    CREATE ROLE ams_smoke_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+  END IF;
+END $$;
+SQL
+docker compose -f compose.dev.yml run --rm --build --no-deps -e HR_AUDIT_RUNTIME_ROLE=ams_smoke_runtime backend npm run db:migrate
 docker compose -f compose.dev.yml up -d --build
 
 # 2. Wait for backend readiness
@@ -31,10 +40,6 @@ if [[ "$READY" -ne 1 ]]; then
   docker compose -f compose.dev.yml logs backend
   exit 1
 fi
-
-# 3. Test migration runner against exposed development port
-echo "⚡ Testing Drizzle migration execution against PostgreSQL..."
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/ams_dev_db" npm run db:migrate --prefix backend
 
 # 4. Verify backend health endpoint after migration
 echo "🔍 Verifying backend health..."

@@ -195,18 +195,57 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 <td className="text-right font-medium">Hari</td>
               </tr>
 
-              {/* Rincian 1 - 5 */}
-              {(data.historyItems && data.historyItems.length > 0
-                ? data.historyItems.slice(0, 5)
-                : [1, 2, 3, 4, 5].map(n => ({ no: n, description: '' }))
-              ).map((item, idx) => (
-                <tr key={idx} className="h-[18px]">
-                  <td colSpan={4} className="pl-4 text-[10px]">
-                    <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
-                    <span>{item.description || ''}</span>
-                  </td>
-                </tr>
-              ))}
+              {/* Rincian Cuti yang Sudah Diambil Sebelumnya (Bila > 5 maka terbagi 2 kiri & kanan) */}
+              {(() => {
+                const items = data.historyItems || [];
+                const activeItems = items.filter(h => h.description);
+                const isTwoColumn = activeItems.length > 5 || items.length > 5;
+
+                if (isTwoColumn) {
+                  // Terbagi 2 Kolom Kiri (1-5) dan Kanan (6-10), penomoran menjorok ke tengah
+                  return [0, 1, 2, 3, 4].map((idx) => {
+                    const leftItem = items[idx];
+                    const rightItem = items[idx + 5];
+                    return (
+                      <tr key={idx} className="h-[18px]">
+                        {/* Kolom Kiri 1 - 5 */}
+                        <td colSpan={2} className="pl-8 pr-2 text-[10px] border-r border-black">
+                          <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
+                          <span>{leftItem?.description || ''}</span>
+                        </td>
+                        {/* Kolom Kanan 6 - 10 */}
+                        <td colSpan={2} className="pl-8 pr-2 text-[10px]">
+                          {rightItem && rightItem.description ? (
+                            <>
+                              <span className="inline-block w-5 font-semibold">{idx + 6}.</span>{' '}
+                              <span>{rightItem.description}</span>
+                            </>
+                          ) : (items.length > 5 && idx + 6 <= items.length) ? (
+                            <span className="text-gray-400">
+                              <span className="inline-block w-5 font-semibold text-black">{idx + 6}.</span>
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  });
+                }
+
+                // Default <= 5: 1 Kolom dengan penomoran menjorok ke tengah (pl-10)
+                const paddedItems = items.length >= 5 ? items.slice(0, 5) : [
+                  ...items,
+                  ...Array(5 - items.length).fill(null).map((_, i) => ({ no: items.length + i + 1, description: '' }))
+                ];
+
+                return paddedItems.map((item, idx) => (
+                  <tr key={idx} className="h-[18px]">
+                    <td colSpan={4} className="pl-10 text-[10px]">
+                      <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
+                      <span>{item.description || ''}</span>
+                    </td>
+                  </tr>
+                ));
+              })()}
 
               <tr>
                 <td>Sisa Hak Cuti yang bisa diambil</td>
@@ -305,19 +344,17 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td rowSpan={2} className="align-top pt-1 font-medium">Tugas yang akan diserahkan</td>
-                <td rowSpan={2} className="text-center border-l-0 border-r-0 align-top pt-1">:</td>
-                <td className="border-l-0 tracking-widest text-gray-400 h-[20px]">
+                <td className="align-top pt-1.5 font-medium">Tugas yang akan diserahkan</td>
+                <td className="text-center border-l-0 border-r-0 align-top pt-1.5">:</td>
+                <td className="border-l-0 py-1 text-[10px]">
                   {data.handover.taskDescription ? (
-                    <span className="font-medium text-black tracking-normal">{data.handover.taskDescription}</span>
+                    <div className="font-medium text-black">{data.handover.taskDescription}</div>
                   ) : (
-                    '1. .................................................................................................................'
+                    <div className="space-y-1 tracking-widest text-gray-400 leading-normal">
+                      <div>....................................................................................................................</div>
+                      <div>....................................................................................................................</div>
+                    </div>
                   )}
-                </td>
-              </tr>
-              <tr>
-                <td className="border-l-0 tracking-widest text-gray-400 h-[20px]">
-                  {data.handover.taskDescription ? '' : '2. .................................................................................................................'}
                 </td>
               </tr>
               <tr>
@@ -337,10 +374,14 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td className="h-[64px] align-bottom pb-1">Tanda Tangan Penerima</td>
-                <td className="text-center border-l-0 border-r-0 align-bottom pb-1">:</td>
-                <td className="border-l-0 align-bottom pb-1 italic text-[9.5px] text-gray-600">
-                  ( ............................................................ )
+                <td className="h-[64px] pb-1 font-medium align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  Tanda Tangan Penerima
+                </td>
+                <td className="text-center border-l-0 border-r-0 pb-1 align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  :
+                </td>
+                <td className="border-l-0 pb-1 text-[9.5px] text-gray-600 align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  <div className="pt-6 italic">( ............................................................ )</div>
                 </td>
               </tr>
             </tbody>

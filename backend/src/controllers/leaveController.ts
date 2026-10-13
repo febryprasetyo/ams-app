@@ -438,7 +438,7 @@ export async function getLeaveRequestById(req: Request, res: Response) {
       .orderBy(desc(leaveRequests.startDate));
 
     const historyItems: Array<{ no: number; description: string }> = [];
-    if (prevLeaves.length <= 5) {
+    if (prevLeaves.length <= 10) {
       prevLeaves.forEach((pl, i) => {
         historyItems.push({
           no: i + 1,
@@ -446,9 +446,9 @@ export async function getLeaveRequestById(req: Request, res: Response) {
         });
       });
     } else {
-      // Tampilkan 4 cuti terbaru, baris 5 akumulasi cuti sebelumnya
-      const recent = prevLeaves.slice(0, 4);
-      const older = prevLeaves.slice(4);
+      // Tampilkan 9 cuti terbaru, baris 10 akumulasi cuti sebelumnya
+      const recent = prevLeaves.slice(0, 9);
+      const older = prevLeaves.slice(9);
       recent.forEach((pl, i) => {
         historyItems.push({
           no: i + 1,
@@ -457,7 +457,7 @@ export async function getLeaveRequestById(req: Request, res: Response) {
       });
       const olderTotalDays = older.reduce((sum, r) => sum + r.durationDays, 0);
       historyItems.push({
-        no: 5,
+        no: 10,
         description: `${olderTotalDays} = Akumulasi ${older.length} cuti sebelumnya`,
       });
     }

@@ -160,7 +160,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 <td className="border-l-0">{data.employee.position}</td>
               </tr>
               <tr>
-                <td className="font-medium">Tanggal Join Cahaya Mas Cemerlang</td>
+                <td className="font-medium">Tanggal Bergabung</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
                 <td colSpan={4} className="border-l-0 font-medium">{formatDateIndo(data.employee.joinDate) || '-'}</td>
               </tr>
@@ -276,7 +276,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               <tr>
                 <td>Kembali Bekerja Tgl</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
-                <td colSpan={4} className="border-l-0 font-bold text-green-800">
+                <td colSpan={4} className="border-l-0 font-bold text-black">
                   {formatDateIndo(data.resumeWorkDate)}
                 </td>
               </tr>
@@ -305,10 +305,19 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td>Tugas yang akan diserahkan</td>
-                <td className="text-center border-l-0 border-r-0">:</td>
-                <td className="border-l-0 tracking-widest text-gray-400">
-                  ....................................................................................................................
+                <td rowSpan={2} className="align-top pt-1 font-medium">Tugas yang akan diserahkan</td>
+                <td rowSpan={2} className="text-center border-l-0 border-r-0 align-top pt-1">:</td>
+                <td className="border-l-0 tracking-widest text-gray-400 h-[20px]">
+                  {data.handover.taskDescription ? (
+                    <span className="font-medium text-black tracking-normal">{data.handover.taskDescription}</span>
+                  ) : (
+                    '1. .................................................................................................................'
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td className="border-l-0 tracking-widest text-gray-400 h-[20px]">
+                  {data.handover.taskDescription ? '' : '2. .................................................................................................................'}
                 </td>
               </tr>
               <tr>
@@ -328,7 +337,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td className="h-[32px] align-bottom pb-1">Tanda Tangan Penerima</td>
+                <td className="h-[64px] align-bottom pb-1">Tanda Tangan Penerima</td>
                 <td className="text-center border-l-0 border-r-0 align-bottom pb-1">:</td>
                 <td className="border-l-0 align-bottom pb-1 italic text-[9.5px] text-gray-600">
                   ( ............................................................ )
@@ -351,64 +360,50 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               </tr>
             </thead>
             <tbody>
-              {/* Kotak Tanda Tangan */}
-              <tr className="h-[52px]">
-                <td className="align-middle">
-                  {data.approvals.applicant.status === 'APPROVED' ? (
-                    <div className="inline-block border border-green-700 text-green-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ SUBMITTED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.directSupervisor.status === 'APPROVED' ? (
-                    <div className="inline-block border border-blue-700 text-blue-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.hrd.status === 'APPROVED' ? (
-                    <div className="inline-block border border-indigo-700 text-indigo-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.higherSupervisor.status === 'APPROVED' ? (
-                    <div className="inline-block border border-purple-700 text-purple-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
+              {/* Kotak Tanda Tangan Manual (Kosong polos untuk tanda tangan basah) */}
+              <tr className="h-[56px]">
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
               </tr>
-              {/* Nama & Tanggal */}
+              {/* Nama & Tanggal untuk TDD Manual */}
               <tr className="text-left text-[9.5px] leading-tight">
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.applicant.name || data.employee.fullName}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.applicant.date) || '-'}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="font-semibold">{data.employee.fullName}</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.directSupervisor.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.directSupervisor.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.hrd.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.hrd.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.higherSupervisor.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.higherSupervisor.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* 8. Footer Catatan Kaki */}
-        <div className="text-[9px] text-gray-700 pt-1 border-t border-dotted border-gray-400">
-          <div>*) Check List yang diperlukan</div>
-          <div>**) Check List dan Lingkari Yang Diperlukan</div>
+        {/* 8. Footer Catatan Kaki & Note Resmi */}
+        <div className="pt-1.5 border-t border-black space-y-1">
+          <div className="text-[9px] text-black">
+            <div className="font-bold">Note :</div>
+            <ol className="list-decimal list-inside pl-1 space-y-0.5 leading-snug">
+              <li>Pengajuan Permohonan Cuti minimal 3 hari kerja sebelum pelaksanaan cuti</li>
+              <li>Maximum 6 hari kerja secara berurutan dalam 1 kali pengajuan</li>
+              <li>Jika melebihi batas max (poin 2) akan dikenai Penalti</li>
+            </ol>
+          </div>
+          <div className="text-[8.5px] text-gray-600 pt-0.5 flex items-center justify-between border-t border-dotted border-gray-300">
+            <div>*) Check List yang diperlukan</div>
+            <div>**) Check List dan Lingkari Yang Diperlukan</div>
+          </div>
         </div>
       </div>
     </div>

@@ -76,7 +76,7 @@ export const navGroups: NavGroup[] = [
         children: [
           { name: 'Ringkasan HR', href: '/dashboard/attendance/overview', icon: LayoutDashboard, permission: 'attendance.view' },
           { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck, permission: 'attendance.view' },
-          // { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
+          { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
           { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart, permission: 'attendance.view' },
@@ -337,7 +337,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <DashboardLayoutContext.Provider value={true}>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-emerald-500/20 selection:text-emerald-900">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-emerald-500/20 selection:text-emerald-900 print:block print:bg-white print:min-h-0 print:p-0">
         {/* Mobile Backdrop */}
         {mobileOpen && (
           <div
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Crisp White Sidebar with Fresh Red Accent */}
         <aside
           className={`fixed md:sticky md:top-0 h-dvh shrink-0 inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 shadow-sm ${collapsed ? 'w-20' : 'w-64'
-            } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+            } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} print:hidden`}
         >
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
@@ -580,7 +580,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Main Page Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Navbar */}
-          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs">
+          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs print:hidden">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -630,7 +630,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 md:p-8 md:px-10 max-w-[1600px] w-full mx-auto">
+          <main className="flex-1 p-4 md:p-8 md:px-10 max-w-[1600px] w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full">
             {!canAccessCurrentRoute ? (
               <div className="min-h-[60vh] flex items-center justify-center p-6">
                 <div className="max-w-md w-full bg-white rounded-3xl border border-red-200/80 p-8 shadow-xl shadow-red-500/5 text-center">

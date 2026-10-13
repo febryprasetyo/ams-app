@@ -70,3 +70,23 @@ code, kbd, samp, pre, .font-mono {
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
 }
+
+
+/* Global Print Stylesheet */
+@media print {
+  aside, header, nav, .no-print, [role="navigation"] {
+    display: none !important;
+  }
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

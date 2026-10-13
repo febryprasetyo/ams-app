@@ -155,7 +155,7 @@ export default function LeaveRequestsListPage() {
                     <td className="py-3.5 px-4 text-center font-bold text-slate-800">
                       {item.durationDays} Hari
                     </td>
-                    <td className="py-3.5 px-4 text-xs font-semibold text-emerald-700">
+                    <td className="py-3.5 px-4 text-xs font-semibold text-slate-800">
                       {item.resumeWorkDate}
                     </td>
                     <td className="py-3.5 px-4">

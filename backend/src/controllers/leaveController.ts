@@ -435,16 +435,32 @@ export async function getLeaveRequestById(req: Request, res: Response) {
           eq(leaveRequests.status, 'APPROVED')
         )
       )
-      .orderBy(desc(leaveRequests.startDate))
-      .limit(5);
+      .orderBy(desc(leaveRequests.startDate));
 
     const historyItems: Array<{ no: number; description: string }> = [];
-    prevLeaves.forEach((pl, i) => {
-      historyItems.push({
-        no: i + 1,
-        description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+    if (prevLeaves.length <= 5) {
+      prevLeaves.forEach((pl, i) => {
+        historyItems.push({
+          no: i + 1,
+          description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+        });
       });
-    });
+    } else {
+      // Tampilkan 4 cuti terbaru, baris 5 akumulasi cuti sebelumnya
+      const recent = prevLeaves.slice(0, 4);
+      const older = prevLeaves.slice(4);
+      recent.forEach((pl, i) => {
+        historyItems.push({
+          no: i + 1,
+          description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+        });
+      });
+      const olderTotalDays = older.reduce((sum, r) => sum + r.durationDays, 0);
+      historyItems.push({
+        no: 5,
+        description: `${olderTotalDays} = Akumulasi ${older.length} cuti sebelumnya`,
+      });
+    }
     while (historyItems.length < 5) {
       historyItems.push({
         no: historyItems.length + 1,

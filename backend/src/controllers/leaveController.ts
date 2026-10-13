@@ -17,13 +17,13 @@ import {
 } from '../domain/leaveCalculation';
 
 // Zod schemas
-const calculateDaysSchema = z.object({
+export const calculateDaysSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   employeeId: z.coerce.number().positive().optional(),
 });
 
-const createLeaveRequestSchema = z.object({
+export const createLeaveRequestSchema = z.object({
   employeeId: z.coerce.number().positive(),
   leaveType: z.enum(['ANNUAL', 'SPECIAL']),
   specialLeaveReason: z.string().max(100).optional().nullable(),

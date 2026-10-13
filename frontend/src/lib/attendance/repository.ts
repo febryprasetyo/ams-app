@@ -193,27 +193,17 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
           }
         }
 
-        // Persist manual attendance record (e.g. SAKIT/IZIN/CUTI) to central database
-        if (command.type === 'record_attendance' && typeof window !== 'undefined') {
-          try {
+        // Persist the resulting record so corrections and dayoff use the same values as reports.
+        if ((command.type === 'record_attendance' || command.type === 'correct') && typeof window !== 'undefined') {
+          const record = command.type === 'correct'
+            ? result.records.find(r => r.id === command.recordId)
+            : result.records.find(r => r.employeeId === command.employeeId && r.workDate === command.workDate);
+          if (record) {
             await api.post('/attendance/commit-batch', {
               filename: 'MANUAL_ENTRY',
               sourceId: 1,
-              records: [{
-                employeeId: command.employeeId,
-                workDate: command.workDate,
-                attendanceStatus: command.attendanceStatus,
-                scanIn: command.scanIn || null,
-                scanOut: command.scanOut || null,
-                lateMinutes: 0,
-                earlyMinutes: 0,
-                overtimeMinutes: 0,
-                isDayOff: false,
-                normalized: true,
-              }],
+              records: [record],
             });
-          } catch (err) {
-            throw err;
           }
         }
 

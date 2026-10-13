@@ -314,6 +314,8 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         : resolveEmployeeShift(emp, data.shifts, data.shiftAssignments);
 
       const schedule = getScheduleForDate(command.workDate, activeShift);
+      const existing = data.records.find(rec => rec.employeeId === command.employeeId && rec.workDate === command.workDate);
+      const isDayOff = command.isDayOff ?? existing?.isDayOff ?? schedule.isDayOff;
       const isNonPresent = command.attendanceStatus !== 'PRESENT';
       const scanIn = isNonPresent ? null : (command.scanIn || null);
       const scanOut = isNonPresent ? null : (command.scanOut || null);
@@ -322,14 +324,14 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       let earlyMinutes = 0;
       let overtimeMinutes = 0;
 
-      if (!isNonPresent && scanIn && schedule.scheduleIn) {
+      if (!isDayOff && !isNonPresent && scanIn && schedule.scheduleIn) {
         const [inH, inM] = scanIn.split(':').map(Number);
         const [schedH, schedM] = schedule.scheduleIn.split(':').map(Number);
         const diff = (inH * 60 + inM) - (schedH * 60 + schedM);
         if (diff > 0) lateMinutes = diff;
       }
 
-      if (!isNonPresent && scanOut && schedule.scheduleOut) {
+      if (!isDayOff && !isNonPresent && scanOut && schedule.scheduleOut) {
         const [outH, outM] = scanOut.split(':').map(Number);
         const [schedH, schedM] = schedule.scheduleOut.split(':').map(Number);
         const diff = (schedH * 60 + schedM) - (outH * 60 + outM);
@@ -345,15 +347,15 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         r.attendanceStatus = command.attendanceStatus;
         r.scanIn = scanIn;
         r.scanOut = scanOut;
-        r.rawScanIn = scanIn;
-        r.rawScanOut = scanOut;
+        if (r.scanIn !== before.scanIn) r.rawScanIn = scanIn;
+        if (r.scanOut !== before.scanOut) r.rawScanOut = scanOut;
         r.lateMinutes = lateMinutes;
         r.earlyMinutes = earlyMinutes;
         r.overtimeMinutes = overtimeMinutes;
         r.shift = activeShift.name;
         r.scheduleIn = schedule.scheduleIn;
         r.scheduleOut = schedule.scheduleOut;
-        r.isDayOff = isNonPresent ? r.isDayOff : schedule.isDayOff;
+        r.isDayOff = isDayOff;
         r.revision = r.revision + 1;
         data.revisions.push({
           id: nextId(data.revisions),
@@ -380,7 +382,7 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
           earlyMinutes,
           overtimeMinutes,
           attendanceStatus: command.attendanceStatus,
-          isDayOff: schedule.isDayOff,
+          isDayOff,
           normalized: false,
           revision: 1,
           sourceBatchId: null,

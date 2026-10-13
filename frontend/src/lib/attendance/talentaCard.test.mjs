@@ -199,3 +199,14 @@ test('filterTalentaRows handles explicit ALPHA, NO_CLOCK_OUT, NO_CLOCK_IN, and I
   assert.equal(alphaRows.length, 1);
   assert.equal(alphaRows[0].date, '2026-09-24');
 });
+
+test('dayoff with scans is counted as off without early or missing punch issues', () => {
+  const rows = [{ date: '2026-09-21', isDayOff: true, record: { attendanceStatus: 'PRESENT', scanIn: '09:00', scanOut: null, earlyMinutes: 60 } }];
+  const kpi = calculateTalentaKpi(rows, '2026-09-22');
+  assert.equal(kpi.dayOff, 1);
+  assert.equal(kpi.earlyClockOut, 0);
+  assert.equal(kpi.noClockOut, 0);
+  assert.equal(filterTalentaRows(rows, 'EARLY_CLOCK_OUT', '2026-09-22').length, 0);
+  assert.equal(filterTalentaRows(rows, 'NO_CLOCK_OUT', '2026-09-22').length, 0);
+  assert.equal(filterTalentaRows(rows, 'ALL', '2026-09-22').length, 1);
+});

@@ -138,6 +138,7 @@ export function calculateTalentaKpi(
     // Segment 2: Day off count (total day off in period)
     if (row.isDayOff) {
       dayOff++;
+      continue;
     }
 
     if (r) {
@@ -210,6 +211,7 @@ export function filterTalentaRows(
   return rows.filter((row) => {
     const isFuture = row.date > today;
     const r = row.record;
+    if (row.isDayOff && filterKey !== 'DAY_OFF') return false;
 
     switch (filterKey) {
       case 'EARLY_CLOCK_OUT':

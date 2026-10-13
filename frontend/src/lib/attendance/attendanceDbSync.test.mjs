@@ -83,3 +83,39 @@ test('manual record_attendance creates record ready for database persistence', (
   assert.equal(result.records[0].workDate, '2026-09-22');
   assert.equal(result.records[0].attendanceStatus, 'SAKIT');
 });
+
+test('repository persists dayoff correction with scans and reloads it from database', async () => {
+  const { createAttendanceRepository } = await import('./repository.ts');
+  const { api } = await import('../api.ts');
+  const seed = createSeed();
+  seed.records = [{ id: 1, employeeId: 10, workDate: '2026-09-21', scanIn: '09:00', scanOut: '17:00', rawScanIn: '08:59', rawScanOut: '17:01', shift: null, scheduleIn: '08:00', scheduleOut: '17:00', attendanceStatus: 'PRESENT', isDayOff: false, lateMinutes: 60, earlyMinutes: 0, overtimeMinutes: 0, normalized: false, revision: 1, sourceBatchId: null }];
+  const originalGet = api.get;
+  const originalPost = api.post;
+  const storage = new Map([['ams:attendance-workspace:v2', JSON.stringify(seed)]]);
+  const mockStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  let saved;
+  try {
+    globalThis.window = {};
+    globalThis.localStorage = mockStorage;
+    globalThis.sessionStorage = mockStorage;
+    api.get = async endpoint => endpoint === '/attendance/records' && saved ? [saved] : [];
+    api.post = async (endpoint, body) => {
+      assert.equal(endpoint, '/attendance/commit-batch');
+      saved = structuredClone(body.records[0]);
+    };
+    const repo = createAttendanceRepository();
+    await repo.execute({ type: 'correct', recordId: 1, expectedRevision: 1, reason: 'Jadwal off', values: { scanIn: '09:00', scanOut: '17:00', attendanceStatus: 'PRESENT', isDayOff: true, lateMinutes: 60, overtimeMinutes: 0 } });
+    assert.equal(saved.isDayOff, true);
+    assert.equal(saved.rawScanIn, '08:59');
+    assert.equal(saved.scanIn, '09:00');
+    storage.set('ams:attendance-workspace:v2', JSON.stringify(seed));
+    const loaded = await createAttendanceRepository().load();
+    assert.equal(loaded.records[0].isDayOff, true);
+  } finally {
+    api.get = originalGet;
+    api.post = originalPost;
+    delete globalThis.window;
+    delete globalThis.localStorage;
+    delete globalThis.sessionStorage;
+  }
+});

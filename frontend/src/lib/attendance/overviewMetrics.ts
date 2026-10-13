@@ -61,11 +61,11 @@ export function calculateOverviewMetrics(
   const onTimeRecords = presentRecords.filter(r => (r.lateMinutes || 0) === 0);
   const onTimeCount = onTimeRecords.length;
 
-  const lateRecords = records.filter(r => (r.lateMinutes || 0) > 0);
+  const lateRecords = records.filter(r => !r.isDayOff && (r.lateMinutes || 0) > 0);
   const lateCount = lateRecords.length;
   const totalLateMinutes = lateRecords.reduce((sum, r) => sum + (r.lateMinutes || 0), 0);
 
-  const earlyRecords = records.filter(r => (r.earlyMinutes || 0) > 0);
+  const earlyRecords = records.filter(r => !r.isDayOff && (r.earlyMinutes || 0) > 0);
   const earlyCount = earlyRecords.length;
   const totalEarlyMinutes = earlyRecords.reduce((sum, r) => sum + (r.earlyMinutes || 0), 0);
 
@@ -126,7 +126,7 @@ export function getActionablePriorities(
 
   // 1. Keterlambatan (diurutkan dari durasi terlambat terbesar)
   const lateRecords = records
-    .filter(r => (r.lateMinutes || 0) > 0)
+    .filter(r => !r.isDayOff && (r.lateMinutes || 0) > 0)
     .sort((a, b) => (b.lateMinutes || 0) - (a.lateMinutes || 0));
 
   for (const r of lateRecords) {

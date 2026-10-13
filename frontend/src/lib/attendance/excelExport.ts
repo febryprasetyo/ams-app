@@ -107,9 +107,9 @@ export function createAttendanceReportWorkbook(
       "Jadwal Pulang": r.scheduleOut || "-",
       "Scan Masuk": r.scanIn || "-",
       "Scan Pulang": r.scanOut || "-",
-      "Status": r.attendanceStatus,
-      "Terlambat (Menit)": r.lateMinutes,
-      "Pulang Cepat (Menit)": r.earlyMinutes,
+      "Status": r.isDayOff ? "DAYOFF" : r.attendanceStatus,
+      "Terlambat (Menit)": r.isDayOff ? 0 : r.lateMinutes,
+      "Pulang Cepat (Menit)": r.isDayOff ? 0 : r.earlyMinutes,
       "Lembur (Menit)": r.overtimeMinutes,
       "Durasi Lembur": durationLabel(r.overtimeMinutes),
     }));

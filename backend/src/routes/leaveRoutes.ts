@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticateToken, requirePermission } from '../middleware/auth';
 import {
   getActiveEmployeesForLeaves,
   getLeaveBalanceSummary,
@@ -7,6 +8,10 @@ import {
   getLeaveRequestById,
   getLeaveRequests,
   getHolidays,
+  getAnnualLeaveConfig,
+  saveAnnualLeaveConfig,
+  getMasterLeaveBalances,
+  updateEmployeeLeaveBalance,
 } from '../controllers/leaveController';
 
 const router = Router();
@@ -23,5 +28,34 @@ router.get('/holidays', getHolidays);
 router.post('/requests', createLeaveRequest);
 router.get('/requests', getLeaveRequests);
 router.get('/requests/:id', getLeaveRequestById);
+
+// Endpoint Master Cuti, Pengaturan Cuti Bersama & Rekap Saldo
+router.get(
+  '/master/config',
+  authenticateToken,
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getAnnualLeaveConfig
+);
+
+router.post(
+  '/master/config',
+  authenticateToken,
+  requirePermission(['attendance.manage']),
+  saveAnnualLeaveConfig
+);
+
+router.get(
+  '/master/balances',
+  authenticateToken,
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getMasterLeaveBalances
+);
+
+router.put(
+  '/master/balances/:id',
+  authenticateToken,
+  requirePermission(['attendance.manage']),
+  updateEmployeeLeaveBalance
+);
 
 export default router;

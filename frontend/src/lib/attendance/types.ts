@@ -50,7 +50,7 @@ export interface ImportRow {
 export interface ImportBatch {
   id: number; filename: string; sourceId: number; fileHash?: string; createdAt: string;
   status: 'DRAFT' | 'COMMITTED' | 'CANCELLED'; rows: ImportRow[];
-  strictIntegrity?: boolean;
+  strictIntegrity?: boolean; totalRows?: number;
 }
 export interface AuditEntry { id: number; createdAt: string; actor: string; action: string; detail: string }
 export interface Revision {

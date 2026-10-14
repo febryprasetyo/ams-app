@@ -3,6 +3,7 @@ import type { CalendarDayRow } from './scheduleShift';
 
 export interface TalentaKpiSummary {
   // Segment 1: Exceptions / Scan deviations
+  late: number;
   earlyClockOut: number;
   noClockOut: number;
   noClockIn: number;
@@ -29,6 +30,7 @@ export interface TalentaFormattedRow {
   clockOut: string;
   attendanceCode: string;
   timeOffCode: string;
+  late: string;
   overtime: string;
   record?: AttendanceRecord | null;
 }
@@ -107,6 +109,7 @@ export function formatTalentaRow(row: CalendarDayRow): TalentaFormattedRow {
     clockOut,
     attendanceCode,
     timeOffCode,
+    late: isDayOff ? '-' : formatOvertimeDuration(r?.lateMinutes),
     overtime: formatOvertimeDuration(r?.overtimeMinutes),
     record: r,
   };
@@ -121,6 +124,7 @@ export function calculateTalentaKpi(
 ): TalentaKpiSummary {
   const today = todayDateStr || new Date().toISOString().slice(0, 10);
 
+  let late = 0;
   let earlyClockOut = 0;
   let noClockOut = 0;
   let noClockIn = 0;
@@ -143,6 +147,9 @@ export function calculateTalentaKpi(
 
     if (r) {
       if (r.attendanceStatus === 'PRESENT') {
+        if ((r.lateMinutes || 0) > 0) {
+          late++;
+        }
         // Early clock out
         if ((r.earlyMinutes || 0) > 0) {
           earlyClockOut++;
@@ -175,6 +182,7 @@ export function calculateTalentaKpi(
   }
 
   return {
+    late,
     earlyClockOut,
     noClockOut,
     noClockIn,
@@ -188,6 +196,7 @@ export function calculateTalentaKpi(
 
 export type TalentaKpiFilterKey =
   | 'ALL'
+  | 'LATE'
   | 'EARLY_CLOCK_OUT'
   | 'NO_CLOCK_OUT'
   | 'NO_CLOCK_IN'
@@ -214,6 +223,8 @@ export function filterTalentaRows(
     if (row.isDayOff && filterKey !== 'DAY_OFF') return false;
 
     switch (filterKey) {
+      case 'LATE':
+        return r?.attendanceStatus === 'PRESENT' && (r.lateMinutes || 0) > 0;
       case 'EARLY_CLOCK_OUT':
         return r?.attendanceStatus === 'PRESENT' && (r.earlyMinutes || 0) > 0;
       case 'NO_CLOCK_OUT':

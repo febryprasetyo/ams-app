@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateDaysSchema, createLeaveRequestSchema } from './leaveController';
+import { calculateDaysSchema, createLeaveRequestSchema, annualLeaveConfigSchema, updateLeaveBalanceSchema } from './leaveController';
 import {
   calculateLeaveWorkingDays,
   calculateLeaveBalances,
@@ -141,6 +141,56 @@ describe('Leave Business Logic & Document Standards', () => {
 
     const seq999 = formatLeaveRequestNumber(date, 999);
     assert.strictEqual(seq999, 'LV-202610-0999');
+  });
+
+
+  test('annualLeaveConfigSchema validates valid configuration payload', () => {
+    const valid = annualLeaveConfigSchema.safeParse({
+      year: 2026,
+      baseQuota: 12,
+      collectiveLeaveDays: 4,
+      allowCarryForward: true,
+      maxCarryForwardDays: 6,
+      notes: 'SKB 3 Menteri Cuti Bersama 2026',
+    });
+    assert.strictEqual(valid.success, true);
+    if (valid.success) {
+      assert.strictEqual(valid.data.year, 2026);
+      assert.strictEqual(valid.data.baseQuota, 12);
+      assert.strictEqual(valid.data.collectiveLeaveDays, 4);
+      assert.strictEqual(valid.data.allowCarryForward, true);
+      assert.strictEqual(valid.data.maxCarryForwardDays, 6);
+    }
+  });
+
+  test('annualLeaveConfigSchema rejects negative quotas and invalid years', () => {
+    const invalidQuota = annualLeaveConfigSchema.safeParse({
+      year: 2026,
+      baseQuota: -1,
+      collectiveLeaveDays: 4,
+    });
+    assert.strictEqual(invalidQuota.success, false);
+
+    const invalidYear = annualLeaveConfigSchema.safeParse({
+      year: 1990,
+      baseQuota: 12,
+    });
+    assert.strictEqual(invalidYear.success, false);
+  });
+
+  test('updateLeaveBalanceSchema validates partial updates for custom override', () => {
+    const validBase = updateLeaveBalanceSchema.safeParse({
+      baseQuota: 14,
+    });
+    assert.strictEqual(validBase.success, true);
+
+    const validCarry = updateLeaveBalanceSchema.safeParse({
+      carriedOverQuota: 5,
+    });
+    assert.strictEqual(validCarry.success, true);
+
+    const empty = updateLeaveBalanceSchema.safeParse({});
+    assert.strictEqual(empty.success, false);
   });
 
   test('standard F4 leave document specifications constants', () => {

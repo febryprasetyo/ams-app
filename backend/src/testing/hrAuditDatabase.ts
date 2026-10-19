@@ -43,9 +43,11 @@ export async function createHrAuditTestDatabase() {
     url.pathname = `/${name}`;
     const ownerUrl = url.toString();
     owner = new Pool({ connectionString: ownerUrl, connectionTimeoutMillis: 5000 });
+    owner.on("error", () => {});
     url.username = runtimeRole;
     url.password = password;
     runtime = new Pool({ connectionString: url.toString(), connectionTimeoutMillis: 5000 });
+    runtime.on("error", () => {});
     return { owner, runtime, ownerUrl, runtimeRole, cleanup };
   } catch (error) {
     await cleanup();

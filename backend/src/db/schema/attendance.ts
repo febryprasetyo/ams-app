@@ -11,9 +11,11 @@ export const attendanceBatches = pgTable('attendance_batches', {
   totalRows: integer('total_rows').default(0).notNull(),
   validRows: integer('valid_rows').default(0).notNull(),
   skippedRows: integer('skipped_rows').default(0).notNull(),
+  strictIntegrity: boolean('strict_integrity').default(false).notNull(),
+  revision: integer('revision').default(1).notNull(),
   createdById: bigint('created_by_id', { mode: 'number' }).references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  committedAt: timestamp('committed_at').defaultNow().notNull(),
+  committedAt: timestamp('committed_at'),
 });
 
 export const attendanceRecords = pgTable('attendance_records', {

@@ -95,6 +95,29 @@ describe('Leave Controller Schema Validation', () => {
     });
     assert.strictEqual(missingReason.success, false);
   });
+
+  test('createLeaveRequestSchema rejects cross-year leave periods', () => {
+    const crossYear = createLeaveRequestSchema.safeParse({
+      employeeId: 5,
+      leaveType: 'ANNUAL',
+      reason: 'Libur akhir tahun menyeberang tahun',
+      startDate: '2026-12-28',
+      endDate: '2027-01-04',
+      durationDays: 4,
+    });
+    assert.strictEqual(crossYear.success, false);
+    if (!crossYear.success) {
+      assert.match(crossYear.error.issues[0].message, /tahun kalender yang sama/);
+    }
+  });
+
+  test('calculateDaysSchema rejects cross-year date ranges', () => {
+    const crossYear = calculateDaysSchema.safeParse({
+      startDate: '2026-12-28',
+      endDate: '2027-01-04',
+    });
+    assert.strictEqual(crossYear.success, false);
+  });
 });
 
 describe('Leave Business Logic & Document Standards', () => {

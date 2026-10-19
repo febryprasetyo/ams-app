@@ -15,6 +15,7 @@ import type { LeaveBalanceSummary } from "@/types/leaves";
 import LeaveEmployeePicker, { LeaveEmployeeItem } from "@/components/leaves/LeaveEmployeePicker";
 
 export function LeaveRequestForm() {
+  const currentYear = new Date().getFullYear();
   const router = useRouter();
 
   // State Karyawan - Default KOSONG (null)
@@ -128,6 +129,19 @@ export function LeaveRequestForm() {
     }
     if (!startDate || !endDate) {
       setErrorMessage("Tentukan rentang Dari Tanggal dan s/d Tanggal cuti.");
+      return;
+    }
+
+    const startYear = Number(startDate.split("-")[0]);
+    const endYear = Number(endDate.split("-")[0]);
+
+    if (startYear < currentYear) {
+      setErrorMessage(`Permohonan cuti tidak dapat diajukan untuk tahun lampau (${startYear}). Saldo cuti tahun lampau sudah ditutup.`);
+      return;
+    }
+
+    if (startYear !== endYear) {
+      setErrorMessage(`Periode cuti harus berada dalam tahun kalender yang sama (${startYear}). Jika melewati pergantian tahun, silakan ajukan permohonan terpisah untuk masing-masing tahun.`);
       return;
     }
     if (!manualDurationDays || Number(manualDurationDays) <= 0) {
@@ -410,7 +424,18 @@ export function LeaveRequestForm() {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                min={`${currentYear}-01-01`}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setStartDate(val);
+                  if (val && endDate) {
+                    const sYear = val.split("-")[0];
+                    const eYear = endDate.split("-")[0];
+                    if (sYear !== eYear || endDate < val) {
+                      setEndDate("");
+                    }
+                  }
+                }}
                 onClick={(e) => e.currentTarget.showPicker?.()}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all font-medium cursor-pointer"
                 required
@@ -424,7 +449,8 @@ export function LeaveRequestForm() {
               <input
                 type="date"
                 value={endDate}
-                min={startDate}
+                min={startDate || `${currentYear}-01-01`}
+                max={startDate ? `${startDate.split("-")[0]}-12-31` : undefined}
                 onChange={(e) => setEndDate(e.target.value)}
                 onClick={(e) => e.currentTarget.showPicker?.()}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all font-medium cursor-pointer"

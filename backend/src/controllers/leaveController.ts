@@ -23,6 +23,13 @@ export const calculateDaysSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   employeeId: z.coerce.number().positive().optional(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode perhitungan cuti harus berada dalam tahun kalender yang sama',
+  path: ['endDate'],
 });
 
 
@@ -56,6 +63,18 @@ export const createLeaveRequestSchema = z.object({
   handoverToEmployeeId: z.coerce.number().positive().optional().nullable(),
   handoverTask: z.string().max(1000).optional().nullable(),
   emergencyPhone: z.string().max(50).optional().nullable(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode cuti harus berada dalam tahun kalender yang sama. Jika melewati pergantian tahun, ajukan permohonan terpisah untuk masing-masing tahun.',
+  path: ['endDate'],
+}).refine((data) => {
+  return data.endDate >= data.startDate;
+}, {
+  message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai',
+  path: ['endDate'],
 });
 
 // Helper: ambil profil ringkas karyawan
@@ -284,6 +303,13 @@ export async function createLeaveRequest(req: Request, res: Response) {
     }
 
     const startYear = Number(data.startDate.split('-')[0]);
+    const currentYear = new Date().getFullYear();
+
+    if (startYear < currentYear) {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat diajukan untuk tahun lampau (${startYear}). Saldo cuti tahun lampau sudah ditutup.`,
+      });
+    }
 
     // Ambil hari libur
     const holidays = await db

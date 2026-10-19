@@ -1,4 +1,4 @@
-import { MasterLeaveBalanceItem } from '@/types/leaves';
+import type { MasterLeaveBalanceItem } from '../../types/leaves';
 
 /**
  * Menghitung Hak Cuti Bersih:

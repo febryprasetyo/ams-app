@@ -1,16 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Filter,
-  Edit2,
+  Pencil,
   Users,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { MasterLeaveBalanceItem } from '@/types/leaves';
 import {
@@ -37,7 +35,6 @@ export default function MasterLeaveBalancesTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Daftar unik departemen untuk filter dropdown
   const departments = useMemo(() => {
     const set = new Set<string>();
     balances.forEach((b) => {
@@ -46,7 +43,6 @@ export default function MasterLeaveBalancesTable({
     return Array.from(set).sort();
   }, [balances]);
 
-  // Data hasil filter
   const filteredBalances = useMemo(() => {
     const list = filterMasterLeaveBalances(balances, {
       search: searchTerm,
@@ -56,12 +52,10 @@ export default function MasterLeaveBalancesTable({
     return list.filter((b) => b.department === departmentFilter);
   }, [balances, searchTerm, departmentFilter, statusFilter]);
 
-  // Reset page when filter changes
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, departmentFilter, statusFilter, pageSize]);
 
-  // Pagination calculation
   const totalItems = filteredBalances.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
@@ -69,253 +63,222 @@ export default function MasterLeaveBalancesTable({
   const paginatedBalances = filteredBalances.slice(startIndex, endIndex);
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
-      {/* Table Header & Filters */}
-      <div className="p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users className="h-5 w-5 text-emerald-600" />
-              Rekapitulasi Saldo Cuti Karyawan {year}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Daftar saldo cuti bersih dan penggunaan cuti staf di tahun kalender {year}
-            </p>
-          </div>
-          <div className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 self-start sm:self-auto">
-            Total {filteredBalances.length} Karyawan Terdaftar
-          </div>
+    <div className="space-y-4">
+      {/* Search + Filter Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
+        <div className="relative flex-1 min-w-48">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari nama karyawan atau Employee ID..."
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+          />
         </div>
 
-        {/* Filter Controls Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari nama atau NIP karyawan..."
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 pl-10 pr-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400"
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            aria-label="Filter Departemen"
+            className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
+          >
+            <option value="ALL">Semua Departemen</option>
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
 
-          {/* Department Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3.5 top-3 h-3.5 w-3.5 text-slate-400" />
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              aria-label="Filter Departemen"
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-            >
-              <option value="ALL">Semua Departemen</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status Saldo Filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              aria-label="Filter Status Saldo"
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-            >
-              <option value="ALL">Semua Kondisi Saldo</option>
-              <option value="SAFE">Saldo Aman (&ge; 4 Hari)</option>
-              <option value="WARNING">Saldo Menipis (1 - 3 Hari)</option>
-              <option value="EXHAUSTED">Saldo Habis (0 Hari)</option>
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            aria-label="Filter Kondisi Saldo"
+            className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
+          >
+            <option value="ALL">Semua Status</option>
+            <option value="SAFE">Saldo Aman (&ge; 4 Hari)</option>
+            <option value="WARNING">Saldo Menipis (1 - 3 Hari)</option>
+            <option value="EXHAUSTED">Saldo Habis (0 Hari)</option>
+          </select>
         </div>
+
+        <span className="text-xs text-slate-500 ml-auto hidden sm:inline">
+          Menampilkan <strong className="text-slate-900">{filteredBalances.length}</strong> dari {balances.length} karyawan
+        </span>
       </div>
 
-      {/* Table Element */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-              <th className="py-3 px-4">Karyawan</th>
-              <th className="py-3 px-3 text-center">Hak Dasar</th>
-              <th className="py-3 px-3 text-center">Cuti Bersama</th>
-              <th className="py-3 px-3 text-center">Hak Bersih</th>
-              <th className="py-3 px-3 text-center">Terpakai</th>
-              <th className="py-3 px-4 text-center">Sisa Saldo</th>
-              <th className="py-3 px-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  <td className="py-3.5 px-4">
-                    <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
-                    <div className="h-3 w-20 bg-slate-100 dark:bg-slate-800/60 rounded" />
-                  </td>
-                  <td className="py-3.5 px-3 text-center"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                  <td className="py-3.5 px-3 text-center"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                  <td className="py-3.5 px-3 text-center"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                  <td className="py-3.5 px-3 text-center"><div className="h-4 w-10 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                  <td className="py-3.5 px-4 text-center"><div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto" /></td>
-                  <td className="py-3.5 px-4 text-right"><div className="h-7 w-16 bg-slate-200 dark:bg-slate-800 rounded ml-auto" /></td>
+      {/* Table Container */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        {isLoading ? (
+          <div className="p-12 flex items-center justify-center gap-3 text-slate-500 text-xs">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> Memuat data saldo cuti...
+          </div>
+        ) : filteredBalances.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-600 font-semibold text-sm">Tidak ada saldo karyawan ditemukan</p>
+            <p className="text-xs text-slate-400 mt-1">Coba ubah filter atau sinkronkan kebijakan di Pengaturan Cuti.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider font-mono">
+                  <th className="py-3.5 px-4">NIK</th>
+                  <th className="py-3.5 px-4">Nama & Jabatan</th>
+                  <th className="py-3.5 px-4">Departemen</th>
+                  <th className="py-3.5 px-4 text-center">Hak Dasar</th>
+                  <th className="py-3.5 px-4 text-center">Cuti Bersama</th>
+                  <th className="py-3.5 px-4 text-center">Hak Bersih</th>
+                  <th className="py-3.5 px-4 text-center">Terpakai</th>
+                  <th className="py-3.5 px-4 text-center">Sisa Saldo</th>
+                  <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
-              ))
-            ) : paginatedBalances.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-12 text-center text-slate-500 dark:text-slate-400">
-                  <Users className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                  <p className="text-sm font-semibold">Tidak Ada Data Saldo Karyawan</p>
-                  <p className="text-xs mt-0.5">
-                    {balances.length === 0
-                      ? 'Belum ada data saldo cuti untuk tahun ini. Silakan simpan kebijakan di Pengaturan Cuti.'
-                      : 'Tidak ditemukan karyawan yang sesuai dengan kriteria filter pencarian.'}
-                  </p>
-                </td>
-              </tr>
-            ) : (
-              paginatedBalances.map((item) => {
-                const status = getLeaveBalanceStatus(item.remainingQuota);
-                return (
-                  <tr
-                    key={item.employeeId}
-                    className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    {/* Karyawan Details */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">
-                        {item.fullName}
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono text-slate-600 dark:text-slate-300">{item.employeeCode}</span>
-                        <span>•</span>
-                        <span>{item.department || '-'}</span>
-                      </div>
-                    </td>
-
-                    {/* Kuota Dasar */}
-                    <td className="py-3.5 px-3 text-center">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {item.baseQuota} Hari
-                      </span>
-                      {item.isCustomQuota && (
-                        <span className="block text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
-                          Khusus
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedBalances.map((item) => {
+                  const status = getLeaveBalanceStatus(item.remainingQuota);
+                  return (
+                    <tr key={item.employeeId} className="hover:bg-emerald-50/30 transition-colors group">
+                      {/* NIK */}
+                      <td className="py-3.5 px-4 font-mono">
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-[11px]">
+                          {item.employeeCode}
                         </span>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Cuti Bersama */}
-                    <td className="py-3.5 px-3 text-center text-amber-600 dark:text-amber-400 font-medium">
-                      -{item.collectiveLeaveDeduction} Hari
-                    </td>
+                      {/* Nama & Jabatan */}
+                      <td className="py-3.5 px-4">
+                        <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                          {item.fullName}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">{item.position || '—'}</p>
+                      </td>
 
-                    {/* Hak Bersih */}
-                    <td className="py-3.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200">
-                      {item.cleanAnnualQuota} Hari
-                    </td>
+                      {/* Departemen */}
+                      <td className="py-3.5 px-4">
+                        <p className="font-medium text-slate-700">{item.department || '—'}</p>
+                      </td>
 
-                    {/* Terpakai */}
-                    <td className="py-3.5 px-3 text-center text-slate-600 dark:text-slate-400">
-                      {item.usedQuota > 0 ? `-${item.usedQuota} Hari` : '0 Hari'}
-                    </td>
-
-                    {/* Sisa Cuti Badge */}
-                    <td className="py-3.5 px-4 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
-                          status === 'SAFE'
-                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
-                            : status === 'WARNING'
-                            ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
-                            : 'bg-rose-50 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
-                        }`}
-                      >
-                        {status === 'SAFE' ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                        ) : status === 'WARNING' ? (
-                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5 shrink-0" />
+                      {/* Hak Dasar */}
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">
+                        {item.baseQuota} Hari
+                        {item.isCustomQuota && (
+                          <span className="block text-[10px] text-emerald-600 font-normal">Khusus</span>
                         )}
-                        {item.remainingQuota} Hari
-                      </span>
-                    </td>
+                      </td>
 
-                    {/* Aksi Button */}
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => onEditBalance(item)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors shadow-2xs cursor-pointer"
-                      >
-                        <Edit2 className="h-3 w-3 text-slate-500" />
-                        Ubah Saldo
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                      {/* Cuti Bersama */}
+                      <td className="py-3.5 px-4 text-center font-semibold text-amber-600">
+                        -{item.collectiveLeaveDeduction} Hari
+                      </td>
+
+                      {/* Hak Bersih */}
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-900">
+                        {item.cleanAnnualQuota} Hari
+                      </td>
+
+                      {/* Terpakai */}
+                      <td className="py-3.5 px-4 text-center text-slate-600">
+                        {item.usedQuota > 0 ? `-${item.usedQuota} Hari` : '0 Hari'}
+                      </td>
+
+                      {/* Sisa Saldo Badge */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            status === 'SAFE'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : status === 'WARNING'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              status === 'SAFE'
+                                ? 'bg-emerald-500'
+                                : status === 'WARNING'
+                                ? 'bg-amber-500'
+                                : 'bg-red-500'
+                            }`}
+                          />
+                          {item.remainingQuota} Hari
+                        </span>
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onEditBalance(item)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
+                            title="Edit Saldo"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination Bar */}
+        {!isLoading && totalItems > 0 && (
+          <div className="p-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <span>Baris per halaman:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="py-1 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>
+                (Menampilkan {startIndex + 1} - {endIndex} dari {totalItems})
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 ml-auto">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <span className="px-2 py-1 text-xs font-bold text-slate-900">
+                {currentPage} / {totalPages}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                title="Halaman Berikutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Pagination Controls */}
-      {!isLoading && totalItems > 0 && (
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>Menampilkan</span>
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {startIndex + 1} - {endIndex}
-            </span>
-            <span>dari</span>
-            <span className="font-semibold text-slate-800 dark:text-slate-200">{totalItems}</span>
-            <span>data</span>
-            <span className="text-slate-300 dark:text-slate-700">|</span>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
-            >
-              <option value={10}>10 baris</option>
-              <option value={25}>25 baris</option>
-              <option value={50}>50 baris</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Sebelumnya
-            </button>
-
-            <span className="px-3 py-1.5 font-bold text-slate-800 dark:text-slate-200">
-              {currentPage} / {totalPages}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Berikutnya
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

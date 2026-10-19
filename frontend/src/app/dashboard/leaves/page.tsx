@@ -14,8 +14,10 @@ import {
   Trash2,
   AlertCircle,
   RefreshCw,
+  Filter,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -38,6 +40,7 @@ interface LeaveItem {
 export default function LeaveRequestsListPage() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -71,18 +74,22 @@ export default function LeaveRequestsListPage() {
   // Filter & Search
   const filtered = useMemo(() => {
     const q = searchTerm.toLowerCase();
-    return leaves.filter((item) => (
-      (item.requestNumber || '').toLowerCase().includes(q) ||
-      (item.employeeName || '').toLowerCase().includes(q) ||
-      (item.employeeCode || '').toLowerCase().includes(q) ||
-      (item.reason || '').toLowerCase().includes(q)
-    ));
-  }, [leaves, searchTerm]);
+    return leaves.filter((item) => {
+      const matchesSearch =
+        (item.requestNumber || '').toLowerCase().includes(q) ||
+        (item.employeeName || '').toLowerCase().includes(q) ||
+        (item.employeeCode || '').toLowerCase().includes(q) ||
+        (item.reason || '').toLowerCase().includes(q);
+
+      const matchesStatus = !statusFilter || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [leaves, searchTerm, statusFilter]);
 
   // Reset page when search or page size changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, pageSize]);
+  }, [searchTerm, statusFilter, pageSize]);
 
   // Pagination slice
   const totalItems = filtered.length;
@@ -91,7 +98,12 @@ export default function LeaveRequestsListPage() {
   const endIndex = Math.min(startIndex + pageSize, totalItems);
   const paginatedLeaves = filtered.slice(startIndex, endIndex);
 
-  // Action: Manual HR Approval
+  // KPI counts
+  const pendingCount = leaves.filter((l) => l.status === 'PENDING').length;
+  const approvedCount = leaves.filter((l) => l.status === 'APPROVED').length;
+  const rejectedCount = leaves.filter((l) => l.status === 'REJECTED').length;
+
+  // Action: Manual HR Approval (Requirement 9)
   const handleApprove = async () => {
     if (!confirmApproveItem) return;
     setIsProcessingAction(true);
@@ -113,7 +125,7 @@ export default function LeaveRequestsListPage() {
     }
   };
 
-  // Action: Delete Draft
+  // Action: Delete Draft (Requirement 11)
   const handleDeleteDraft = async () => {
     if (!confirmDeleteItem) return;
     setIsProcessingAction(true);
@@ -137,257 +149,302 @@ export default function LeaveRequestsListPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">
-            <CalendarDays className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Permohonan Cuti Karyawan
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Kelola pengajuan cuti tahunan dan cuti khusus (Standar Formulir F4)
-            </p>
-          </div>
+      {/* 1. Header (Template Standard) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <CalendarDays className="w-6 h-6 text-emerald-600" />
+            <span>Permohonan Cuti</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Kelola dan proses pengajuan cuti tahunan dan cuti khusus karyawan.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={fetchLeaves}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-2xs disabled:opacity-50 cursor-pointer"
+            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+            <RefreshCw className={`w-4 h-4 text-emerald-600 ${isLoading ? 'animate-spin' : ''}`} />
             Muat Ulang
           </button>
 
           <Link
             href="/dashboard/leaves/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Ajukan Cuti Baru
           </Link>
         </div>
       </div>
 
+      {/* 2. KPI / Stats Cards (Template Standard) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'TOTAL PENGAJUAN',
+            value: leaves.length,
+            icon: <CalendarDays className="w-5 h-5" />,
+            tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+          },
+          {
+            label: 'MENUNGGU PERSETUJUAN',
+            value: pendingCount,
+            icon: <Clock className="w-5 h-5" />,
+            tone: 'bg-amber-50 border-amber-100 text-amber-600',
+          },
+          {
+            label: 'DISETUJUI',
+            value: approvedCount,
+            icon: <UserCheck className="w-5 h-5" />,
+            tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+          },
+          {
+            label: 'DITOLAK',
+            value: rejectedCount,
+            icon: <XCircle className="w-5 h-5" />,
+            tone: 'bg-rose-50 border-rose-100 text-rose-600',
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200 shadow-sm"
+          >
+            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${s.tone}`}>
+              {s.icon}
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">{s.label}</p>
+              <p className="text-xl font-bold text-slate-900 mt-0.5">{s.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Toast Alert */}
       {toastMessage && (
         <div
-          className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold animate-fadeIn ${
+          className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs font-semibold ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
-              : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-800/60'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
           }`}
         >
           <div className="flex items-center gap-2">
             {toastMessage.type === 'success' ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
             )}
             <span>{toastMessage.text}</span>
           </div>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-bold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Filter & Search */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-2xs">
-        <Search className="w-4 h-4 text-slate-400 shrink-0" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Cari nomor permohonan, nama karyawan, NIP, atau alasan..."
-          className="w-full text-xs text-slate-900 dark:text-white outline-none bg-transparent placeholder:text-slate-400"
-        />
-        {searchTerm && (
-          <button
-            type="button"
-            onClick={() => setSearchTerm('')}
-            className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+      {/* 3. Search & Filter Bar (Template Standard) */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
+        <div className="relative flex-1 min-w-48">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari nomor permohonan, nama karyawan, NIK, atau alasan..."
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all cursor-pointer"
           >
-            Hapus Filter
-          </button>
-        )}
+            <option value="">Semua Status</option>
+            <option value="PENDING">Menunggu Persetujuan</option>
+            <option value="APPROVED">Disetujui</option>
+            <option value="REJECTED">Ditolak</option>
+          </select>
+        </div>
+        <span className="text-xs text-slate-500 ml-auto hidden sm:inline">
+          Menampilkan <strong className="text-slate-900">{filtered.length}</strong> dari {leaves.length} permohonan
+        </span>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-            <thead className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-              <tr>
-                <th className="py-3.5 px-4">No. Permohonan</th>
-                <th className="py-3.5 px-4">Karyawan</th>
-                <th className="py-3.5 px-4">Jenis Cuti</th>
-                <th className="py-3.5 px-4">Periode Cuti</th>
-                <th className="py-3.5 px-4 text-center">Durasi</th>
-                <th className="py-3.5 px-4">Kembali Bekerja</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-4"><div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4">
-                      <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded mb-1" />
-                      <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800/60 rounded" />
-                    </td>
-                    <td className="py-4 px-4"><div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4 text-center"><div className="h-4 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-5 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" /></td>
-                    <td className="py-4 px-4 text-right"><div className="h-7 w-20 bg-slate-200 dark:bg-slate-800 rounded ml-auto" /></td>
-                  </tr>
-                ))
-              ) : paginatedLeaves.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <FileText className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                    <p className="font-semibold text-slate-600 dark:text-slate-300">Belum ada permohonan cuti.</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Klik &quot;Ajukan Cuti Baru&quot; untuk membuat permohonan cuti.
-                    </p>
-                  </td>
+      {/* 4. Table Structure (Template Standard) */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        {isLoading ? (
+          <div className="p-12 flex items-center justify-center gap-3 text-slate-500 text-xs">
+            <RefreshCw className="w-5 h-5 animate-spin text-emerald-600" /> Memuat data permohonan cuti...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center">
+            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-600 font-semibold text-sm">Tidak ada permohonan cuti ditemukan</p>
+            <p className="text-xs text-slate-400 mt-1">Coba ubah filter pencarian atau ajukan cuti baru.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider font-mono">
+                  <th className="py-3.5 px-4">No. Permohonan</th>
+                  <th className="py-3.5 px-4">Karyawan</th>
+                  <th className="py-3.5 px-4">Jenis Cuti</th>
+                  <th className="py-3.5 px-4">Periode</th>
+                  <th className="py-3.5 px-4 text-center">Durasi</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
-              ) : (
-                paginatedLeaves.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">
-                      {item.requestNumber}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">{item.employeeName}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">{item.employeeCode}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                          item.leaveType === 'ANNUAL'
-                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                            : 'bg-blue-50 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
-                        }`}
-                      >
-                        {item.leaveType === 'ANNUAL' ? 'Cuti Tahunan' : 'Cuti Khusus'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
-                      {item.startDate} s/d {item.endDate}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-bold text-slate-800 dark:text-slate-200">
-                      {item.durationDays} Hari
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-slate-200">
-                      {item.resumeWorkDate}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          item.status === 'APPROVED'
-                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
-                            : item.status === 'PENDING'
-                            ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
-                            : 'bg-rose-50 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60'
-                        }`}
-                      >
-                        {item.status === 'APPROVED' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {item.status === 'PENDING' && <Clock className="w-3.5 h-3.5" />}
-                        {item.status === 'REJECTED' && <XCircle className="w-3.5 h-3.5" />}
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center gap-1.5">
-                        {/* Action: Print (Requirement 10) */}
-                        <Link
-                          href={`/dashboard/leaves/${item.id}/print`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition shadow-2xs"
-                          title="Pratinjau & Cetak Formulir Cuti F4"
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedLeaves.map((item) => {
+                  const isApproved = item.status === 'APPROVED';
+                  const isPending = item.status === 'PENDING';
+                  const isRejected = item.status === 'REJECTED';
+
+                  return (
+                    <tr key={item.id} className="hover:bg-emerald-50/30 transition-colors group">
+                      <td className="py-3.5 px-4 font-mono">
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-[11px]">
+                          {item.requestNumber}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                          {item.employeeName}
+                        </p>
+                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {item.employeeCode}
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${
+                            item.leaveType === 'ANNUAL'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}
                         >
-                          <Printer className="w-3.5 h-3.5" /> Print
-                        </Link>
-
-                        {/* Action: Approve HR Manual (Requirement 9) */}
-                        {item.status === 'PENDING' && (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmApproveItem(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition shadow-2xs cursor-pointer"
-                            title="Setujui permohonan setelah dokumen fisik ditandatangani"
+                          {item.leaveType === 'ANNUAL' ? 'Cuti Tahunan' : 'Cuti Khusus'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-medium text-slate-700">
+                          {item.startDate} s/d {item.endDate}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          Masuk: {item.resumeWorkDate}
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-800">
+                        {item.durationDays} Hari
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isApproved
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : isPending
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isApproved ? 'bg-emerald-500' : isPending ? 'bg-amber-500' : 'bg-rose-500'
+                            }`}
+                          />
+                          {isApproved ? 'Disetujui' : isPending ? 'Menunggu' : 'Ditolak'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Action: Print (Requirement 10) */}
+                          <Link
+                            href={`/dashboard/leaves/${item.id}/print`}
+                            className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all flex items-center gap-1 font-semibold text-xs cursor-pointer"
+                            title="Print Formulir F4"
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Approve
-                          </button>
-                        )}
+                            <Printer className="w-4 h-4" />
+                            <span className="hidden sm:inline">Print</span>
+                          </Link>
 
-                        {/* Action: Hapus Draft (Requirement 11) */}
-                        {item.status === 'PENDING' && (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteItem(item)}
-                            className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/60 rounded-lg transition shadow-2xs cursor-pointer"
-                            title="Hapus draft pengajuan cuti yang belum disetujui"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                          {/* Action: Approve Manual HR (Requirement 9) */}
+                          {isPending && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmApproveItem(item)}
+                              className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all flex items-center gap-1 font-bold text-xs cursor-pointer"
+                              title="Setujui permohonan setelah ditandatangani"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span className="hidden sm:inline">Approve</span>
+                            </button>
+                          )}
 
-        {/* Pagination Controls (Requirement 6) */}
-        {!isLoading && totalItems > 0 && (
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
+                          {/* Action: Delete Draft (Requirement 11) */}
+                          {isPending && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteItem(item)}
+                              className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                              title="Hapus Draft"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 5. Pagination Bar (Requirement 6) */}
+        {filtered.length > 0 && (
+          <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/50">
             <div className="flex items-center gap-2">
-              <span>Menampilkan</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {startIndex + 1} - {endIndex}
-              </span>
-              <span>dari</span>
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{totalItems}</span>
-              <span>data</span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span>Baris per halaman:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                className="py-1 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none cursor-pointer shadow-sm"
               >
-                <option value={10}>10 baris</option>
-                <option value={25}>25 baris</option>
-                <option value={50}>50 baris</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
               </select>
+              <span className="text-slate-400 ml-1">
+                ({startIndex + 1} - {endIndex} dari {totalItems})
+              </span>
             </div>
 
-            <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            <div className="flex items-center gap-1.5 self-center sm:self-auto">
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                title="Halaman Sebelumnya"
               >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Sebelumnya
+                <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="px-3 py-1.5 font-bold text-slate-800 dark:text-slate-200">
+              <span className="px-3 py-1 font-semibold text-slate-700">
                 {currentPage} / {totalPages}
               </span>
 
@@ -395,39 +452,59 @@ export default function LeaveRequestsListPage() {
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                title="Halaman Berikutnya"
               >
-                Berikutnya
-                <ChevronRight className="h-3.5 w-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Confirmation Modal: Approve HR Manual (Requirement 9) */}
+      {/* Confirmation Modal: HR Approve */}
       {confirmApproveItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center gap-3 text-emerald-600 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-100">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Setujui Permohonan Cuti?
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Setujui Permohonan Cuti?
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {confirmApproveItem.requestNumber}
+                </p>
+              </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-              Anda akan menyetujui permohonan nomor <strong>{confirmApproveItem.requestNumber}</strong> atas nama <strong>{confirmApproveItem.employeeName}</strong> ({confirmApproveItem.durationDays} hari cuti). Pastikan dokumen fisik F4 telah ditandatangani pemohon dan atasan.
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Konfirmasi persetujuan manual oleh HR setelah dokumen fisik formulir permohonan cuti (F4) ditandatangani oleh pemohon dan atasan yang berwenang.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="rounded-xl bg-slate-50 p-3.5 text-xs text-slate-600 mb-6 space-y-1.5 border border-slate-200">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Karyawan:</span>
+                <span className="font-semibold text-slate-800">{confirmApproveItem.employeeName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Durasi:</span>
+                <span className="font-semibold text-slate-800">{confirmApproveItem.durationDays} Hari</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Periode:</span>
+                <span className="font-semibold text-slate-800">{confirmApproveItem.startDate} s/d {confirmApproveItem.endDate}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setConfirmApproveItem(null)}
                 disabled={isProcessingAction}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -435,39 +512,44 @@ export default function LeaveRequestsListPage() {
                 type="button"
                 onClick={handleApprove}
                 disabled={isProcessingAction}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-sm transition-all flex items-center gap-2 cursor-pointer"
               >
-                {isProcessingAction && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                Ya, Setujui Sekarang
+                {isProcessingAction ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Setujui Sekarang
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Confirmation Modal: Delete Draft (Requirement 11) */}
+      {/* Confirmation Modal: Delete Draft */}
       {confirmDeleteItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/50">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center gap-3 text-rose-600 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 border border-rose-100">
                 <Trash2 className="h-6 w-6 text-rose-600" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Hapus Draft Permohonan?
-              </h3>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Hapus Draft Permohonan?
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {confirmDeleteItem.requestNumber}
+                </p>
+              </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-              Apakah Anda yakin ingin menghapus permohonan <strong>{confirmDeleteItem.requestNumber}</strong> ({confirmDeleteItem.employeeName})? Kuota cuti terpakai ({confirmDeleteItem.durationDays} hari) akan secara otomatis <strong>dikembalikan</strong> ke saldo karyawan.
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Draft permohonan ini akan dihapus secara permanen. Jika merupakan cuti tahunan, kuota yang sebelumnya terpotong ({confirmDeleteItem.durationDays} hari) akan otomatis dikembalikan ke saldo karyawan.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setConfirmDeleteItem(null)}
                 disabled={isProcessingAction}
-                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
@@ -475,10 +557,10 @@ export default function LeaveRequestsListPage() {
                 type="button"
                 onClick={handleDeleteDraft}
                 disabled={isProcessingAction}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-md shadow-rose-600/20 transition flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-sm transition-all flex items-center gap-2 cursor-pointer"
               >
-                {isProcessingAction && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                Ya, Hapus Draft
+                {isProcessingAction ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Hapus Draft
               </button>
             </div>
           </div>

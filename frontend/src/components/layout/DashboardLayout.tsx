@@ -305,27 +305,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     });
   });
 
+  const isRouteMatchingHref = (href: string, currentPath: string): boolean => {
+    if (href === '/dashboard/assets') {
+      return currentPath === '/dashboard/assets' || (currentPath.startsWith('/dashboard/assets/') && !currentPath.startsWith('/dashboard/assets/overview'));
+    }
+    if (href === '/dashboard/attendance') {
+      return currentPath === '/dashboard/attendance';
+    }
+    if (href === '/dashboard/leaves') {
+      return currentPath === '/dashboard/leaves' || (currentPath.startsWith('/dashboard/leaves/') && !currentPath.startsWith('/dashboard/leaves/balances') && !currentPath.startsWith('/dashboard/leaves/settings'));
+    }
+    return currentPath === href || currentPath.startsWith(`${href}/`);
+  };
+
   const currentNavigableItem = allNavigableItems
     .sort((a, b) => b.href.length - a.href.length)
-    .find((item) => {
-      if (item.href === '/dashboard/assets') {
-        return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-      }
-      return item.href === pathname || (item.href !== '/dashboard/attendance' && pathname.startsWith(`${item.href}/`));
-    }) ||
+    .find((item) => isRouteMatchingHref(item.href, pathname)) ||
     allNavigableItems[0];
 
   const isSubmenuActive = (item: NavItem): boolean => {
     if (!item.children) return false;
-    return item.children.some((child) => {
-      if (child.href === '/dashboard/assets') {
-        return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-      }
-      if (child.href === '/dashboard/attendance') {
-        return pathname === '/dashboard/attendance';
-      }
-      return pathname === child.href || pathname.startsWith(`${child.href}/`);
-    });
+    return item.children.some((child) => isRouteMatchingHref(child.href, pathname));
   };
 
   const isSubmenuOpen = (item: NavItem): boolean => {
@@ -467,15 +467,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {open && (
                           <div className="ml-4 pl-3 border-l-2 border-slate-200/80 space-y-1 mt-1 transition-all duration-200">
                             {item.children.map((child) => {
-                              const isChildActive = (() => {
-                                if (child.href === '/dashboard/assets') {
-                                  return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-                                }
-                                if (child.href === '/dashboard/attendance') {
-                                  return pathname === '/dashboard/attendance';
-                                }
-                                return pathname === child.href || pathname.startsWith(`${child.href}/`);
-                              })();
+                              const isChildActive = isRouteMatchingHref(child.href, pathname);
                               const ChildIcon = child.icon;
 
                               return (
@@ -508,18 +500,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }
 
                   // Case B: Standard Nav Item
-                  const isActive = item.href && (() => {
-                    if (item.href === '/dashboard/assets') {
-                      return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-                    }
-                    if (item.href === dashboardHref && pathname === dashboardHref) {
-                      return true;
-                    }
-                    if (item.href === pathname) {
-                      return true;
-                    }
-                    return pathname.startsWith(`${item.href}/`);
-                  })();
+                  const isActive = item.href && (item.href === dashboardHref && pathname === dashboardHref ? true : isRouteMatchingHref(item.href, pathname));
 
                   return (
                     <Link

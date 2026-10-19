@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  Eye,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -370,14 +371,14 @@ export default function LeaveRequestsListPage() {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {/* Action: Print (Requirement 10) */}
+                          {/* Action: View Form */}
                           <Link
                             href={`/dashboard/leaves/${item.id}/print`}
                             className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all flex items-center gap-1 font-semibold text-xs cursor-pointer"
-                            title="Print Formulir F4"
+                            title="Lihat Formulir F4"
                           >
-                            <Printer className="w-4 h-4" />
-                            <span className="hidden sm:inline">Print</span>
+                            <Eye className="w-4 h-4" />
+                            <span className="hidden sm:inline">View</span>
                           </Link>
 
                           {/* Action: Approve Manual HR (Requirement 9) */}

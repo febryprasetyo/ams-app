@@ -36,9 +36,9 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
         <div className="flex items-center gap-3">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition"
+            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Kembali
+            <ArrowLeft className="w-4 h-4 text-emerald-600" /> Kembali
           </Link>
           <div>
             <h1 className="text-base font-bold text-slate-800">Form Permohonan Cuti - No: {data.requestNumber}</h1>
@@ -48,9 +48,9 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> Cetak Form F4 / PDF
+            <Printer className="w-4 h-4" /> Print
           </button>
         </div>
       </div>

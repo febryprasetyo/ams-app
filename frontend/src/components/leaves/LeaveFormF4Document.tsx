@@ -36,21 +36,21 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
         <div className="flex items-center gap-3">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-300 transition"
+            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Kembali
+            <ArrowLeft className="w-4 h-4 text-emerald-600" /> Kembali
           </Link>
           <div>
             <h1 className="text-base font-bold text-slate-800">Form Permohonan Cuti - No: {data.requestNumber}</h1>
-            <p className="text-xs text-slate-500">Standar Cetak Kertas F4 (Folio 215 mm × 330 mm) - 1 Halaman Penuh</p>
+            
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> Cetak Form F4 / PDF
+            <Printer className="w-4 h-4" /> Print
           </button>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 <td className="border-l-0">{data.employee.position}</td>
               </tr>
               <tr>
-                <td className="font-medium">Tanggal Join Cahaya Mas Cemerlang</td>
+                <td className="font-medium">Tanggal Bergabung</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
                 <td colSpan={4} className="border-l-0 font-medium">{formatDateIndo(data.employee.joinDate) || '-'}</td>
               </tr>
@@ -190,23 +190,62 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 <td>Jumlah Cuti yang sudah diambil sebelumnya</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
                 <td className="border-l-0 font-medium">
-                  {data.historyItems.filter(h => h.description).length > 0 ? '-' : '0'}
+                  {Math.max(0, data.cleanAnnualQuota - data.availableBefore)}
                 </td>
                 <td className="text-right font-medium">Hari</td>
               </tr>
 
-              {/* Rincian 1 - 5 */}
-              {(data.historyItems && data.historyItems.length > 0
-                ? data.historyItems.slice(0, 5)
-                : [1, 2, 3, 4, 5].map(n => ({ no: n, description: '' }))
-              ).map((item, idx) => (
-                <tr key={idx} className="h-[18px]">
-                  <td colSpan={4} className="pl-4 text-[10px]">
-                    <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
-                    <span>{item.description || ''}</span>
-                  </td>
-                </tr>
-              ))}
+              {/* Rincian Cuti yang Sudah Diambil Sebelumnya (Bila > 5 maka terbagi 2 kiri & kanan) */}
+              {(() => {
+                const items = data.historyItems || [];
+                const activeItems = items.filter(h => h.description);
+                const isTwoColumn = activeItems.length > 5 || items.length > 5;
+
+                if (isTwoColumn) {
+                  // Terbagi 2 Kolom Kiri (1-5) dan Kanan (6-10), penomoran menjorok ke tengah
+                  return [0, 1, 2, 3, 4].map((idx) => {
+                    const leftItem = items[idx];
+                    const rightItem = items[idx + 5];
+                    return (
+                      <tr key={idx} className="h-[18px]">
+                        {/* Kolom Kiri 1 - 5 */}
+                        <td colSpan={2} className="pl-8 pr-2 text-[10px] border-r border-black">
+                          <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
+                          <span>{leftItem?.description || ''}</span>
+                        </td>
+                        {/* Kolom Kanan 6 - 10 */}
+                        <td colSpan={2} className="pl-8 pr-2 text-[10px]">
+                          {rightItem && rightItem.description ? (
+                            <>
+                              <span className="inline-block w-5 font-semibold">{idx + 6}.</span>{' '}
+                              <span>{rightItem.description}</span>
+                            </>
+                          ) : (items.length > 5 && idx + 6 <= items.length) ? (
+                            <span className="text-gray-400">
+                              <span className="inline-block w-5 font-semibold text-black">{idx + 6}.</span>
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  });
+                }
+
+                // Default <= 5: 1 Kolom dengan penomoran menjorok ke tengah (pl-10)
+                const paddedItems = items.length >= 5 ? items.slice(0, 5) : [
+                  ...items,
+                  ...Array(5 - items.length).fill(null).map((_, i) => ({ no: items.length + i + 1, description: '' }))
+                ];
+
+                return paddedItems.map((item, idx) => (
+                  <tr key={idx} className="h-[18px]">
+                    <td colSpan={4} className="pl-10 text-[10px]">
+                      <span className="inline-block w-4 font-semibold">{idx + 1}.</span>{' '}
+                      <span>{item.description || ''}</span>
+                    </td>
+                  </tr>
+                ));
+              })()}
 
               <tr>
                 <td>Sisa Hak Cuti yang bisa diambil</td>
@@ -276,7 +315,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               <tr>
                 <td>Kembali Bekerja Tgl</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
-                <td colSpan={4} className="border-l-0 font-bold text-green-800">
+                <td colSpan={4} className="border-l-0 font-bold text-black">
                   {formatDateIndo(data.resumeWorkDate)}
                 </td>
               </tr>
@@ -305,10 +344,17 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td>Tugas yang akan diserahkan</td>
-                <td className="text-center border-l-0 border-r-0">:</td>
-                <td className="border-l-0 tracking-widest text-gray-400">
-                  ....................................................................................................................
+                <td className="align-top pt-1.5 font-medium">Tugas yang akan diserahkan</td>
+                <td className="text-center border-l-0 border-r-0 align-top pt-1.5">:</td>
+                <td className="border-l-0 py-1 text-[10px]">
+                  {data.handover.taskDescription ? (
+                    <div className="font-medium text-black">{data.handover.taskDescription}</div>
+                  ) : (
+                    <div className="space-y-1 tracking-widest text-gray-400 leading-normal">
+                      <div>....................................................................................................................</div>
+                      <div>....................................................................................................................</div>
+                    </div>
+                  )}
                 </td>
               </tr>
               <tr>
@@ -328,10 +374,14 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 </td>
               </tr>
               <tr>
-                <td className="h-[32px] align-bottom pb-1">Tanda Tangan Penerima</td>
-                <td className="text-center border-l-0 border-r-0 align-bottom pb-1">:</td>
-                <td className="border-l-0 align-bottom pb-1 italic text-[9.5px] text-gray-600">
-                  ( ............................................................ )
+                <td className="h-[64px] pb-1 font-medium align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  Tanda Tangan Penerima
+                </td>
+                <td className="text-center border-l-0 border-r-0 pb-1 align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  :
+                </td>
+                <td className="border-l-0 pb-1 text-[9.5px] text-gray-600 align-bottom" style={{ verticalAlign: 'bottom' }}>
+                  <div className="pt-6 italic">( ............................................................ )</div>
                 </td>
               </tr>
             </tbody>
@@ -351,64 +401,50 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
               </tr>
             </thead>
             <tbody>
-              {/* Kotak Tanda Tangan */}
-              <tr className="h-[52px]">
-                <td className="align-middle">
-                  {data.approvals.applicant.status === 'APPROVED' ? (
-                    <div className="inline-block border border-green-700 text-green-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ SUBMITTED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.directSupervisor.status === 'APPROVED' ? (
-                    <div className="inline-block border border-blue-700 text-blue-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.hrd.status === 'APPROVED' ? (
-                    <div className="inline-block border border-indigo-700 text-indigo-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
-                <td className="align-middle">
-                  {data.approvals.higherSupervisor.status === 'APPROVED' ? (
-                    <div className="inline-block border border-purple-700 text-purple-800 px-2 py-0.5 text-[9px] font-bold rounded">
-                      ✓ APPROVED
-                    </div>
-                  ) : null}
-                </td>
+              {/* Kotak Tanda Tangan Manual (Kosong polos untuk tanda tangan basah) */}
+              <tr className="h-[56px]">
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
+                <td className="align-middle"></td>
               </tr>
-              {/* Nama & Tanggal */}
+              {/* Nama & Tanggal untuk TDD Manual */}
               <tr className="text-left text-[9.5px] leading-tight">
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.applicant.name || data.employee.fullName}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.applicant.date) || '-'}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="font-semibold">{data.employee.fullName}</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.directSupervisor.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.directSupervisor.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.hrd.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.hrd.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
-                <td className="p-1">
-                  <div>Nama : <span className="font-semibold">{data.approvals.higherSupervisor.name || ''}</span></div>
-                  <div>Tanggal : <span>{formatDateIndo(data.approvals.higherSupervisor.date) || ''}</span></div>
+                <td className="p-1.5">
+                  <div>Nama : <span className="text-gray-400">...................................</span></div>
+                  <div>Tanggal : <span className="text-gray-400">..........................</span></div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* 8. Footer Catatan Kaki */}
-        <div className="text-[9px] text-gray-700 pt-1 border-t border-dotted border-gray-400">
-          <div>*) Check List yang diperlukan</div>
-          <div>**) Check List dan Lingkari Yang Diperlukan</div>
+        {/* 8. Footer Catatan Kaki & Note Resmi */}
+        <div className="pt-1.5 border-t border-black space-y-1">
+          <div className="text-[9px] text-black">
+            <div className="font-bold">Note :</div>
+            <ol className="list-decimal list-inside pl-1 space-y-0.5 leading-snug">
+              <li>Pengajuan Permohonan Cuti minimal 3 hari kerja sebelum pelaksanaan cuti</li>
+              <li>Maximum 6 hari kerja secara berurutan dalam 1 kali pengajuan</li>
+              <li>Jika melebihi batas max (poin 2) akan dikenai Penalti</li>
+            </ol>
+          </div>
+          <div className="text-[8.5px] text-gray-600 pt-0.5 flex items-center justify-between border-t border-dotted border-gray-300">
+            <div>*) Check List yang diperlukan</div>
+            <div>**) Check List dan Lingkari Yang Diperlukan</div>
+          </div>
         </div>
       </div>
     </div>

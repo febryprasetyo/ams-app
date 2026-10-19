@@ -14,7 +14,7 @@ test('failed attendance persistence rejects the operation and does not publish l
   globalThis.localStorage = storage;
   globalThis.sessionStorage = storage;
   globalThis.fetch = async (url, options) => {
-    if (options?.method === 'POST') throw new Error('Database unavailable');
+    if (options?.method === 'PUT' && url.endsWith('/attendance/records')) throw new Error('Database unavailable');
     return { ok: true, headers: new Headers({ 'content-type': 'application/json' }), json: async () => url.includes('/mock/') ? structuredClone(empty) : url.endsWith('/employees') ? [{ id: 1, employeeId: 'EMP-001', fullName: 'Employee', isActive: true }] : [] };
   };
   try {

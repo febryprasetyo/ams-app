@@ -82,33 +82,34 @@ export function TalentaKpiStrip({
     );
   };
 
-  // Section 1: Exceptions & Scan Deviations (Early out, No clock out, No clock in, Invalid)
+  // Section 1: Exceptions & Scan Deviations
   const exceptions: KpiItemConfig[] = [
-    { key: 'EARLY_CLOCK_OUT', label: 'Early clock out', count: kpi.earlyClockOut, description: 'Pulang lebih awal' },
-    { key: 'NO_CLOCK_OUT', label: 'No clock out', count: kpi.noClockOut, description: 'Tidak scan pulang' },
-    { key: 'NO_CLOCK_IN', label: 'No clock in', count: kpi.noClockIn, description: 'Tidak scan masuk' },
-    { key: 'INVALID', label: 'Invalid', count: kpi.invalid, description: 'Status absensi tidak valid' },
+    { key: 'LATE', label: 'Terlambat', count: kpi.late, description: 'Datang setelah jadwal masuk' },
+    { key: 'EARLY_CLOCK_OUT', label: 'Pulang awal', count: kpi.earlyClockOut, description: 'Pulang sebelum jadwal' },
+    { key: 'NO_CLOCK_OUT', label: 'Tidak scan pulang', count: kpi.noClockOut, description: 'Tidak ada scan pulang' },
+    { key: 'NO_CLOCK_IN', label: 'Tidak scan masuk', count: kpi.noClockIn, description: 'Tidak ada scan masuk' },
+    { key: 'INVALID', label: 'Tidak valid', count: kpi.invalid, description: 'Status absensi tidak valid' },
   ];
 
   // Section 2: Absences & Non-working days (Absent, Day off, Time off)
   const nonWorking: KpiItemConfig[] = [
-    { key: 'ABSENT', label: 'Absent', count: kpi.absent, description: 'Tidak hadir / mangkir' },
-    { key: 'DAY_OFF', label: 'Day off', count: kpi.dayOff, description: 'Hari libur mingguan / nasional' },
-    { key: 'TIME_OFF', label: 'Time off', count: kpi.timeOff, description: 'Izin, cuti, atau sakit' },
+    { key: 'ABSENT', label: 'Tidak hadir', count: kpi.absent, description: 'Tidak hadir / mangkir' },
+    { key: 'DAY_OFF', label: 'Hari libur', count: kpi.dayOff, description: 'Hari libur mingguan / nasional' },
+    { key: 'TIME_OFF', label: 'Izin / cuti', count: kpi.timeOff, description: 'Izin, cuti, atau sakit' },
   ];
 
   // Section 3: Upcoming work days (Next workdays)
   const upcoming: KpiItemConfig[] = [
-    { key: 'NEXT_WORKDAYS', label: 'Next workdays', count: kpi.nextWorkdays, description: 'Hari kerja terjadwal mendatang' },
+    { key: 'NEXT_WORKDAYS', label: 'Hari kerja berikutnya', count: kpi.nextWorkdays, description: 'Hari kerja terjadwal mendatang' },
   ];
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80">
         
-        {/* Section 1: 4 items (Early clock out, No clock out, No clock in, Invalid) */}
+        {/* Section 1: attendance exceptions */}
         <div className="lg:col-span-6 p-1.5 sm:p-2">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 sm:gap-1.5">
             {exceptions.map(renderCardItem)}
           </div>
         </div>

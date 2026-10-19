@@ -334,3 +334,47 @@ test("grant creation, update, and deletion operate cleanly", () => {
   });
   assert.equal(data.grants.length, 0);
 });
+
+test('dayoff correction preserves scans and excludes lateness from reports', () => {
+  const data = fixture();
+  data.records[0].lateMinutes = 30;
+  const values = { ...data.records[0], isDayOff: true };
+  const result = applyCommand(data, { type: 'correct', recordId: 1, expectedRevision: 1, reason: 'Jadwal off', values });
+  assert.equal(result.records[0].scanIn, '08:00');
+  assert.equal(result.records[0].rawScanIn, '08:00');
+  assert.equal(result.revisions[0].after.isDayOff, true);
+  assert.equal(summarizeEmployees(result, range)[0].lateMinutes, 0);
+  const restored = applyCommand(result, { type: 'correct', recordId: 1, expectedRevision: 2, reason: 'Hari kerja', values: { ...values, isDayOff: false } });
+  assert.equal(summarizeEmployees(restored, range)[0].lateMinutes, 30);
+});
+
+test('manual dayoff overrides working schedule and remains on later edits', () => {
+  let data = applyCommand(fixture(), { type: 'record_attendance', employeeId: 1, workDate: '2026-09-21', attendanceStatus: 'PRESENT', scanIn: '09:00', scanOut: '16:00', isDayOff: true });
+  let record = data.records.find(r => r.workDate === '2026-09-21');
+  assert.equal(record.isDayOff, true);
+  assert.equal(record.lateMinutes, 0);
+  assert.equal(record.earlyMinutes, 0);
+  data = applyCommand(data, { type: 'record_attendance', employeeId: 1, workDate: record.workDate, attendanceStatus: 'PRESENT', scanIn: record.scanIn, scanOut: record.scanOut });
+  record = data.records.find(r => r.workDate === '2026-09-21');
+  assert.equal(record.isDayOff, true);
+});
+
+test('dayoff correction still rejects locked dates and report viewers', () => {
+  const data = fixture();
+  const command = { type: 'correct', recordId: 1, expectedRevision: 1, reason: 'Off', values: { ...data.records[0], isDayOff: true } };
+  data.locks.push({ workDate: data.records[0].workDate });
+  assert.throws(() => applyCommand(data, command), /dikunci/);
+  data.locks = [];
+  data.meta.role = 'REPORT_VIEWER';
+  assert.throws(() => applyCommand(data, command), /akses/);
+});
+
+test('marking one attendance day as dayoff reduces report attendance count', () => {
+  const data = fixture();
+  data.records.push({ ...data.records[0], id: 2, workDate: '2026-09-21' });
+  assert.equal(summarizeEmployees(data, range)[0].recordCount, 2);
+  const result = applyCommand(data, { type: 'correct', recordId: 1, expectedRevision: 1, reason: 'Seharusnya off', values: { ...data.records[0], isDayOff: true } });
+  assert.equal(summarizeEmployees(result, range)[0].recordCount, 1);
+  assert.equal(result.records.length, 2);
+  assert.equal(result.records[0].scanIn, '08:00');
+});

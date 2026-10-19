@@ -4,6 +4,8 @@ import {
   getAttendanceRecords,
   getAttendanceBatches,
   commitAttendanceBatch,
+  saveAttendanceRecord,
+  getAttendanceActivity,
 } from '../controllers/attendanceController';
 
 const router = Router();
@@ -21,6 +23,20 @@ router.get(
   authenticateToken,
   requirePermission(['attendance.view', 'attendance.manage', 'attendance.import']),
   getAttendanceBatches
+);
+
+router.get(
+  '/activity',
+  authenticateToken,
+  requirePermission(['attendance.view', 'attendance.manage', 'attendance.import']),
+  getAttendanceActivity
+);
+
+router.put(
+  '/records',
+  authenticateToken,
+  requirePermission(['attendance.manage']),
+  saveAttendanceRecord
 );
 
 // Commit batch import operation

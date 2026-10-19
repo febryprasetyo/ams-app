@@ -4,10 +4,22 @@ import {
   leaveHolidayCalendars,
   leaveBalances,
   leaveRequests,
-  leaveApprovals
+  leaveApprovals,
+  annualLeaveConfigs,
 } from './leaves';
 
 test('leaves schema has all required tables and columns for F4 leave request', () => {
+  // annualLeaveConfigs
+  assert.ok(annualLeaveConfigs.id);
+  assert.ok(annualLeaveConfigs.year);
+  assert.ok(annualLeaveConfigs.baseQuota);
+  assert.ok(annualLeaveConfigs.collectiveLeaveDays);
+  assert.ok(annualLeaveConfigs.allowCarryForward);
+  assert.ok(annualLeaveConfigs.maxCarryForwardDays);
+  assert.ok(annualLeaveConfigs.notes);
+  assert.ok(annualLeaveConfigs.createdAt);
+  assert.ok(annualLeaveConfigs.updatedAt);
+
   // leaveHolidayCalendars
   assert.ok(leaveHolidayCalendars.id);
   assert.ok(leaveHolidayCalendars.year);
@@ -22,6 +34,8 @@ test('leaves schema has all required tables and columns for F4 leave request', (
   assert.ok(leaveBalances.baseQuota);
   assert.ok(leaveBalances.collectiveLeaveDeduction);
   assert.ok(leaveBalances.usedQuota);
+  assert.ok(leaveBalances.isCustomQuota);
+  assert.ok(leaveBalances.isCustomCarryForward);
 
   // leaveRequests
   assert.ok(leaveRequests.id);

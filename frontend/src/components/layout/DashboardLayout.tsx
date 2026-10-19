@@ -73,14 +73,22 @@ export const navGroups: NavGroup[] = [
       {
         name: 'Attendance',
         icon: CalendarCheck,
-        children: [
+                children: [
           { name: 'Ringkasan HR', href: '/dashboard/attendance/overview', icon: LayoutDashboard, permission: 'attendance.view' },
           { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck, permission: 'attendance.view' },
-          // { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
           { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart, permission: 'attendance.view' },
           { name: 'Aktivitas Absensi', href: '/dashboard/attendance/activity', icon: History, permission: 'attendance.view' },
+        ],
+      },
+      {
+        name: 'Cuti',
+        icon: CalendarDays,
+        children: [
+          { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
+          { name: 'Rekap Saldo Cuti', href: '/dashboard/leaves/balances', icon: Users, permission: 'attendance.view' },
+          { name: 'Pengaturan Cuti', href: '/dashboard/leaves/settings', icon: Settings, permission: 'attendance.manage' },
         ],
       },
       {
@@ -90,7 +98,6 @@ export const navGroups: NavGroup[] = [
           { name: 'Karyawan Absensi', href: '/dashboard/attendance/master/employees', icon: Users, permission: 'attendance.view' },
           { name: 'Departemen Absensi', href: '/dashboard/attendance/master/departments', icon: Building2, permission: 'attendance.view' },
           { name: 'Shift & Jam Kerja', href: '/dashboard/attendance/master/shifts', icon: Clock, permission: 'attendance.view' },
-          { name: 'Akses Absensi', href: '/dashboard/attendance/access', icon: ShieldCheck, permission: 'attendance.manage' },
           { name: 'Pengaturan Absensi', href: '/dashboard/attendance/settings', icon: Settings, permission: 'attendance.manage', adminOnly: true },
         ],
       },
@@ -148,6 +155,8 @@ const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: st
   { prefix: '/dashboard/tickets', permission: 'tickets.view', moduleName: 'Service Desk Tickets' },
   { prefix: '/dashboard/infrastructure', permission: 'infrastructure.view', moduleName: 'Accurate & Server Infrastructure' },
   { prefix: '/dashboard/attendance', permission: 'attendance.view', moduleName: 'HR Attendance' },
+  { prefix: '/dashboard/leaves/settings', permission: 'attendance.manage', moduleName: 'Leave Settings' },
+  { prefix: '/dashboard/leaves/balances', permission: 'attendance.view', moduleName: 'Leave Balances' },
   { prefix: '/dashboard/leaves', permission: 'attendance.view', moduleName: 'Leave Requests' },
   { prefix: '/dashboard/master', permission: 'master.view', moduleName: 'Master Data' },
   { prefix: '/dashboard/access', permission: 'access.users.view', moduleName: 'Access Control' },
@@ -295,27 +304,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     });
   });
 
+  const isRouteMatchingHref = (href: string, currentPath: string): boolean => {
+    if (href === '/dashboard/assets') {
+      return currentPath === '/dashboard/assets' || (currentPath.startsWith('/dashboard/assets/') && !currentPath.startsWith('/dashboard/assets/overview'));
+    }
+    if (href === '/dashboard/attendance') {
+      return currentPath === '/dashboard/attendance';
+    }
+    if (href === '/dashboard/leaves') {
+      return currentPath === '/dashboard/leaves' || (currentPath.startsWith('/dashboard/leaves/') && !currentPath.startsWith('/dashboard/leaves/balances') && !currentPath.startsWith('/dashboard/leaves/settings'));
+    }
+    return currentPath === href || currentPath.startsWith(`${href}/`);
+  };
+
   const currentNavigableItem = allNavigableItems
     .sort((a, b) => b.href.length - a.href.length)
-    .find((item) => {
-      if (item.href === '/dashboard/assets') {
-        return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-      }
-      return item.href === pathname || (item.href !== '/dashboard/attendance' && pathname.startsWith(`${item.href}/`));
-    }) ||
+    .find((item) => isRouteMatchingHref(item.href, pathname)) ||
     allNavigableItems[0];
 
   const isSubmenuActive = (item: NavItem): boolean => {
     if (!item.children) return false;
-    return item.children.some((child) => {
-      if (child.href === '/dashboard/assets') {
-        return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-      }
-      if (child.href === '/dashboard/attendance') {
-        return pathname === '/dashboard/attendance';
-      }
-      return pathname === child.href || pathname.startsWith(`${child.href}/`);
-    });
+    return item.children.some((child) => isRouteMatchingHref(child.href, pathname));
   };
 
   const isSubmenuOpen = (item: NavItem): boolean => {
@@ -337,7 +346,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <DashboardLayoutContext.Provider value={true}>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-emerald-500/20 selection:text-emerald-900">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-emerald-500/20 selection:text-emerald-900 print:block print:bg-white print:min-h-0 print:p-0">
         {/* Mobile Backdrop */}
         {mobileOpen && (
           <div
@@ -349,7 +358,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Crisp White Sidebar with Fresh Red Accent */}
         <aside
           className={`fixed md:sticky md:top-0 h-dvh shrink-0 inset-y-0 left-0 z-50 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 shadow-sm ${collapsed ? 'w-20' : 'w-64'
-            } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+            } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} print:hidden`}
         >
           {/* Sidebar Header */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
@@ -457,15 +466,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {open && (
                           <div className="ml-4 pl-3 border-l-2 border-slate-200/80 space-y-1 mt-1 transition-all duration-200">
                             {item.children.map((child) => {
-                              const isChildActive = (() => {
-                                if (child.href === '/dashboard/assets') {
-                                  return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-                                }
-                                if (child.href === '/dashboard/attendance') {
-                                  return pathname === '/dashboard/attendance';
-                                }
-                                return pathname === child.href || pathname.startsWith(`${child.href}/`);
-                              })();
+                              const isChildActive = isRouteMatchingHref(child.href, pathname);
                               const ChildIcon = child.icon;
 
                               return (
@@ -498,18 +499,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }
 
                   // Case B: Standard Nav Item
-                  const isActive = item.href && (() => {
-                    if (item.href === '/dashboard/assets') {
-                      return pathname === '/dashboard/assets' || (pathname.startsWith('/dashboard/assets/') && !pathname.startsWith('/dashboard/assets/overview'));
-                    }
-                    if (item.href === dashboardHref && pathname === dashboardHref) {
-                      return true;
-                    }
-                    if (item.href === pathname) {
-                      return true;
-                    }
-                    return pathname.startsWith(`${item.href}/`);
-                  })();
+                  const isActive = item.href && (item.href === dashboardHref && pathname === dashboardHref ? true : isRouteMatchingHref(item.href, pathname));
 
                   return (
                     <Link
@@ -580,7 +570,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Main Page Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Navbar */}
-          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs">
+          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs print:hidden">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -630,7 +620,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 md:p-8 md:px-10 max-w-[1600px] w-full mx-auto">
+          <main className="flex-1 p-4 md:p-8 md:px-10 max-w-[1600px] w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full">
             {!canAccessCurrentRoute ? (
               <div className="min-h-[60vh] flex items-center justify-center p-6">
                 <div className="max-w-md w-full bg-white rounded-3xl border border-red-200/80 p-8 shadow-xl shadow-red-500/5 text-center">

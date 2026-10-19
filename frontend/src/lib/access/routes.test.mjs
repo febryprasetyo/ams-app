@@ -78,3 +78,18 @@ test('Unknown role redirects to fallback welcome', () => {
   assert.equal(getDefaultRedirectForUser(guest), '/dashboard/welcome');
   assert.equal(getDashboardHrefForUser(guest), '/dashboard/welcome');
 });
+
+test('leave settings route requires attendance.manage and overrides generic leave view', () => {
+  const staff = {
+    roleName: 'Staff',
+    permissions: ['attendance.view'],
+  };
+  const manager = {
+    roleName: 'HR Manager',
+    permissions: ['attendance.view', 'attendance.manage'],
+  };
+
+  assert.equal(canAccessRoute('/dashboard/leaves', staff), true);
+  assert.equal(canAccessRoute('/dashboard/leaves/settings', staff), false);
+  assert.equal(canAccessRoute('/dashboard/leaves/settings', manager), true);
+});

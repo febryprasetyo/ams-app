@@ -51,13 +51,13 @@ export default function AttendanceDataPage() {
   const lookup = new Map(records.map(r => [r.employeeId, r]));
 
   const metrics: { key: string; label: string; test: (r: AttendanceRecord) => boolean }[] = [
-    { key: 'ontime', label: 'Tepat waktu', test: r => r.attendanceStatus === 'PRESENT' && r.lateMinutes === 0 },
-    { key: 'late', label: 'Terlambat', test: r => r.lateMinutes > 0 },
-    { key: 'early', label: 'Pulang awal', test: r => r.earlyMinutes > 0 },
-    { key: 'noout', label: 'Scan pulang kosong', test: r => r.attendanceStatus === 'PRESENT' && !r.rawScanOut },
-    { key: 'noin', label: 'Scan masuk kosong', test: r => r.attendanceStatus === 'PRESENT' && !r.rawScanIn },
+    { key: 'ontime', label: 'Tepat waktu', test: r => !r.isDayOff && r.attendanceStatus === 'PRESENT' && r.lateMinutes === 0 },
+    { key: 'late', label: 'Terlambat', test: r => !r.isDayOff && r.lateMinutes > 0 },
+    { key: 'early', label: 'Pulang awal', test: r => !r.isDayOff && r.earlyMinutes > 0 },
+    { key: 'noout', label: 'Scan pulang kosong', test: r => !r.isDayOff && r.attendanceStatus === 'PRESENT' && !r.rawScanOut },
+    { key: 'noin', label: 'Scan masuk kosong', test: r => !r.isDayOff && r.attendanceStatus === 'PRESENT' && !r.rawScanIn },
     { key: 'normalized', label: 'Dinormalisasi', test: r => r.normalized },
-    { key: 'absent', label: 'Tidak hadir', test: r => r.attendanceStatus === 'ALPHA' },
+    { key: 'absent', label: 'Tidak hadir', test: r => !r.isDayOff && r.attendanceStatus === 'ALPHA' },
     { key: 'off', label: 'Libur', test: r => r.isDayOff },
     { key: 'leave', label: 'Izin / sakit / cuti', test: r => ['IZIN', 'SAKIT', 'CUTI'].includes(r.attendanceStatus) },
   ];
@@ -282,7 +282,7 @@ export default function AttendanceDataPage() {
                     <td>{r?.shift ?? '—'}</td>
                     <td className="text-slate-500">{r?.scheduleIn ?? '—'}</td>
                     <td className="text-slate-500">{r?.scheduleOut ?? '—'}</td>
-                    <td className={r?.lateMinutes ? 'font-semibold text-amber-700' : 'text-emerald-700'}>
+                    <td className={r?.lateMinutes && !r.isDayOff ? 'font-semibold text-amber-700' : 'text-emerald-700'}>
                       {r?.scanIn ?? '—'}
                       {r?.normalized && !r.rawScanIn && (
                         <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">
@@ -290,7 +290,7 @@ export default function AttendanceDataPage() {
                         </span>
                       )}
                     </td>
-                    <td className={r?.earlyMinutes ? 'text-amber-700' : ''}>
+                    <td className={r?.earlyMinutes && !r.isDayOff ? 'text-amber-700' : ''}>
                       {r?.scanOut ?? '—'}
                       {r?.normalized && !r.rawScanOut && (
                         <span className="ml-1 text-amber-700" title="Scan sumber kosong, dinormalisasi">

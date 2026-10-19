@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, lt, asc, notInArray } from 'drizzle-orm';
 import { db } from '../db';
 import { employees } from '../db/schema/employees';
 import { departments } from '../db/schema/master';
@@ -9,21 +9,74 @@ import {
   leaveBalances,
   leaveRequests,
   leaveApprovals,
+  annualLeaveConfigs,
 } from '../db/schema/leaves';
 import {
   calculateLeaveWorkingDays,
   calculateLeaveBalances,
+  calculateRolloverCarryForward,
   formatLeaveRequestNumber,
 } from '../domain/leaveCalculation';
 
 // Zod schemas
-const calculateDaysSchema = z.object({
+export const calculateDaysSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
   employeeId: z.coerce.number().positive().optional(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode perhitungan cuti harus berada dalam tahun kalender yang sama',
+  path: ['endDate'],
 });
 
-const createLeaveRequestSchema = z.object({
+
+export const annualLeaveConfigSchema = z.object({
+  year: z.coerce.number().int().min(2000, 'Tahun minimal 2000').max(2100, 'Tahun maksimal 2100'),
+  baseQuota: z.coerce.number().int().min(0, 'Hak cuti dasar tidak boleh negatif').max(100).default(12),
+  collectiveLeaveDays: z.coerce.number().int().min(0, 'Cuti bersama tidak boleh negatif').max(50).default(0),
+  allowCarryForward: z.boolean().default(false),
+  maxCarryForwardDays: z.coerce.number().int().min(0, 'Batas carry forward tidak boleh negatif').max(50).default(0),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export const updateLeaveBalanceSchema = z
+  .object({
+    baseQuota: z.coerce.number().int().min(0, 'Hak dasar tidak boleh negatif').max(100).optional(),
+    carriedOverQuota: z.coerce.number().int().min(0, 'Carry over tidak boleh negatif').max(100).optional(),
+  })
+  .refine((data) => data.baseQuota !== undefined || data.carriedOverQuota !== undefined, {
+    message: 'Setidaknya salah satu kuota dasar atau carry over harus diisi',
+  });
+
+export const updateLeaveRequestSchema = z.object({
+  leaveType: z.enum(['ANNUAL', 'SPECIAL']),
+  specialLeaveReason: z.string().max(100).optional().nullable(),
+  reason: z.string().min(1, 'Alasan cuti wajib diisi').max(500),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  durationDays: z.coerce.number().positive('Jumlah cuti minimal 1 hari'),
+  resumeWorkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD').optional().nullable(),
+  handoverToEmployeeId: z.coerce.number().positive().optional().nullable(),
+  handoverTask: z.string().max(1000).optional().nullable(),
+  emergencyPhone: z.string().max(50).optional().nullable(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode cuti harus berada dalam tahun kalender yang sama. Jika melewati pergantian tahun, ajukan permohonan terpisah untuk masing-masing tahun.',
+  path: ['endDate'],
+}).refine((data) => {
+  return data.endDate >= data.startDate;
+}, {
+  message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai',
+  path: ['endDate'],
+});
+
+export const createLeaveRequestSchema = z.object({
   employeeId: z.coerce.number().positive(),
   leaveType: z.enum(['ANNUAL', 'SPECIAL']),
   specialLeaveReason: z.string().max(100).optional().nullable(),
@@ -35,6 +88,18 @@ const createLeaveRequestSchema = z.object({
   handoverToEmployeeId: z.coerce.number().positive().optional().nullable(),
   handoverTask: z.string().max(1000).optional().nullable(),
   emergencyPhone: z.string().max(50).optional().nullable(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode cuti harus berada dalam tahun kalender yang sama. Jika melewati pergantian tahun, ajukan permohonan terpisah untuk masing-masing tahun.',
+  path: ['endDate'],
+}).refine((data) => {
+  return data.endDate >= data.startDate;
+}, {
+  message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai',
+  path: ['endDate'],
 });
 
 // Helper: ambil profil ringkas karyawan
@@ -95,15 +160,21 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
       return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
     }
 
-    // Ambil hari libur / cuti bersama tahun berjalan
+    // 1. Ambil konfigurasi kebijakan cuti tahunan aktif
+    const [cfg] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, year));
+
+    // 2. Ambil hari libur / cuti bersama tahun berjalan
     const holidays = await db
       .select()
       .from(leaveHolidayCalendars)
       .where(eq(leaveHolidayCalendars.year, year));
 
-    // Cuti bersama yang memotong kuota tahunan
     const collectiveLeaves = holidays.filter((h) => h.isCollectiveLeave);
-    const collectiveLeaveDays = collectiveLeaves.length;
+    const effectiveBaseQuota = cfg?.baseQuota ?? 12;
+    const effectiveCollectiveLeaveDays = cfg?.collectiveLeaveDays ?? collectiveLeaves.length;
 
     // Ambil atau buat record saldo cuti karyawan untuk tahun bersangkutan
     let [balance] = await db
@@ -117,20 +188,29 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
         .values({
           employeeId,
           year,
-          baseQuota: 12,
-          collectiveLeaveDeduction: collectiveLeaveDays,
+          baseQuota: effectiveBaseQuota,
+          collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
           usedQuota: 0,
           carriedOverQuota: 0,
+          isCustomQuota: false,
         })
         .returning();
       balance = inserted;
-    } else if (balance.collectiveLeaveDeduction !== collectiveLeaveDays) {
-      const [updated] = await db
-        .update(leaveBalances)
-        .set({ collectiveLeaveDeduction: collectiveLeaveDays, updatedAt: new Date() })
-        .where(eq(leaveBalances.id, balance.id))
-        .returning();
-      balance = updated;
+    } else {
+      const needsSyncBase = !balance.isCustomQuota && balance.baseQuota !== effectiveBaseQuota;
+      const needsSyncCollective = balance.collectiveLeaveDeduction !== effectiveCollectiveLeaveDays;
+      if (needsSyncBase || needsSyncCollective) {
+        const [updated] = await db
+          .update(leaveBalances)
+          .set({
+            baseQuota: !balance.isCustomQuota ? effectiveBaseQuota : balance.baseQuota,
+            collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
+            updatedAt: new Date(),
+          })
+          .where(eq(leaveBalances.id, balance.id))
+          .returning();
+        balance = updated;
+      }
     }
 
     // Ambil histori cuti yang sudah diambil sebelumnya (maks 5 item sesuai slot format F4)
@@ -248,6 +328,13 @@ export async function createLeaveRequest(req: Request, res: Response) {
     }
 
     const startYear = Number(data.startDate.split('-')[0]);
+    const currentYear = new Date().getFullYear();
+
+    if (startYear < currentYear) {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat diajukan untuk tahun lampau (${startYear}). Saldo cuti tahun lampau sudah ditutup.`,
+      });
+    }
 
     // Ambil hari libur
     const holidays = await db
@@ -267,8 +354,15 @@ export async function createLeaveRequest(req: Request, res: Response) {
       finalResumeWorkDate = daysCalc.resumeWorkDate;
     }
 
-    // Ambil saldo
-    const collectiveLeaveDays = holidays.filter((h) => h.isCollectiveLeave).length;
+    // 1. Ambil kebijakan cuti aktif
+    const [cfg] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, startYear));
+    const effectiveBaseQuota = cfg?.baseQuota ?? 12;
+    const effectiveCollectiveLeaveDays = cfg?.collectiveLeaveDays ?? holidays.filter((h) => h.isCollectiveLeave).length;
+
+    // 2. Ambil saldo
     let [balance] = await db
       .select()
       .from(leaveBalances)
@@ -280,9 +374,11 @@ export async function createLeaveRequest(req: Request, res: Response) {
         .values({
           employeeId: data.employeeId,
           year: startYear,
-          baseQuota: 12,
-          collectiveLeaveDeduction: collectiveLeaveDays,
+          baseQuota: effectiveBaseQuota,
+          collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
           usedQuota: 0,
+          carriedOverQuota: 0,
+          isCustomQuota: false,
         })
         .returning();
       balance = inserted;
@@ -432,19 +528,37 @@ export async function getLeaveRequestById(req: Request, res: Response) {
         and(
           eq(leaveRequests.employeeId, request.employeeId),
           eq(leaveRequests.balanceYear, request.balanceYear),
-          eq(leaveRequests.status, 'APPROVED')
+          eq(leaveRequests.leaveType, 'ANNUAL'),
+          lt(leaveRequests.id, request.id),
+          notInArray(leaveRequests.status, ['REJECTED', 'CANCELLED'])
         )
       )
-      .orderBy(desc(leaveRequests.startDate))
-      .limit(5);
+      .orderBy(asc(leaveRequests.id));
 
     const historyItems: Array<{ no: number; description: string }> = [];
-    prevLeaves.forEach((pl, i) => {
-      historyItems.push({
-        no: i + 1,
-        description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+    if (prevLeaves.length <= 10) {
+      prevLeaves.forEach((pl, i) => {
+        historyItems.push({
+          no: i + 1,
+          description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+        });
       });
-    });
+    } else {
+      // Tampilkan 9 cuti terbaru, baris 10 akumulasi cuti sebelumnya
+      const recent = prevLeaves.slice(0, 9);
+      const older = prevLeaves.slice(9);
+      recent.forEach((pl, i) => {
+        historyItems.push({
+          no: i + 1,
+          description: `${pl.durationDays} = Cuti tahunan tgl ${pl.startDate}`,
+        });
+      });
+      const olderTotalDays = older.reduce((sum, r) => sum + r.durationDays, 0);
+      historyItems.push({
+        no: 10,
+        description: `${olderTotalDays} = Akumulasi ${older.length} cuti sebelumnya`,
+      });
+    }
     while (historyItems.length < 5) {
       historyItems.push({
         no: historyItems.length + 1,
@@ -457,6 +571,7 @@ export async function getLeaveRequestById(req: Request, res: Response) {
     return res.status(200).json({
       id: request.id,
       requestNumber: request.requestNumber,
+      status: request.status,
       formNumber: '001',
       revisionCode: 'REV. 170208-1-W',
       createdAt: request.createdAt,
@@ -521,7 +636,9 @@ export async function getLeaveRequestById(req: Request, res: Response) {
 // 5. GET /requests (List)
 export async function getLeaveRequests(req: Request, res: Response) {
   try {
-    const records = await db
+    const year = req.query.year ? Number(req.query.year) : undefined;
+
+    let query = db
       .select({
         id: leaveRequests.id,
         requestNumber: leaveRequests.requestNumber,
@@ -535,11 +652,18 @@ export async function getLeaveRequests(req: Request, res: Response) {
         durationDays: leaveRequests.durationDays,
         resumeWorkDate: leaveRequests.resumeWorkDate,
         status: leaveRequests.status,
+        balanceYear: leaveRequests.balanceYear,
         createdAt: leaveRequests.createdAt,
       })
       .from(leaveRequests)
       .leftJoin(employees, eq(leaveRequests.employeeId, employees.id))
-      .orderBy(desc(leaveRequests.createdAt));
+      .$dynamic();
+
+    if (year && !isNaN(year)) {
+      query = query.where(eq(leaveRequests.balanceYear, year));
+    }
+
+    const records = await query.orderBy(desc(leaveRequests.createdAt));
 
     return res.status(200).json(records);
   } catch (error) {
@@ -549,6 +673,266 @@ export async function getLeaveRequests(req: Request, res: Response) {
 }
 
 // 6. GET /holidays
+// 5c. PUT /requests/:id (Edit permohonan cuti yang berstatus PENDING)
+export async function updateLeaveRequest(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: 'ID permohonan cuti tidak valid' });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: 'Data permohonan cuti tidak ditemukan' });
+    }
+
+    if (request.status !== 'PENDING') {
+      return res.status(403).json({
+        error: `Permohonan cuti tidak dapat diedit karena berstatus ${request.status}. Hanya permohonan PENDING yang dapat diubah.`,
+      });
+    }
+
+    const parseResult = updateLeaveRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validasi form tidak lengkap',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const data = parseResult.data;
+    const startYear = Number(data.startDate.split('-')[0]);
+    const currentYear = new Date().getFullYear();
+
+    if (startYear < currentYear) {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat diubah ke tahun lampau (${startYear}).`,
+      });
+    }
+
+    const holidays = await db
+      .select()
+      .from(leaveHolidayCalendars)
+      .where(eq(leaveHolidayCalendars.year, startYear));
+    const holidayDates = holidays.map((h) => h.holidayDate);
+
+    let finalResumeWorkDate = data.resumeWorkDate;
+    if (!finalResumeWorkDate) {
+      const daysCalc = calculateLeaveWorkingDays({
+        startDate: data.startDate,
+        endDate: data.endDate,
+        holidayDates,
+      });
+      finalResumeWorkDate = daysCalc.resumeWorkDate;
+    }
+
+    let [balance] = await db
+      .select()
+      .from(leaveBalances)
+      .where(
+        and(
+          eq(leaveBalances.employeeId, request.employeeId),
+          eq(leaveBalances.year, startYear)
+        )
+      );
+
+    const oldUsedDays = request.leaveType === 'ANNUAL' ? request.durationDays : 0;
+    const newUsedDays = data.leaveType === 'ANNUAL' ? data.durationDays : 0;
+    const deltaDays = newUsedDays - oldUsedDays;
+
+    if (balance && deltaDays > 0) {
+      const availableNow = balance.baseQuota - balance.collectiveLeaveDeduction - balance.usedQuota;
+      if (deltaDays > availableNow) {
+        return res.status(400).json({
+          error: `Saldo cuti tahunan tidak mencukupi untuk penambahan durasi cuti. Sisa saldo tersedia: ${availableNow} hari, penambahan: ${deltaDays} hari.`,
+        });
+      }
+    }
+
+    const snapshotRemaining =
+      data.leaveType === 'ANNUAL'
+        ? Math.max(0, request.snapshotAvailableBefore - data.durationDays)
+        : request.snapshotAvailableBefore;
+
+    await db.transaction(async (tx) => {
+      if (balance && deltaDays !== 0) {
+        await tx
+          .update(leaveBalances)
+          .set({
+            usedQuota: Math.max(0, balance.usedQuota + deltaDays),
+            updatedAt: new Date(),
+          })
+          .where(eq(leaveBalances.id, balance.id));
+      }
+
+      await tx
+        .update(leaveRequests)
+        .set({
+          leaveType: data.leaveType,
+          specialLeaveReason: data.leaveType === 'SPECIAL' ? data.specialLeaveReason : null,
+          reason: data.reason,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          durationDays: data.durationDays,
+          resumeWorkDate: finalResumeWorkDate,
+          handoverToEmployeeId: data.handoverToEmployeeId || null,
+          handoverTask: data.handoverTask || null,
+          emergencyPhone: data.emergencyPhone || null,
+          balanceYear: startYear,
+          snapshotRemainingAfter: snapshotRemaining,
+          updatedAt: new Date(),
+        })
+        .where(eq(leaveRequests.id, id));
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Permohonan cuti ${request.requestNumber} berhasil diperbarui.`,
+      data: {
+        id,
+        requestNumber: request.requestNumber,
+        status: 'PENDING',
+      },
+    });
+  } catch (error) {
+    console.error('Error updateLeaveRequest:', error);
+    return res.status(500).json({ error: 'Gagal memperbarui permohonan cuti' });
+  }
+}
+
+// 5a. PATCH /requests/:id/approve
+export async function approveLeaveRequest(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID permohonan cuti tidak valid" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: "Data permohonan cuti tidak ditemukan" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat disetujui karena berstatus ${request.status}`,
+      });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const user = (req as any).user;
+    const approverName = user?.fullName || user?.username || "HR Administrator";
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(leaveRequests)
+        .set({
+          status: "APPROVED",
+          updatedAt: new Date(),
+        })
+        .where(eq(leaveRequests.id, id));
+
+      await tx
+        .update(leaveApprovals)
+        .set({
+          status: "APPROVED",
+          signatureDate: todayStr,
+          approverName,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(leaveApprovals.leaveRequestId, id),
+            eq(leaveApprovals.stage, "HRD")
+          )
+        );
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Permohonan cuti berhasil disetujui oleh HRD",
+      data: { id, status: "APPROVED" },
+    });
+  } catch (error) {
+    console.error("Error approveLeaveRequest:", error);
+    return res.status(500).json({ error: "Gagal menyetujui permohonan cuti" });
+  }
+}
+
+// 5b. DELETE /requests/:id
+export async function deleteLeaveRequestDraft(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID permohonan cuti tidak valid" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: "Data permohonan cuti tidak ditemukan" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        error: "Hanya permohonan cuti berstatus PENDING yang dapat dihapus",
+      });
+    }
+
+    await db.transaction(async (tx) => {
+      if (request.leaveType === "ANNUAL") {
+        const [balance] = await tx
+          .select()
+          .from(leaveBalances)
+          .where(
+            and(
+              eq(leaveBalances.employeeId, request.employeeId),
+              eq(leaveBalances.year, request.balanceYear)
+            )
+          );
+
+        if (balance) {
+          const newUsed = Math.max(0, balance.usedQuota - request.durationDays);
+          await tx
+            .update(leaveBalances)
+            .set({
+              usedQuota: newUsed,
+              updatedAt: new Date(),
+            })
+            .where(eq(leaveBalances.id, balance.id));
+        }
+      }
+
+      await tx
+        .delete(leaveApprovals)
+        .where(eq(leaveApprovals.leaveRequestId, id));
+
+      await tx
+        .delete(leaveRequests)
+        .where(eq(leaveRequests.id, id));
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Draft permohonan cuti berhasil dihapus dan saldo telah dipulihkan",
+    });
+  } catch (error) {
+    console.error("Error deleteLeaveRequestDraft:", error);
+    return res.status(500).json({ error: "Gagal menghapus draft permohonan cuti" });
+  }
+}
+
 export async function getHolidays(req: Request, res: Response) {
   try {
     const year = req.query.year ? Number(req.query.year) : new Date().getUTCFullYear();
@@ -562,5 +946,370 @@ export async function getHolidays(req: Request, res: Response) {
   } catch (error) {
     console.error('Error getHolidays:', error);
     return res.status(500).json({ error: 'Gagal mengambil data kalender libur' });
+  }
+}
+
+
+// ==========================================
+// MASTER CUTI, CUTI BERSAMA & REKAP SALDO
+// ==========================================
+
+export async function getAnnualLeaveConfig(req: Request, res: Response) {
+  try {
+    const year = Number(req.query.year) || new Date().getUTCFullYear();
+    const [config] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, year));
+
+    if (!config) {
+      return res.json({
+        year,
+        baseQuota: 12,
+        collectiveLeaveDays: 0,
+        allowCarryForward: false,
+        maxCarryForwardDays: 0,
+        notes: null,
+      });
+    }
+
+    return res.json(config);
+  } catch (error) {
+    console.error('Error getAnnualLeaveConfig:', error);
+    return res.status(500).json({ error: 'Gagal memuat konfigurasi master cuti tahunan' });
+  }
+}
+
+export async function saveAnnualLeaveConfig(req: Request, res: Response) {
+  try {
+    const parseResult = annualLeaveConfigSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Data konfigurasi cuti tidak valid',
+        details: parseResult.error.format(),
+      });
+    }
+
+    const data = parseResult.data;
+    let savedConfig: any = null;
+    let syncedCount = 0;
+
+    await db.transaction(async (tx) => {
+      // 1. Upsert annualLeaveConfigs
+      const [existingConfig] = await tx
+        .select()
+        .from(annualLeaveConfigs)
+        .where(eq(annualLeaveConfigs.year, data.year));
+
+      if (existingConfig) {
+        const [updated] = await tx
+          .update(annualLeaveConfigs)
+          .set({
+            baseQuota: data.baseQuota,
+            collectiveLeaveDays: data.collectiveLeaveDays,
+            allowCarryForward: data.allowCarryForward,
+            maxCarryForwardDays: data.maxCarryForwardDays,
+            notes: data.notes ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(annualLeaveConfigs.id, existingConfig.id))
+          .returning();
+        savedConfig = updated;
+      } else {
+        const [inserted] = await tx
+          .insert(annualLeaveConfigs)
+          .values({
+            year: data.year,
+            baseQuota: data.baseQuota,
+            collectiveLeaveDays: data.collectiveLeaveDays,
+            allowCarryForward: data.allowCarryForward,
+            maxCarryForwardDays: data.maxCarryForwardDays,
+            notes: data.notes ?? null,
+          })
+          .returning();
+        savedConfig = inserted;
+      }
+
+      // 2. Ambil seluruh karyawan aktif
+      const activeEmployees = await tx
+        .select({ id: employees.id })
+        .from(employees)
+        .where(eq(employees.status, 'Active'));
+
+      // 3. Ambil saldo tahun berjalan (N) dan tahun sebelumnya (N - 1)
+      const currentBalances = await tx
+        .select()
+        .from(leaveBalances)
+        .where(eq(leaveBalances.year, data.year));
+
+      const prevBalances = await tx
+        .select()
+        .from(leaveBalances)
+        .where(eq(leaveBalances.year, data.year - 1));
+
+      const currentMap = new Map<number, typeof currentBalances[0]>();
+      currentBalances.forEach((b) => currentMap.set(b.employeeId, b));
+
+      const prevMap = new Map<number, typeof prevBalances[0]>();
+      prevBalances.forEach((b) => prevMap.set(b.employeeId, b));
+
+      // 4. Lakukan bulk sync per karyawan
+      for (const emp of activeEmployees) {
+        const prev = prevMap.get(emp.id);
+        const autoCarry = calculateRolloverCarryForward({
+          prevBaseQuota: prev?.baseQuota ?? 12,
+          prevCollectiveLeave: prev?.collectiveLeaveDeduction ?? 0,
+          prevCarriedOver: prev?.carriedOverQuota ?? 0,
+          prevUsedQuota: prev?.usedQuota ?? 0,
+          maxCarryForwardDays: data.maxCarryForwardDays,
+          isCarryForwardEnabled: data.allowCarryForward,
+        });
+
+        const curr = currentMap.get(emp.id);
+
+        if (!curr) {
+          await tx.insert(leaveBalances).values({
+            employeeId: emp.id,
+            year: data.year,
+            baseQuota: data.baseQuota,
+            collectiveLeaveDeduction: data.collectiveLeaveDays,
+            usedQuota: 0,
+            carriedOverQuota: autoCarry,
+            isCustomQuota: false,
+            isCustomCarryForward: false,
+          });
+          syncedCount++;
+        } else {
+          const updateData: Partial<typeof leaveBalances.$inferInsert> = {
+            collectiveLeaveDeduction: data.collectiveLeaveDays,
+            updatedAt: new Date(),
+          };
+
+          if (!curr.isCustomQuota) {
+            updateData.baseQuota = data.baseQuota;
+          }
+
+          if (!curr.isCustomCarryForward) {
+            updateData.carriedOverQuota = autoCarry;
+          }
+
+          await tx
+            .update(leaveBalances)
+            .set(updateData)
+            .where(eq(leaveBalances.id, curr.id));
+          syncedCount++;
+        }
+      }
+    });
+
+    return res.json({
+      message: 'Konfigurasi cuti berhasil disimpan dan saldo karyawan disinkronisasi',
+      data: savedConfig,
+      syncedEmployeesCount: syncedCount,
+    });
+  } catch (error) {
+    console.error('Error saveAnnualLeaveConfig:', error);
+    return res.status(500).json({ error: 'Gagal menyimpan konfigurasi master cuti tahunan' });
+  }
+}
+
+export async function getMasterLeaveBalances(req: Request, res: Response) {
+  try {
+    const year = Number(req.query.year) || new Date().getUTCFullYear();
+    const departmentId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
+    const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
+
+    const [config] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, year));
+
+    const defaultBaseQuota = config?.baseQuota ?? 12;
+    const defaultCollectiveLeave = config?.collectiveLeaveDays ?? 0;
+
+    const activeEmployees = await db
+      .select({
+        id: employees.id,
+        employeeCode: employees.employeeCode,
+        fullName: employees.fullName,
+        departmentId: employees.departmentId,
+        departmentName: departments.name,
+        position: employees.position,
+        status: employees.status,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(eq(employees.status, 'Active'));
+
+    const balances = await db
+      .select()
+      .from(leaveBalances)
+      .where(eq(leaveBalances.year, year));
+
+    const balanceMap = new Map<number, typeof balances[0]>();
+    balances.forEach((b) => balanceMap.set(b.employeeId, b));
+
+    let totalAllocatedQuota = 0;
+    let totalUsedDays = 0;
+    let totalRemainingDays = 0;
+
+    const items: Array<{
+      balanceId: number | null;
+      employeeId: number;
+      employeeCode: string;
+      fullName: string;
+      department: string;
+      departmentId: number | null;
+      position: string;
+      year: number;
+      baseQuota: number;
+      collectiveLeaveDeduction: number;
+      cleanAnnualQuota: number;
+      carriedOverQuota: number;
+      totalEntitlement: number;
+      usedQuota: number;
+      remainingQuota: number;
+      isCustomQuota: boolean;
+      isCustomCarryForward: boolean;
+    }> = [];
+
+    for (const emp of activeEmployees) {
+      const b = balanceMap.get(emp.id);
+      const baseQuota = b?.baseQuota ?? defaultBaseQuota;
+      const collectiveLeaveDeduction = b?.collectiveLeaveDeduction ?? defaultCollectiveLeave;
+      const carriedOverQuota = b?.carriedOverQuota ?? 0;
+      const usedQuota = b?.usedQuota ?? 0;
+      const isCustomQuota = b?.isCustomQuota ?? false;
+      const isCustomCarryForward = b?.isCustomCarryForward ?? false;
+
+      const calc = calculateLeaveBalances({
+        baseQuota,
+        collectiveLeaveDays: collectiveLeaveDeduction,
+        usedQuota,
+        carriedOverQuota,
+        requestedDays: 0,
+      });
+
+      totalAllocatedQuota += calc.totalEntitlement;
+      totalUsedDays += usedQuota;
+      totalRemainingDays += calc.availableBefore;
+
+      items.push({
+        balanceId: b?.id ?? null,
+        employeeId: emp.id,
+        employeeCode: emp.employeeCode,
+        fullName: emp.fullName,
+        department: emp.departmentName || 'Belum Ditentukan',
+        departmentId: emp.departmentId,
+        position: emp.position || '-',
+        year,
+        baseQuota,
+        collectiveLeaveDeduction,
+        cleanAnnualQuota: calc.cleanAnnualQuota,
+        carriedOverQuota,
+        totalEntitlement: calc.totalEntitlement,
+        usedQuota,
+        remainingQuota: calc.availableBefore,
+        isCustomQuota,
+        isCustomCarryForward,
+      });
+    }
+
+    let filtered = items;
+    if (departmentId && !isNaN(departmentId)) {
+      filtered = filtered.filter((i) => i.departmentId === departmentId);
+    }
+    if (search) {
+      filtered = filtered.filter(
+        (i) =>
+          i.fullName.toLowerCase().includes(search) ||
+          i.employeeCode.toLowerCase().includes(search) ||
+          i.department.toLowerCase().includes(search)
+      );
+    }
+
+    const totalEmployees = activeEmployees.length;
+    const averageRemainingDays = totalEmployees > 0 ? Number((totalRemainingDays / totalEmployees).toFixed(1)) : 0;
+
+    return res.json({
+      year,
+      totalEmployees,
+      totalAllocatedQuota,
+      averageRemainingDays,
+      totalUsedDays,
+      balances: filtered,
+    });
+  } catch (error) {
+    console.error('Error getMasterLeaveBalances:', error);
+    return res.status(500).json({ error: 'Gagal memuat rekap saldo cuti karyawan' });
+  }
+}
+
+export async function updateEmployeeLeaveBalance(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: 'ID saldo tidak valid' });
+    }
+
+    const parseResult = updateLeaveBalanceSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Data penyesuaian saldo tidak valid',
+        details: parseResult.error.format(),
+      });
+    }
+
+    const { baseQuota, carriedOverQuota } = parseResult.data;
+
+    const [existing] = await db
+      .select()
+      .from(leaveBalances)
+      .where(eq(leaveBalances.id, id));
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Data saldo cuti tidak ditemukan' });
+    }
+
+    const updatePayload: Partial<typeof leaveBalances.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    if (baseQuota !== undefined) {
+      updatePayload.baseQuota = baseQuota;
+      updatePayload.isCustomQuota = true;
+    }
+
+    if (carriedOverQuota !== undefined) {
+      updatePayload.carriedOverQuota = carriedOverQuota;
+      updatePayload.isCustomCarryForward = true;
+    }
+
+    const [updated] = await db
+      .update(leaveBalances)
+      .set(updatePayload)
+      .where(eq(leaveBalances.id, id))
+      .returning();
+
+    const calc = calculateLeaveBalances({
+      baseQuota: updated.baseQuota,
+      collectiveLeaveDays: updated.collectiveLeaveDeduction,
+      usedQuota: updated.usedQuota,
+      carriedOverQuota: updated.carriedOverQuota,
+      requestedDays: 0,
+    });
+
+    return res.json({
+      message: 'Saldo cuti karyawan berhasil diperbarui',
+      data: {
+        ...updated,
+        cleanAnnualQuota: calc.cleanAnnualQuota,
+        totalEntitlement: calc.totalEntitlement,
+        remainingQuota: calc.availableBefore,
+      },
+    });
+  } catch (error) {
+    console.error('Error updateEmployeeLeaveBalance:', error);
+    return res.status(500).json({ error: 'Gagal memperbarui saldo cuti karyawan' });
   }
 }

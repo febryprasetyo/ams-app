@@ -2,6 +2,7 @@
 
 import { useAttendance } from './AttendanceWorkspace';
 import { FormDialog } from './shared';
+import { getScheduleForDate, resolveEmployeeShift } from '@/lib/attendance/scheduleShift';
 import { dateLabel, statusLabels } from '@/lib/attendance/domain';
 import type { AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
 
@@ -20,16 +21,29 @@ export function UnifiedCorrectionModal({
   shiftId,
   onClose,
 }: UnifiedCorrectionModalProps) {
-  const { execute } = useAttendance();
+  const { data, execute } = useAttendance();
+  const shift = data.shifts?.find(s => s.id === shiftId)
+    ?? resolveEmployeeShift(employee, data.shifts || [], data.shiftAssignments || []);
+  const isDayOff = existingRecord?.isDayOff ?? getScheduleForDate(date, shift).isDayOff;
 
   const isExisting = !!existingRecord;
 
   return (
     <FormDialog
       title="Koreksi absensi"
-      description={`${employee.fullName} · ${dateLabel(date)}.`}
+      description={`${employee.fullName} · ${dateLabel(date)}. Dayoff tetap menyimpan scan kehadiran dan tidak dihitung terlambat atau pulang awal.`}
       onClose={onClose}
       fields={[
+        {
+          name: 'isDayOff',
+          label: 'Jadwal hari ini',
+          type: 'select',
+          value: String(isDayOff),
+          options: [
+            { value: 'false', label: 'Hari kerja' },
+            { value: 'true', label: 'Dayoff / Libur' },
+          ],
+        },
         {
           name: 'attendanceStatus',
           label: 'Status kehadiran',
@@ -71,6 +85,7 @@ export function UnifiedCorrectionModal({
         },
       ]}
       onSubmit={async (form) => {
+        const dayOff = form.get('isDayOff') === 'true';
         const status = String(form.get('attendanceStatus')) as AttendanceStatus;
         const scanIn = String(form.get('scanIn')) || null;
         const scanOut = String(form.get('scanOut')) || null;
@@ -85,6 +100,7 @@ export function UnifiedCorrectionModal({
             expectedRevision: existingRecord.revision,
             reason: reason || 'Koreksi absensi',
             values: {
+              isDayOff: dayOff,
               attendanceStatus: status,
               scanIn,
               scanOut,
@@ -98,7 +114,8 @@ export function UnifiedCorrectionModal({
             employeeId: employee.id,
             workDate: date,
             attendanceStatus: status,
-            shiftId: shiftId || 1,
+            shiftId: shift.id,
+            isDayOff: dayOff,
             scanIn: status === 'PRESENT' ? scanIn : null,
             scanOut: status === 'PRESENT' ? scanOut : null,
             reason: reason || 'Koreksi absensi',

@@ -116,3 +116,44 @@ test("includes Rincian Harian sheet when dailyRecords are provided", () => {
   assert.equal(dailyRows[0]["Terlambat (Menit)"], 15);
   assert.equal(dailyRows[0]["Lembur (Menit)"], 60);
 });
+
+test('daily export labels dayoff and keeps scans without lateness penalties', () => {
+  const wb = createAttendanceReportWorkbook(dummyRows, dummyFilter, { dailyRecords: [{ workDate: '2026-09-21', attendanceStatus: 'PRESENT', isDayOff: true, scanIn: '09:00', scanOut: '16:00', lateMinutes: 60, earlyMinutes: 60, overtimeMinutes: 30 }] });
+  const [row] = XLSX.utils.sheet_to_json(wb.Sheets['Rincian Harian']);
+  assert.equal(row.Status, 'DAYOFF');
+  assert.equal(row['Scan Masuk'], '09:00');
+  assert.equal(row['Terlambat (Menit)'], 0);
+  assert.equal(row['Pulang Cepat (Menit)'], 0);
+  assert.equal(row['Lembur (Menit)'], 30);
+});
+
+test('personal export uses calendar rows even when there are no raw attendance records', () => {
+  const calendarRows = [
+    {
+      date: '2026-09-21',
+      dayName: 'Senin',
+      shiftName: 'Office',
+      scheduleIn: '08:00',
+      scheduleOut: '17:00',
+      isDayOff: false,
+      record: null,
+    },
+    {
+      date: '2026-09-22',
+      dayName: 'Selasa',
+      shiftName: 'dayoff',
+      scheduleIn: '00:00',
+      scheduleOut: '00:00',
+      isDayOff: true,
+      record: null,
+    },
+  ];
+
+  const wb = createAttendanceReportWorkbook(dummyRows.slice(0, 1), dummyFilter, { calendarRows });
+  assert.ok(wb.SheetNames.includes('Rincian Harian'));
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets['Rincian Harian']);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0]['Tanggal'], '2026-09-21');
+  assert.equal(rows[0]['Status'], 'BELUM ADA CATATAN');
+  assert.equal(rows[1]['Status'], 'DAYOFF');
+});

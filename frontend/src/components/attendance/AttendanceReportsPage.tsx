@@ -101,7 +101,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
     error = err instanceof Error ? err.message : 'Periode tidak valid.';
   }
 
-  const filter = { startDate, endDate, q: anonymous ? '' : q, departmentId: anonymous ? 0 : departmentId, employeeId };
+  const filter = { startDate, endDate, q: anonymous ? '' : q, departmentId: anonymous || employeeId ? 0 : departmentId, employeeId };
   const reports = error ? [] : summarizeEmployees(data, filter);
   const records = error || !employeeId ? [] : sortRecordsDescending(filterRecords(data, filter));
 
@@ -198,7 +198,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
                 exportAttendanceReportToExcel(reports, filter, {
                   anonymous,
                   departmentLookup: id => data.departments.find(d => d.id === id)?.name,
-                  dailyRecords: records,
+                  calendarRows,
                   filename: `rekap-absensi-${employee.employeeCode || employee.id}-${startDate}-${endDate}.xlsx`,
                 });
               }}
@@ -236,7 +236,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
           />
 
           {/* Direct Department Dropdown */}
-          {!anonymous && (
+          {!employee && !anonymous && (
             <label>
               <span className="sr-only">Departemen</span>
               <select

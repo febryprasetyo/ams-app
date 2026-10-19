@@ -39,18 +39,20 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
     }
     if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed) || parsed.schemaVersion !== 1 || !('records' in parsed) || !Array.isArray(parsed.records)) throw new Error('Format data absensi tidak sesuai. Muat ulang workspace untuk mencoba kembali.');
     current = parsed as AttendanceDataset;
+    current.batches = current.batches.filter(batch => batch.filename !== 'MANUAL_ENTRY');
     if (!current.shifts || current.shifts.length === 0) { current.shifts = [DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT]; }
     if (!current.shiftAssignments) { current.shiftAssignments = []; }
 
     // Live sync with real database: employees, departments, strict_integrity, and attendance records
     if (typeof window !== 'undefined') {
       try {
-        const [empData, deptData, settingRes, dbRecords, dbBatches] = await Promise.all([
+        const [empData, deptData, settingRes, dbRecords, dbBatches, dbActivity] = await Promise.all([
           api.get<any[]>('/employees').catch(() => null),
           api.get<any[]>('/master/departments').catch(() => null),
           api.get<{ key: string; value: any }>('/system/settings/attendance_strict_integrity').catch(() => null),
           api.get<any[]>('/attendance/records').catch(() => null),
           api.get<any[]>('/attendance/batches').catch(() => null),
+          api.get<any[]>('/attendance/activity').catch(() => null),
         ]);
 
         if (Array.isArray(empData) && empData.length > 0) {
@@ -126,10 +128,21 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
                 status: 'COMMITTED',
                 createdAt: dbb.createdAt ? new Date(dbb.createdAt).toISOString() : new Date().toISOString(),
                 rows: [],
+                totalRows: Number(dbb.totalRows || 0),
                 strictIntegrity: current.meta.strictIntegrity,
               });
             }
           }
+        }
+
+        if (Array.isArray(dbActivity) && dbActivity.length > 0) {
+          current.audit = dbActivity.map((entry: any) => ({
+            id: Number(entry.id),
+            createdAt: new Date(entry.createdAt).toISOString(),
+            actor: String(entry.actor || 'Sistem'),
+            action: String(entry.action || 'Aktivitas absensi'),
+            detail: String(entry.detail || ''),
+          }));
         }
       } catch {
         // Fallback silently if offline or token not yet ready
@@ -193,27 +206,24 @@ export function createAttendanceRepository(accountId?: number): AttendanceReposi
           }
         }
 
-        // Persist manual attendance record (e.g. SAKIT/IZIN/CUTI) to central database
-        if (command.type === 'record_attendance' && typeof window !== 'undefined') {
-          try {
-            await api.post('/attendance/commit-batch', {
-              filename: 'MANUAL_ENTRY',
-              sourceId: 1,
-              records: [{
-                employeeId: command.employeeId,
-                workDate: command.workDate,
-                attendanceStatus: command.attendanceStatus,
-                scanIn: command.scanIn || null,
-                scanOut: command.scanOut || null,
-                lateMinutes: 0,
-                earlyMinutes: 0,
-                overtimeMinutes: 0,
-                isDayOff: false,
-                normalized: true,
-              }],
+        // Manual entries and corrections are attendance activity, not import batches.
+        if ((command.type === 'record_attendance' || command.type === 'correct') && typeof window !== 'undefined') {
+          const record = command.type === 'correct'
+            ? result.records.find(r => r.id === command.recordId)
+            : result.records.find(r => r.employeeId === command.employeeId && r.workDate === command.workDate);
+          if (record) {
+            const response = await api.put<{ record?: AttendanceRecord }>('/attendance/records', {
+              operation: command.type === 'correct' ? 'correct' : 'create',
+              reason: command.reason,
+              record,
             });
-          } catch (err) {
-            throw err;
+            if (response.record) {
+              result.records = result.records.map(item =>
+                item.employeeId === response.record!.employeeId && item.workDate === response.record!.workDate
+                  ? response.record!
+                  : item
+              );
+            }
           }
         }
 

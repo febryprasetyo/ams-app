@@ -30,6 +30,17 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
     moduleName: 'Welcome Overview',
   },
 
+  // HR Leave Settings & Requests
+  {
+    prefix: '/dashboard/leaves/settings',
+    permission: 'attendance.manage',
+    moduleName: 'Pengaturan Cuti',
+  },
+  {
+    prefix: '/dashboard/leaves',
+    permission: 'attendance.view',
+    moduleName: 'Pengajuan Cuti',
+  },
   // HR Attendance Settings (Admin Only - restricted from ordinary HRD)
   {
     prefix: '/dashboard/attendance/settings',
@@ -118,12 +129,13 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
     moduleName: 'Server & Accurate Infrastructure',
   },
 
-  // HR Attendance
+  // HR Leave Requests
   {
-    prefix: '/dashboard/attendance/access',
-    permission: 'attendance.manage',
-    moduleName: 'Attendance Access Control',
+    prefix: '/dashboard/leaves',
+    permission: 'attendance.view',
+    moduleName: 'Pengajuan Cuti',
   },
+  // HR Attendance
   {
     prefix: '/dashboard/attendance/identities',
     permission: 'attendance.manage',

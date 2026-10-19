@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import express from 'express';
 import leaveRoutes from './leaveRoutes';
 
 test('leave routes register expected endpoints', () => {
@@ -18,5 +17,13 @@ test('leave routes register expected endpoints', () => {
   assert.ok(paths.includes('POST /requests'), 'POST /requests must exist');
   assert.ok(paths.includes('GET /requests/:id'), 'GET /requests/:id must exist');
   assert.ok(paths.includes('GET /requests'), 'GET /requests must exist');
+  assert.ok(paths.includes('PATCH /requests/:id/approve'), 'PATCH /requests/:id/approve must exist');
+  assert.ok(paths.includes('DELETE /requests/:id'), 'DELETE /requests/:id must exist');
   assert.ok(paths.includes('GET /holidays'), 'GET /holidays must exist');
+
+  // Master leaves endpoints
+  assert.ok(paths.includes('GET /master/config'), 'GET /master/config must exist');
+  assert.ok(paths.includes('POST /master/config'), 'POST /master/config must exist');
+  assert.ok(paths.includes('GET /master/balances'), 'GET /master/balances must exist');
+  assert.ok(paths.includes('PUT /master/balances/:id'), 'PUT /master/balances/:id must exist');
 });

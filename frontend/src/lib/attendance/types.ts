@@ -50,7 +50,7 @@ export interface ImportRow {
 export interface ImportBatch {
   id: number; filename: string; sourceId: number; fileHash?: string; createdAt: string;
   status: 'DRAFT' | 'COMMITTED' | 'CANCELLED'; rows: ImportRow[];
-  strictIntegrity?: boolean;
+  strictIntegrity?: boolean; totalRows?: number;
 }
 export interface AuditEntry { id: number; createdAt: string; actor: string; action: string; detail: string }
 export interface Revision {
@@ -72,7 +72,7 @@ export interface AttendanceDataset {
 export interface RecordFilter { startDate: string; endDate: string; q?: string; departmentId?: number; locationId?: number; employeeId?: number }
 export interface EmployeeReport { employee: Employee; recordCount: number; lateMinutes: number; overtimeMinutes: number; sakitCount?: number; izinCount?: number; cutiCount?: number; }
 export type AttendanceCommand =
-  | { type: 'correct'; recordId: number; expectedRevision: number; values: Pick<AttendanceRecord, 'scanIn' | 'scanOut' | 'lateMinutes' | 'overtimeMinutes' | 'attendanceStatus'>; reason: string }
+  | { type: 'correct'; recordId: number; expectedRevision: number; values: Pick<AttendanceRecord, 'scanIn' | 'scanOut' | 'lateMinutes' | 'overtimeMinutes' | 'attendanceStatus'> & { isDayOff?: boolean }; reason: string }
   | { type: 'employee'; value: Employee }
   | { type: 'master'; collection: 'departments' | 'locations' | 'sources'; value: MasterItem }
   | { type: 'identity'; value: Identity }
@@ -85,7 +85,7 @@ export type AttendanceCommand =
   | { type: 'delete_batch'; batchId: number }
   | { type: 'toggle_strict_integrity'; batchId: number; enabled: boolean }
   | { type: 'set_strict_integrity'; enabled: boolean }
-  | { type: 'record_attendance'; employeeId: number; workDate: string; attendanceStatus: AttendanceStatus; shiftId?: number; scanIn?: string | null; scanOut?: string | null; reason?: string }
+  | { type: 'record_attendance'; employeeId: number; workDate: string; attendanceStatus: AttendanceStatus; shiftId?: number; isDayOff?: boolean; scanIn?: string | null; scanOut?: string | null; reason?: string }
   | { type: 'shift'; action: 'create' | 'update' | 'delete'; shift: WorkShift }
   | { type: 'assign_shift'; assignment: ShiftAssignment }
   | { type: 'sync_employees'; employees: Employee[]; departments?: MasterItem[] };

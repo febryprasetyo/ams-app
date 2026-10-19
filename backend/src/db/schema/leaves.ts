@@ -1,6 +1,19 @@
-import { pgTable, bigint, varchar, text, date, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, bigint, varchar, text, date, integer, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { employees } from './employees';
 import { users } from './users';
+
+// 0. Konfigurasi Master Cuti Tahunan & Cuti Bersama
+export const annualLeaveConfigs = pgTable('annual_leave_configs', {
+  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  year: integer('year').notNull().unique(), // Satu konfigurasi per tahun kalender
+  baseQuota: integer('base_quota').default(12).notNull(), // Kuota hak cuti dasar default (12 hari)
+  collectiveLeaveDays: integer('collective_leave_days').default(0).notNull(), // Total hari cuti bersama tahunan
+  allowCarryForward: boolean('allow_carry_forward').default(false).notNull(), // Izinkan pengalihan sisa cuti tahun lalu
+  maxCarryForwardDays: integer('max_carry_forward_days').default(0).notNull(), // Maksimal hari yang dialihkan
+  notes: text('notes'), // Catatan kebijakan / SKB 3 Menteri
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 
 // 1. Kalender Cuti Bersama & Libur Perusahaan per Tahun
 export const leaveHolidayCalendars = pgTable('leave_holiday_calendars', {
@@ -22,9 +35,13 @@ export const leaveBalances = pgTable('leave_balances', {
   collectiveLeaveDeduction: integer('collective_leave_deduction').default(0).notNull(), // Jumlah cuti bersama tahun berjalan
   usedQuota: integer('used_quota').default(0).notNull(), // Cuti tahunan yang telah disetujui & diambil
   carriedOverQuota: integer('carried_over_quota').default(0).notNull(), // Kuota sisa tahun lalu (jika ada)
+  isCustomQuota: boolean('is_custom_quota').default(false).notNull(), // Proteksi override manual kuota dasar
+  isCustomCarryForward: boolean('is_custom_carry_forward').default(false).notNull(), // Proteksi override manual carry-over
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex('leave_balances_employee_year_unique').on(table.employeeId, table.year),
+]);
 
 // 3. Permohonan Cuti Karyawan
 export const leaveRequests = pgTable('leave_requests', {

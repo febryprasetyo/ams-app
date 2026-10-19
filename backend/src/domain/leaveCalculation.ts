@@ -21,9 +21,19 @@ export interface CalculateLeaveBalancesInput {
 
 export interface CalculateLeaveBalancesOutput {
   cleanAnnualQuota: number;
+  totalEntitlement: number;
   availableBefore: number;
   remainingAfter: number;
   hasSufficientBalance: boolean;
+}
+
+export interface CalculateRolloverCarryForwardInput {
+  prevBaseQuota: number;
+  prevCollectiveLeave: number;
+  prevCarriedOver: number;
+  prevUsedQuota: number;
+  maxCarryForwardDays: number;
+  isCarryForwardEnabled: boolean;
 }
 
 function parseDateOnly(dateStr: string): Date {
@@ -90,16 +100,29 @@ export function calculateLeaveWorkingDays(input: CalculateLeaveWorkingDaysInput)
 export function calculateLeaveBalances(input: CalculateLeaveBalancesInput): CalculateLeaveBalancesOutput {
   const carried = input.carriedOverQuota || 0;
   const cleanAnnualQuota = Math.max(0, input.baseQuota - input.collectiveLeaveDays);
-  const availableBefore = Math.max(0, cleanAnnualQuota + carried - input.usedQuota);
+  const totalEntitlement = cleanAnnualQuota + carried;
+  const availableBefore = Math.max(0, totalEntitlement - input.usedQuota);
   const remainingAfter = Math.max(0, availableBefore - input.requestedDays);
   const hasSufficientBalance = availableBefore >= input.requestedDays;
 
   return {
     cleanAnnualQuota,
+    totalEntitlement,
     availableBefore,
     remainingAfter,
     hasSufficientBalance,
   };
+}
+
+export function calculateRolloverCarryForward(input: CalculateRolloverCarryForwardInput): number {
+  if (!input.isCarryForwardEnabled) {
+    return 0;
+  }
+  const prevRemaining = Math.max(
+    0,
+    (input.prevBaseQuota || 0) + (input.prevCarriedOver || 0) - (input.prevCollectiveLeave || 0) - (input.prevUsedQuota || 0)
+  );
+  return Math.min(prevRemaining, Math.max(0, input.maxCarryForwardDays || 0));
 }
 
 export function formatLeaveRequestNumber(date: Date, sequenceNumber: number): string {

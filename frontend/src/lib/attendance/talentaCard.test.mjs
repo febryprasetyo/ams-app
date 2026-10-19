@@ -68,6 +68,7 @@ test('formatTalentaRow correctly formats normal work day and dayoff rows', () =>
   assert.equal(formattedWorkDay.clockOut, '17:15');
   assert.equal(formattedWorkDay.attendanceCode, 'H');
   assert.equal(formattedWorkDay.timeOffCode, '-');
+  assert.equal(formattedWorkDay.late, '00:05');
   assert.equal(formattedWorkDay.overtime, '01:30');
 
   // 3. Sick day (Sakit)
@@ -198,4 +199,31 @@ test('filterTalentaRows handles explicit ALPHA, NO_CLOCK_OUT, NO_CLOCK_IN, and I
   const alphaRows = filterTalentaRows(rows, 'ABSENT', todayStr);
   assert.equal(alphaRows.length, 1);
   assert.equal(alphaRows[0].date, '2026-09-24');
+});
+
+test('dayoff with scans is counted as off without early or missing punch issues', () => {
+  const rows = [{ date: '2026-09-21', isDayOff: true, record: { attendanceStatus: 'PRESENT', scanIn: '09:00', scanOut: null, earlyMinutes: 60, lateMinutes: 60 } }];
+  const kpi = calculateTalentaKpi(rows, '2026-09-22');
+  assert.equal(kpi.dayOff, 1);
+  assert.equal(kpi.late, 0);
+  assert.equal(kpi.earlyClockOut, 0);
+  assert.equal(kpi.noClockOut, 0);
+  assert.equal(filterTalentaRows(rows, 'EARLY_CLOCK_OUT', '2026-09-22').length, 0);
+  assert.equal(filterTalentaRows(rows, 'NO_CLOCK_OUT', '2026-09-22').length, 0);
+  assert.equal(filterTalentaRows(rows, 'ALL', '2026-09-22').length, 1);
+  assert.equal(filterTalentaRows(rows, 'LATE', '2026-09-22').length, 0);
+  assert.equal(formatTalentaRow(rows[0]).late, '-');
+});
+
+test('late KPI and filter count working days with positive late minutes', () => {
+  const rows = [
+    { date: '2026-09-21', isDayOff: false, record: { attendanceStatus: 'PRESENT', lateMinutes: 15 } },
+    { date: '2026-09-22', isDayOff: false, record: { attendanceStatus: 'PRESENT', lateMinutes: 0 } },
+    { date: '2026-09-23', isDayOff: true, record: { attendanceStatus: 'PRESENT', lateMinutes: 20 } },
+  ];
+
+  assert.equal(calculateTalentaKpi(rows, '2026-09-24').late, 1);
+  const lateRows = filterTalentaRows(rows, 'LATE', '2026-09-24');
+  assert.equal(lateRows.length, 1);
+  assert.equal(lateRows[0].date, '2026-09-21');
 });

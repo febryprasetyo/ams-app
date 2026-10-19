@@ -19,14 +19,15 @@ type SortDirection = 'asc' | 'desc';
 
 const FILTER_LABELS: Record<TalentaKpiFilterKey, string> = {
   ALL: 'Semua Catatan',
-  EARLY_CLOCK_OUT: 'Early clock out',
-  NO_CLOCK_OUT: 'No clock out',
-  NO_CLOCK_IN: 'No clock in',
-  INVALID: 'Invalid',
-  ABSENT: 'Absent',
-  DAY_OFF: 'Day off',
-  TIME_OFF: 'Time off',
-  NEXT_WORKDAYS: 'Next workdays',
+  LATE: 'Terlambat',
+  EARLY_CLOCK_OUT: 'Pulang awal',
+  NO_CLOCK_OUT: 'Tidak scan pulang',
+  NO_CLOCK_IN: 'Tidak scan masuk',
+  INVALID: 'Tidak valid',
+  ABSENT: 'Tidak hadir',
+  DAY_OFF: 'Hari libur',
+  TIME_OFF: 'Izin / cuti',
+  NEXT_WORKDAYS: 'Hari kerja berikutnya',
 };
 
 export function TalentaAttendanceTable({
@@ -103,7 +104,7 @@ export function TalentaAttendanceTable({
                   onClick={() => toggleSort('date')}
                   className="inline-flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
-                  <span>Date</span>
+                  <span>Tanggal</span>
                   <ArrowUpDown size={12} className="text-slate-400" />
                 </button>
               </th>
@@ -126,7 +127,7 @@ export function TalentaAttendanceTable({
                   onClick={() => toggleSort('scheduleIn')}
                   className="inline-flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
-                  <span>Schedule in</span>
+                  <span>Jadwal masuk</span>
                   <ArrowUpDown size={12} className="text-slate-400" />
                 </button>
               </th>
@@ -137,7 +138,7 @@ export function TalentaAttendanceTable({
                   onClick={() => toggleSort('scheduleOut')}
                   className="inline-flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
-                  <span>Schedule out</span>
+                  <span>Jadwal pulang</span>
                   <ArrowUpDown size={12} className="text-slate-400" />
                 </button>
               </th>
@@ -148,7 +149,7 @@ export function TalentaAttendanceTable({
                   onClick={() => toggleSort('clockIn')}
                   className="inline-flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
-                  <span>Clock in</span>
+                  <span>Jam masuk</span>
                   <ArrowUpDown size={12} className="text-slate-400" />
                 </button>
               </th>
@@ -159,21 +160,25 @@ export function TalentaAttendanceTable({
                   onClick={() => toggleSort('clockOut')}
                   className="inline-flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
-                  <span>Clock out</span>
+                  <span>Jam pulang</span>
                   <ArrowUpDown size={12} className="text-slate-400" />
                 </button>
               </th>
 
               <th scope="col" className="py-3 px-4 whitespace-nowrap">
-                Attendance code
+                Kode kehadiran
               </th>
 
               <th scope="col" className="py-3 px-4 whitespace-nowrap">
-                Time off code
+                Kode izin / cuti
               </th>
 
               <th scope="col" className="py-3 px-4 whitespace-nowrap">
-                Overtime
+                Terlambat
+              </th>
+
+              <th scope="col" className="py-3 px-4 whitespace-nowrap">
+                Lembur
               </th>
 
               {canWrite && (
@@ -187,7 +192,7 @@ export function TalentaAttendanceTable({
           <tbody className="divide-y divide-slate-100">
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={canWrite ? 10 : 9} className="py-12 text-center text-slate-500">
+                <td colSpan={canWrite ? 11 : 10} className="py-12 text-center text-slate-500">
                   <p className="font-medium text-slate-700">
                     {activeFilter !== 'ALL'
                       ? `Tidak ada catatan dengan status "${FILTER_LABELS[activeFilter]}".`
@@ -269,7 +274,12 @@ export function TalentaAttendanceTable({
                       {row.timeOffCode}
                     </td>
 
-                    {/* Overtime */}
+                    {/* Keterlambatan */}
+                    <td className="py-3 px-4 whitespace-nowrap font-mono text-amber-700">
+                      {row.late}
+                    </td>
+
+                    {/* Lembur */}
                     <td className="py-3 px-4 whitespace-nowrap font-mono text-slate-600">
                       {row.overtime}
                     </td>

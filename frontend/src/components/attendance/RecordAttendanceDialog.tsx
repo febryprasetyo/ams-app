@@ -5,7 +5,7 @@ import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { dateLabel } from '@/lib/attendance/domain';
 import type { AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
-import { resolveEmployeeShift, type WorkShift } from '@/lib/attendance/scheduleShift';
+import { getScheduleForDate, resolveEmployeeShift, type WorkShift } from '@/lib/attendance/scheduleShift';
 
 interface RecordAttendanceDialogProps {
   employee: Employee;
@@ -26,8 +26,9 @@ export function RecordAttendanceDialog({
   const shift = propShift || resolveEmployeeShift(employee, data.shifts || [], data.shiftAssignments || []);
 
   const [status, setStatus] = useState<AttendanceStatus>(existingRecord?.attendanceStatus || 'SAKIT');
-  const [scanIn, setScanIn] = useState(existingRecord?.scanIn || shift.scheduleIn || '08:00');
-  const [scanOut, setScanOut] = useState(existingRecord?.scanOut || shift.scheduleOut || '17:00');
+  const [scanIn, setScanIn] = useState(existingRecord ? (existingRecord.scanIn ?? '') : (shift.scheduleIn || '08:00'));
+  const [scanOut, setScanOut] = useState(existingRecord ? (existingRecord.scanOut ?? '') : (shift.scheduleOut || '17:00'));
+  const [isDayOff, setIsDayOff] = useState(existingRecord?.isDayOff ?? getScheduleForDate(date, shift).isDayOff);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +45,7 @@ export function RecordAttendanceDialog({
         workDate: date,
         attendanceStatus: status,
         shiftId: shift.id,
+        isDayOff,
         scanIn: status === 'PRESENT' ? scanIn : null,
         scanOut: status === 'PRESENT' ? scanOut : null,
         reason: reason.trim() || undefined, // Catatan/alasan bersifat opsional
@@ -90,6 +92,15 @@ export function RecordAttendanceDialog({
           </span>
         </div>
 
+        <label className="space-y-1 block">
+          <span className="font-semibold text-slate-700">Jadwal hari ini</span>
+          <select className="hr-input w-full" value={String(isDayOff)} onChange={e => setIsDayOff(e.target.value === 'true')}>
+            <option value="false">Hari kerja</option>
+            <option value="true">Dayoff / Libur</option>
+          </select>
+          <span className="text-slate-500">Dayoff tetap menyimpan scan kehadiran dan tidak dihitung terlambat atau pulang awal.</span>
+        </label>
+
         <div className="space-y-1.5">
           <label className="font-semibold text-slate-800 block text-xs">Status Kehadiran</label>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -130,7 +141,6 @@ export function RecordAttendanceDialog({
                 <span className="font-semibold text-slate-700">Scan Masuk (Clock In)</span>
                 <input
                   type="time"
-                  required
                   value={scanIn}
                   onChange={e => setScanIn(e.target.value)}
                   className="hr-input w-full bg-white"
@@ -140,7 +150,6 @@ export function RecordAttendanceDialog({
                 <span className="font-semibold text-slate-700">Scan Pulang (Clock Out)</span>
                 <input
                   type="time"
-                  required
                   value={scanOut}
                   onChange={e => setScanOut(e.target.value)}
                   className="hr-input w-full bg-white"

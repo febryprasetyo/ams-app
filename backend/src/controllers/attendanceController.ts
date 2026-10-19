@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { attendanceBatches, attendanceRecords } from '../db/schema/attendance';
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
+import { auditLogs } from '../db/schema/system';
+import { users } from '../db/schema/users';
+import { employees } from '../db/schema/employees';
+import { eq, and, gte, lte, desc, sql, ne } from 'drizzle-orm';
 
 export interface AttendanceRecordInput {
   employeeId: number;
@@ -94,6 +97,7 @@ export async function getAttendanceBatches(_req: Request, res: Response) {
     const batches = await db
       .select()
       .from(attendanceBatches)
+      .where(ne(attendanceBatches.filename, 'MANUAL_ENTRY'))
       .orderBy(desc(attendanceBatches.createdAt))
       .limit(50);
 
@@ -101,6 +105,107 @@ export async function getAttendanceBatches(_req: Request, res: Response) {
   } catch (err) {
     console.error('getAttendanceBatches error:', err);
     return res.status(500).json({ error: 'Failed to retrieve attendance batches' });
+  }
+}
+
+export async function saveAttendanceRecord(req: Request, res: Response) {
+  try {
+    const normalized = normalizeAttendanceRecordPayload(req.body?.record || {});
+    const operation = req.body?.operation === 'correct' ? 'correct' : 'create';
+    const reason = String(req.body?.reason || '').trim() || (operation === 'correct' ? 'Koreksi absensi' : 'Pencatatan absensi');
+    const userId = Number((req as any).user?.userId) || null;
+
+    const saved = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.employeeId, normalized.employeeId),
+          eq(attendanceRecords.workDate, normalized.workDate),
+        ))
+        .limit(1);
+
+      const [record] = await tx
+        .insert(attendanceRecords)
+        .values({ ...normalized, sourceBatchId: null, revision: 1, createdAt: new Date(), updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: [attendanceRecords.employeeId, attendanceRecords.workDate],
+          set: {
+            shift: normalized.shift,
+            scheduleIn: normalized.scheduleIn,
+            scheduleOut: normalized.scheduleOut,
+            scanIn: normalized.scanIn,
+            scanOut: normalized.scanOut,
+            rawScanIn: normalized.rawScanIn,
+            rawScanOut: normalized.rawScanOut,
+            lateMinutes: normalized.lateMinutes,
+            earlyMinutes: normalized.earlyMinutes,
+            overtimeMinutes: normalized.overtimeMinutes,
+            attendanceStatus: normalized.attendanceStatus,
+            isDayOff: normalized.isDayOff,
+            normalized: normalized.normalized,
+            revision: sql`${attendanceRecords.revision} + 1`,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      await tx.insert(auditLogs).values({
+        userId,
+        action: before ? 'UPDATE' : 'CREATE',
+        entity: 'ATTENDANCE',
+        entityId: record.id,
+        oldValues: before || null,
+        newValues: { ...record, reason },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')?.slice(0, 255),
+      });
+
+      return record;
+    });
+
+    return res.status(200).json({ success: true, record: saved });
+  } catch (err: any) {
+    console.error('saveAttendanceRecord error:', err);
+    return res.status(400).json({ error: err.message || 'Failed to save attendance record' });
+  }
+}
+
+export async function getAttendanceActivity(_req: Request, res: Response) {
+  try {
+    const rows = await db
+      .select({
+        id: auditLogs.id,
+        createdAt: auditLogs.createdAt,
+        username: users.username,
+        action: auditLogs.action,
+        oldValues: auditLogs.oldValues,
+        newValues: auditLogs.newValues,
+        employeeName: employees.fullName,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
+      .leftJoin(attendanceRecords, eq(auditLogs.entityId, attendanceRecords.id))
+      .leftJoin(employees, eq(attendanceRecords.employeeId, employees.id))
+      .where(eq(auditLogs.entity, 'ATTENDANCE'))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(500);
+
+    return res.status(200).json(rows.map(row => {
+      const values = (row.newValues || {}) as Record<string, unknown>;
+      const reason = String(values.reason || 'Tanpa catatan');
+      const workDate = String(values.workDate || 'Tanggal tidak tersedia');
+      return {
+        id: row.id,
+        createdAt: row.createdAt,
+        actor: row.username || 'Sistem',
+        action: row.action === 'CREATE' ? 'Pencatatan absensi' : 'Koreksi absensi',
+        detail: `${row.employeeName || 'Karyawan'} · ${workDate} · ${reason}`,
+      };
+    }));
+  } catch (err) {
+    console.error('getAttendanceActivity error:', err);
+    return res.status(500).json({ error: 'Failed to retrieve attendance activity' });
   }
 }
 

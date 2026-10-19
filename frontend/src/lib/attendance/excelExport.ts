@@ -13,12 +13,14 @@ function dateLabel(date: string): string {
   return `${d} ${months[m - 1] ?? ""} ${y}`;
 }
 import type { EmployeeReport, RecordFilter, AttendanceRecord } from "./types";
+import type { CalendarDayRow } from "./scheduleShift";
 
 export interface ExportReportOptions {
   anonymous?: boolean;
   departmentLookup?: (deptId?: number | null) => string | undefined;
   filename?: string;
   dailyRecords?: AttendanceRecord[];
+  calendarRows?: CalendarDayRow[];
 }
 
 export function createAttendanceReportWorkbook(
@@ -96,9 +98,29 @@ export function createAttendanceReportWorkbook(
   ];
   XLSX.utils.book_append_sheet(workbook, wsSummary, "Rekap Absensi");
 
-  // If daily records are provided (e.g. single employee detail or full daily view)
-  if (options?.dailyRecords && options.dailyRecords.length > 0) {
-    const dailyData = options.dailyRecords.map((r, idx) => ({
+  const calendarRows = options?.calendarRows;
+  const dailyRecords = options?.dailyRecords;
+  if ((calendarRows && calendarRows.length > 0) || (dailyRecords && dailyRecords.length > 0)) {
+    const dailyData = calendarRows?.length
+      ? calendarRows.map((row, idx) => {
+        const r = row.record;
+        return {
+          "No": idx + 1,
+          "Tanggal": row.date,
+          "Label Tanggal": dateLabel(row.date),
+          "Shift": row.isDayOff ? "Dayoff" : (row.shiftName || "-"),
+          "Jadwal Masuk": row.scheduleIn || "-",
+          "Jadwal Pulang": row.scheduleOut || "-",
+          "Scan Masuk": r?.scanIn || "-",
+          "Scan Pulang": r?.scanOut || "-",
+          "Status": row.isDayOff ? "DAYOFF" : (r?.attendanceStatus || "BELUM ADA CATATAN"),
+          "Terlambat (Menit)": row.isDayOff ? 0 : (r?.lateMinutes || 0),
+          "Pulang Cepat (Menit)": row.isDayOff ? 0 : (r?.earlyMinutes || 0),
+          "Lembur (Menit)": r?.overtimeMinutes || 0,
+          "Durasi Lembur": durationLabel(r?.overtimeMinutes || 0),
+        };
+      })
+      : dailyRecords!.map((r, idx) => ({
       "No": idx + 1,
       "Tanggal": r.workDate,
       "Label Tanggal": dateLabel(r.workDate),
@@ -107,9 +129,9 @@ export function createAttendanceReportWorkbook(
       "Jadwal Pulang": r.scheduleOut || "-",
       "Scan Masuk": r.scanIn || "-",
       "Scan Pulang": r.scanOut || "-",
-      "Status": r.attendanceStatus,
-      "Terlambat (Menit)": r.lateMinutes,
-      "Pulang Cepat (Menit)": r.earlyMinutes,
+      "Status": r.isDayOff ? "DAYOFF" : r.attendanceStatus,
+      "Terlambat (Menit)": r.isDayOff ? 0 : r.lateMinutes,
+      "Pulang Cepat (Menit)": r.isDayOff ? 0 : r.earlyMinutes,
       "Lembur (Menit)": r.overtimeMinutes,
       "Durasi Lembur": durationLabel(r.overtimeMinutes),
     }));

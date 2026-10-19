@@ -100,3 +100,50 @@ export interface FullLeaveDocumentData {
     higherSupervisor: LeaveApprovalItem;
   };
 }
+
+
+export interface AnnualLeaveConfig {
+  id?: number;
+  year: number;
+  baseQuota: number;
+  collectiveLeaveDays: number;
+  allowCarryForward: boolean;
+  maxCarryForwardDays: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MasterLeaveBalanceItem {
+  balanceId: number | null;
+  employeeId: number;
+  employeeCode: string;
+  fullName: string;
+  department: string;
+  departmentId: number | null;
+  position: string;
+  year: number;
+  baseQuota: number;
+  collectiveLeaveDeduction: number;
+  cleanAnnualQuota: number;
+  carriedOverQuota: number;
+  totalEntitlement: number;
+  usedQuota: number;
+  remainingQuota: number;
+  isCustomQuota: boolean;
+  isCustomCarryForward: boolean;
+}
+
+export interface MasterLeaveBalancesResponse {
+  year: number;
+  totalEmployees: number;
+  totalAllocatedQuota: number;
+  averageRemainingDays: number;
+  totalUsedDays: number;
+  balances: MasterLeaveBalanceItem[];
+}
+
+export interface UpdateLeaveBalancePayload {
+  baseQuota?: number;
+  carriedOverQuota?: number;
+}

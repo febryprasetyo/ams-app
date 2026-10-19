@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Users,
-  RefreshCw,
   Plus,
   Calendar,
 } from 'lucide-react';
@@ -116,15 +115,7 @@ export default function LeaveBalancesPage() {
             </select>
           </div>
 
-          <button
-            type="button"
-            onClick={() => fetchBalancesAndStats(selectedYear)}
-            disabled={isLoading}
-            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-emerald-600 ${isLoading ? 'animate-spin' : ''}`} />
-            Muat Ulang
-          </button>
+
 
           <Link
             href="/dashboard/leaves/new"

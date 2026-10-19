@@ -7,8 +7,27 @@ import {
   saveAttendanceRecord,
   getAttendanceActivity,
 } from '../controllers/attendanceController';
+import {
+  getAttendanceWorkspace,
+  postAttendanceCommand,
+} from '../controllers/attendanceCommandController';
 
 const router = Router();
+
+// Workspace & Commands (Server-backed Attendance Workspace)
+router.get(
+  '/workspace',
+  authenticateToken,
+  requirePermission(['attendance.view', 'attendance.manage', 'attendance.import']),
+  getAttendanceWorkspace
+);
+
+router.post(
+  '/commands',
+  authenticateToken,
+  requirePermission(['attendance.view', 'attendance.manage', 'attendance.import']),
+  postAttendanceCommand
+);
 
 // Read operations
 router.get(

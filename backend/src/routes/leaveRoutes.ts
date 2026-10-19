@@ -7,6 +7,8 @@ import {
   createLeaveRequest,
   getLeaveRequestById,
   getLeaveRequests,
+  approveLeaveRequest,
+  deleteLeaveRequestDraft,
   getHolidays,
   getAnnualLeaveConfig,
   saveAnnualLeaveConfig,
@@ -28,6 +30,18 @@ router.get('/holidays', getHolidays);
 router.post('/requests', createLeaveRequest);
 router.get('/requests', getLeaveRequests);
 router.get('/requests/:id', getLeaveRequestById);
+router.patch(
+  '/requests/:id/approve',
+  authenticateToken,
+  requirePermission(['attendance.manage']),
+  approveLeaveRequest
+);
+router.delete(
+  '/requests/:id',
+  authenticateToken,
+  requirePermission(['attendance.manage']),
+  deleteLeaveRequestDraft
+);
 
 // Endpoint Master Cuti, Pengaturan Cuti Bersama & Rekap Saldo
 router.get(

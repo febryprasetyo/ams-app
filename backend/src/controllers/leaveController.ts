@@ -586,6 +586,135 @@ export async function getLeaveRequests(req: Request, res: Response) {
 }
 
 // 6. GET /holidays
+// 5a. PATCH /requests/:id/approve
+export async function approveLeaveRequest(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID permohonan cuti tidak valid" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: "Data permohonan cuti tidak ditemukan" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat disetujui karena berstatus ${request.status}`,
+      });
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const user = (req as any).user;
+    const approverName = user?.fullName || user?.username || "HR Administrator";
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(leaveRequests)
+        .set({
+          status: "APPROVED",
+          updatedAt: new Date(),
+        })
+        .where(eq(leaveRequests.id, id));
+
+      await tx
+        .update(leaveApprovals)
+        .set({
+          status: "APPROVED",
+          signatureDate: todayStr,
+          approverName,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(leaveApprovals.leaveRequestId, id),
+            eq(leaveApprovals.stage, "HRD")
+          )
+        );
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Permohonan cuti berhasil disetujui oleh HRD",
+      data: { id, status: "APPROVED" },
+    });
+  } catch (error) {
+    console.error("Error approveLeaveRequest:", error);
+    return res.status(500).json({ error: "Gagal menyetujui permohonan cuti" });
+  }
+}
+
+// 5b. DELETE /requests/:id
+export async function deleteLeaveRequestDraft(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID permohonan cuti tidak valid" });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: "Data permohonan cuti tidak ditemukan" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({
+        error: "Hanya permohonan cuti berstatus PENDING yang dapat dihapus",
+      });
+    }
+
+    await db.transaction(async (tx) => {
+      if (request.leaveType === "ANNUAL") {
+        const [balance] = await tx
+          .select()
+          .from(leaveBalances)
+          .where(
+            and(
+              eq(leaveBalances.employeeId, request.employeeId),
+              eq(leaveBalances.year, request.balanceYear)
+            )
+          );
+
+        if (balance) {
+          const newUsed = Math.max(0, balance.usedQuota - request.durationDays);
+          await tx
+            .update(leaveBalances)
+            .set({
+              usedQuota: newUsed,
+              updatedAt: new Date(),
+            })
+            .where(eq(leaveBalances.id, balance.id));
+        }
+      }
+
+      await tx
+        .delete(leaveApprovals)
+        .where(eq(leaveApprovals.leaveRequestId, id));
+
+      await tx
+        .delete(leaveRequests)
+        .where(eq(leaveRequests.id, id));
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Draft permohonan cuti berhasil dihapus dan saldo telah dipulihkan",
+    });
+  } catch (error) {
+    console.error("Error deleteLeaveRequestDraft:", error);
+    return res.status(500).json({ error: "Gagal menghapus draft permohonan cuti" });
+  }
+}
+
 export async function getHolidays(req: Request, res: Response) {
   try {
     const year = req.query.year ? Number(req.query.year) : new Date().getUTCFullYear();

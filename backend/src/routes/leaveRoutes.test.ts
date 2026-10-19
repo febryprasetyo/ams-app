@@ -17,6 +17,8 @@ test('leave routes register expected endpoints', () => {
   assert.ok(paths.includes('POST /requests'), 'POST /requests must exist');
   assert.ok(paths.includes('GET /requests/:id'), 'GET /requests/:id must exist');
   assert.ok(paths.includes('GET /requests'), 'GET /requests must exist');
+  assert.ok(paths.includes('PATCH /requests/:id/approve'), 'PATCH /requests/:id/approve must exist');
+  assert.ok(paths.includes('DELETE /requests/:id'), 'DELETE /requests/:id must exist');
   assert.ok(paths.includes('GET /holidays'), 'GET /holidays must exist');
 
   // Master leaves endpoints

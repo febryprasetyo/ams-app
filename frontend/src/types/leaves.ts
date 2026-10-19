@@ -51,7 +51,7 @@ export interface LeaveRequestFormData {
   reason: string;
   startDate: string;
   endDate: string;
-  durationDays: number;           // Input manual!
+  durationDays: number;           // Input manual
   resumeWorkDate?: string;        // Input manual atau rekomendasi
   handoverToEmployeeId?: number;
   handoverTask?: string;
@@ -101,14 +101,13 @@ export interface FullLeaveDocumentData {
   };
 }
 
-
 export interface AnnualLeaveConfig {
   id?: number;
   year: number;
   baseQuota: number;
   collectiveLeaveDays: number;
-  allowCarryForward: boolean;
-  maxCarryForwardDays: number;
+  allowCarryForward?: boolean;
+  maxCarryForwardDays?: number;
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -126,12 +125,12 @@ export interface MasterLeaveBalanceItem {
   baseQuota: number;
   collectiveLeaveDeduction: number;
   cleanAnnualQuota: number;
-  carriedOverQuota: number;
+  carriedOverQuota?: number;
   totalEntitlement: number;
   usedQuota: number;
   remainingQuota: number;
   isCustomQuota: boolean;
-  isCustomCarryForward: boolean;
+  isCustomCarryForward?: boolean;
 }
 
 export interface MasterLeaveBalancesResponse {
@@ -146,4 +145,15 @@ export interface MasterLeaveBalancesResponse {
 export interface UpdateLeaveBalancePayload {
   baseQuota?: number;
   carriedOverQuota?: number;
+}
+
+export interface ApproveLeaveResponse {
+  success: boolean;
+  message: string;
+  data: { id: number; status: string };
+}
+
+export interface DeleteLeaveResponse {
+  success: boolean;
+  message: string;
 }

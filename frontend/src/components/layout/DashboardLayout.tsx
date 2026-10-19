@@ -73,15 +73,22 @@ export const navGroups: NavGroup[] = [
       {
         name: 'Attendance',
         icon: CalendarCheck,
-        children: [
+                children: [
           { name: 'Ringkasan HR', href: '/dashboard/attendance/overview', icon: LayoutDashboard, permission: 'attendance.view' },
           { name: 'Data Absensi', href: '/dashboard/attendance', icon: CalendarCheck, permission: 'attendance.view' },
-          { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
-          { name: 'Pengaturan Cuti', href: '/dashboard/leaves/settings', icon: Settings, permission: 'attendance.manage' },
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
           { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart, permission: 'attendance.view' },
           { name: 'Aktivitas Absensi', href: '/dashboard/attendance/activity', icon: History, permission: 'attendance.view' },
+        ],
+      },
+      {
+        name: 'Cuti',
+        icon: CalendarDays,
+        children: [
+          { name: 'Pengajuan Cuti', href: '/dashboard/leaves', icon: CalendarDays, permission: 'attendance.view' },
+          { name: 'Rekap Saldo Cuti', href: '/dashboard/leaves/balances', icon: Users, permission: 'attendance.view' },
+          { name: 'Pengaturan Cuti', href: '/dashboard/leaves/settings', icon: Settings, permission: 'attendance.manage' },
         ],
       },
       {
@@ -150,6 +157,7 @@ const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: st
   { prefix: '/dashboard/infrastructure', permission: 'infrastructure.view', moduleName: 'Accurate & Server Infrastructure' },
   { prefix: '/dashboard/attendance', permission: 'attendance.view', moduleName: 'HR Attendance' },
   { prefix: '/dashboard/leaves/settings', permission: 'attendance.manage', moduleName: 'Leave Settings' },
+  { prefix: '/dashboard/leaves/balances', permission: 'attendance.view', moduleName: 'Leave Balances' },
   { prefix: '/dashboard/leaves', permission: 'attendance.view', moduleName: 'Leave Requests' },
   { prefix: '/dashboard/master', permission: 'master.view', moduleName: 'Master Data' },
   { prefix: '/dashboard/access', permission: 'access.users.view', moduleName: 'Access Control' },

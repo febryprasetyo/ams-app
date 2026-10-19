@@ -330,14 +330,23 @@ export async function executeAttendanceCommand(
         }
       }
       for (const time of [command.values.scanIn, command.values.scanOut]) {
-        if (time !== undefined && time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+        if (time !== undefined && time !== null && time.trim() !== "" && !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time.trim())) {
           throw new ValidationError("Jam harus dalam format HH:mm.");
         }
       }
 
+      const normalizeTime = (t?: string | null) => {
+        if (!t || !t.trim()) return null;
+        const clean = t.trim();
+        return clean.length >= 5 ? clean.slice(0, 5) : clean;
+      };
+
+      const cleanScanIn = normalizeTime(command.values.scanIn);
+      const cleanScanOut = normalizeTime(command.values.scanOut);
+
       const updatedValues: Partial<typeof attendanceRecords.$inferInsert> = {
-        scanIn: command.values.scanIn,
-        scanOut: command.values.scanOut,
+        scanIn: cleanScanIn,
+        scanOut: cleanScanOut,
         lateMinutes: command.values.lateMinutes,
         overtimeMinutes: command.values.overtimeMinutes,
         attendanceStatus: command.values.attendanceStatus,

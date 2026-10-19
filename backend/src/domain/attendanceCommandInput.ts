@@ -19,19 +19,46 @@ export const reviewStatusSchema = z.enum([
   "SKIPPED",
 ]);
 
+const timeFormatSchema = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((val) => {
+    if (val === null || val === undefined) return null;
+    const trimmed = val.trim();
+    if (trimmed === "" || trimmed === "-") return null;
+    if (/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(trimmed)) {
+      return trimmed.slice(0, 5);
+    }
+    return trimmed;
+  })
+  .refine(
+    (val) => val === null || /^([01]\d|2[0-3]):[0-5]\d$/.test(val),
+    { message: "Jam harus dalam format HH:mm atau HH:mm:ss" }
+  );
+
+const reasonSchema = z
+  .string()
+  .optional()
+  .transform((val) => {
+    const trimmed = (val || "").trim();
+    return trimmed.length > 0 ? trimmed : "Koreksi absensi";
+  })
+  .pipe(z.string().min(1).max(255));
+
 const correctCommandSchema = z.object({
   type: z.literal("correct"),
-  recordId: z.number().int().positive(),
-  expectedRevision: z.number().int().nonnegative(),
+  recordId: z.coerce.number().int().positive(),
+  expectedRevision: z.coerce.number().int().nonnegative().optional().default(1),
   values: z.object({
-    scanIn: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-    scanOut: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().optional(),
-    lateMinutes: z.number().int().nonnegative().optional(),
-    overtimeMinutes: z.number().int().nonnegative().optional(),
+    scanIn: timeFormatSchema,
+    scanOut: timeFormatSchema,
+    lateMinutes: z.coerce.number().int().nonnegative().optional().default(0),
+    overtimeMinutes: z.coerce.number().int().nonnegative().optional().default(0),
     attendanceStatus: attendanceStatusSchema,
     isDayOff: z.boolean().optional(),
   }),
-  reason: z.string().min(1, "Alasan koreksi wajib diisi").max(255),
+  reason: reasonSchema,
 });
 
 const identityCommandSchema = z.object({
@@ -126,14 +153,14 @@ const setStrictIntegrityCommandSchema = z.object({
 
 const recordAttendanceCommandSchema = z.object({
   type: z.literal("record_attendance"),
-  employeeId: z.number().int().positive(),
-  workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  employeeId: z.coerce.number().int().positive(),
+  workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
   attendanceStatus: attendanceStatusSchema,
-  shiftId: z.number().int().positive().optional(),
+  shiftId: z.coerce.number().int().positive().optional(),
   isDayOff: z.boolean().optional(),
-  scanIn: z.string().nullable().optional(),
-  scanOut: z.string().nullable().optional(),
-  reason: z.string().max(255).optional(),
+  scanIn: timeFormatSchema,
+  scanOut: timeFormatSchema,
+  reason: reasonSchema,
 });
 
 const shiftCommandSchema = z.object({

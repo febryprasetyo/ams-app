@@ -16,7 +16,29 @@ export function CorrectionDialog({ record, onClose }: { record: AttendanceRecord
     { name: 'lateMinutes', label: 'Keterlambatan (menit)', type: 'number', value: record.lateMinutes, required: true },
     { name: 'overtimeMinutes', label: 'Lembur (menit)', type: 'number', value: record.overtimeMinutes, required: true },
     { name: 'reason', label: 'Alasan / Catatan koreksi (opsional)', type: 'textarea', required: false },
-  ]} onSubmit={async form => { await execute({ type: 'correct', recordId: record.id, expectedRevision: record.revision, reason: String(form.get('reason')), values: { isDayOff: form.get('isDayOff') === 'true', attendanceStatus: String(form.get('attendanceStatus')) as AttendanceStatus, scanIn: String(form.get('scanIn')) || null, scanOut: String(form.get('scanOut')) || null, lateMinutes: Number(form.get('lateMinutes')), overtimeMinutes: Number(form.get('overtimeMinutes')) } }); }} />;
+  ]} onSubmit={async form => {
+    const rawScanIn = String(form.get('scanIn') || '').trim();
+    const rawScanOut = String(form.get('scanOut') || '').trim();
+    const cleanTime = (t: string) => {
+      if (!t) return null;
+      return t.length >= 5 ? t.slice(0, 5) : t;
+    };
+    const rawReason = String(form.get('reason') || '').trim();
+    await execute({
+      type: 'correct',
+      recordId: Number(record.id),
+      expectedRevision: Number(record.revision ?? 1),
+      reason: rawReason || 'Koreksi absensi',
+      values: {
+        isDayOff: form.get('isDayOff') === 'true',
+        attendanceStatus: String(form.get('attendanceStatus')) as AttendanceStatus,
+        scanIn: cleanTime(rawScanIn),
+        scanOut: cleanTime(rawScanOut),
+        lateMinutes: Number(form.get('lateMinutes')) || 0,
+        overtimeMinutes: Number(form.get('overtimeMinutes')) || 0
+      }
+    });
+  }} />;
 }
 export function RecordDetails({ record, onClose }: { record: AttendanceRecord; onClose: () => void }) {
   const { data } = useAttendance();

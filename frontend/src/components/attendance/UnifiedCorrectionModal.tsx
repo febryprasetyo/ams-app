@@ -87,8 +87,13 @@ export function UnifiedCorrectionModal({
       onSubmit={async (form) => {
         const dayOff = form.get('isDayOff') === 'true';
         const status = String(form.get('attendanceStatus')) as AttendanceStatus;
-        const scanIn = String(form.get('scanIn')) || null;
-        const scanOut = String(form.get('scanOut')) || null;
+        const cleanTime = (t: unknown) => {
+          const s = String(t || '').trim();
+          if (!s || s === '-') return null;
+          return s.length >= 5 ? s.slice(0, 5) : s;
+        };
+        const scanIn = cleanTime(form.get('scanIn'));
+        const scanOut = cleanTime(form.get('scanOut'));
         const lateMinutes = Number(form.get('lateMinutes')) || 0;
         const overtimeMinutes = Number(form.get('overtimeMinutes')) || 0;
         const reason = String(form.get('reason') || '').trim();

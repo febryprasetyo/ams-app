@@ -91,59 +91,80 @@ test('repository persists dayoff correction with scans and reloads it from datab
   seed.records = [{ id: 1, employeeId: 10, workDate: '2026-09-21', scanIn: '09:00', scanOut: '17:00', rawScanIn: '08:59', rawScanOut: '17:01', shift: null, scheduleIn: '08:00', scheduleOut: '17:00', attendanceStatus: 'PRESENT', isDayOff: false, lateMinutes: 60, earlyMinutes: 0, overtimeMinutes: 0, normalized: false, revision: 1, sourceBatchId: null }];
   const originalGet = api.get;
   const originalPost = api.post;
-  const originalPut = api.put;
-  const storage = new Map([['ams:attendance-workspace:v2', JSON.stringify(seed)]]);
-  const mockStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
-  let saved;
+  let receivedCommand;
+
   try {
     globalThis.window = {};
-    globalThis.localStorage = mockStorage;
-    globalThis.sessionStorage = mockStorage;
-    api.get = async endpoint => endpoint === '/attendance/records' && saved ? [saved] : [];
-    api.put = async (endpoint, body) => {
-      assert.equal(endpoint, '/attendance/records');
-      assert.equal(body.operation, 'correct');
-      assert.equal(body.reason, 'Jadwal off');
-      saved = structuredClone(body.record);
-      return { record: saved };
+    api.get = async endpoint => {
+      if (endpoint === '/attendance/workspace') {
+        return { success: true, data: structuredClone(seed) };
+      }
+      return { success: true, data: [] };
     };
+    api.post = async (endpoint, body) => {
+      assert.equal(endpoint, '/attendance/commands');
+      receivedCommand = body.command;
+      const updated = structuredClone(seed);
+      updated.records[0] = {
+        ...updated.records[0],
+        isDayOff: body.command.values.isDayOff,
+        scanIn: body.command.values.scanIn,
+        scanOut: body.command.values.scanOut,
+        revision: 2,
+      };
+      return { success: true, data: { changed: true, eventId: 'evt-1', data: updated } };
+    };
+
     const repo = createAttendanceRepository();
-    await repo.execute({ type: 'correct', recordId: 1, expectedRevision: 1, reason: 'Jadwal off', values: { scanIn: '09:00', scanOut: '17:00', attendanceStatus: 'PRESENT', isDayOff: true, lateMinutes: 60, overtimeMinutes: 0 } });
-    assert.equal(saved.isDayOff, true);
-    assert.equal(saved.rawScanIn, '08:59');
-    assert.equal(saved.scanIn, '09:00');
-    storage.set('ams:attendance-workspace:v2', JSON.stringify(seed));
-    const loaded = await createAttendanceRepository().load();
-    assert.equal(loaded.records[0].isDayOff, true);
+    const result = await repo.execute({
+      type: 'correct',
+      recordId: 1,
+      expectedRevision: 1,
+      reason: 'Jadwal off',
+      values: {
+        scanIn: '09:00',
+        scanOut: '17:00',
+        attendanceStatus: 'PRESENT',
+        isDayOff: true,
+        lateMinutes: 60,
+        overtimeMinutes: 0,
+      },
+    });
+
+    assert.equal(receivedCommand.type, 'correct');
+    assert.equal(receivedCommand.values.isDayOff, true);
+    assert.equal(result.records[0].isDayOff, true);
   } finally {
     api.get = originalGet;
     api.post = originalPost;
-    api.put = originalPut;
     delete globalThis.window;
-    delete globalThis.localStorage;
-    delete globalThis.sessionStorage;
   }
 });
 
 test('repository removes legacy MANUAL_ENTRY batches from import history', async () => {
   const { createAttendanceRepository } = await import('./repository.ts');
+  const { api } = await import('../api.ts');
+  const originalGet = api.get;
   const seed = createSeed();
   seed.batches = [
     { id: 1, filename: 'MANUAL_ENTRY', sourceId: 1, status: 'COMMITTED', createdAt: '2026-10-01T00:00:00.000Z', rows: [] },
     { id: 2, filename: 'attendance.xlsx', sourceId: 1, status: 'COMMITTED', createdAt: '2026-10-02T00:00:00.000Z', rows: [] },
   ];
-  const storage = new Map([['ams:attendance-workspace:v2', JSON.stringify(seed)]]);
-  const mockStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+
   try {
     globalThis.window = {};
-    globalThis.localStorage = mockStorage;
-    globalThis.sessionStorage = mockStorage;
+    api.get = async endpoint => {
+      if (endpoint === '/attendance/workspace') {
+        return { success: true, data: structuredClone(seed) };
+      }
+      return { success: true, data: [] };
+    };
+
     const data = await createAttendanceRepository().load();
     assert.deepEqual(data.batches.map(batch => batch.filename), ['attendance.xlsx']);
   } finally {
+    api.get = originalGet;
     delete globalThis.window;
-    delete globalThis.localStorage;
-    delete globalThis.sessionStorage;
   }
 });
 
@@ -152,19 +173,22 @@ test('repository loads manual attendance changes into HR activity history', asyn
   const { api } = await import('../api.ts');
   const originalGet = api.get;
   const seed = createSeed();
-  const storage = new Map([['ams:attendance-workspace:v2', JSON.stringify(seed)]]);
-  const mockStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  seed.audit = [{
+    id: 17,
+    createdAt: '2026-10-14T06:00:00.000Z',
+    actor: 'hr.admin',
+    action: 'Koreksi absensi',
+    detail: 'Ahmad Dahlan · 2026-09-21 · Jadwal off',
+  }];
+
   try {
     globalThis.window = {};
-    globalThis.localStorage = mockStorage;
-    globalThis.sessionStorage = mockStorage;
-    api.get = async endpoint => endpoint === '/attendance/activity' ? [{
-      id: 17,
-      createdAt: '2026-10-14T06:00:00.000Z',
-      actor: 'hr.admin',
-      action: 'Koreksi absensi',
-      detail: 'Ahmad Dahlan · 2026-09-21 · Jadwal off',
-    }] : [];
+    api.get = async endpoint => {
+      if (endpoint === '/attendance/workspace') {
+        return { success: true, data: structuredClone(seed) };
+      }
+      return { success: true, data: [] };
+    };
 
     const data = await createAttendanceRepository().load();
     assert.deepEqual(data.audit, [{
@@ -177,7 +201,5 @@ test('repository loads manual attendance changes into HR activity history', asyn
   } finally {
     api.get = originalGet;
     delete globalThis.window;
-    delete globalThis.localStorage;
-    delete globalThis.sessionStorage;
   }
 });

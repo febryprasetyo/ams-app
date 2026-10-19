@@ -14,13 +14,30 @@ test('failed attendance persistence rejects the operation and does not publish l
   globalThis.localStorage = storage;
   globalThis.sessionStorage = storage;
   globalThis.fetch = async (url, options) => {
-    if (options?.method === 'PUT' && url.endsWith('/attendance/records')) throw new Error('Database unavailable');
-    return { ok: true, headers: new Headers({ 'content-type': 'application/json' }), json: async () => url.includes('/mock/') ? structuredClone(empty) : url.endsWith('/employees') ? [{ id: 1, employeeId: 'EMP-001', fullName: 'Employee', isActive: true }] : [] };
+    const urlStr = String(url);
+    if (urlStr.endsWith('/attendance/workspace')) {
+      return {
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ success: true, data: structuredClone(empty) }),
+      };
+    }
+    if (options?.method === 'POST' && urlStr.endsWith('/attendance/commands')) {
+      throw new Error('Database unavailable');
+    }
+    return {
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => urlStr.endsWith('/employees') ? [{ id: 1, employeeId: 'EMP-001', fullName: 'Employee', isActive: true }] : ({ success: true, data: [] }),
+    };
   };
   try {
     const repo = createAttendanceRepository(2);
     await repo.load();
-    await assert.rejects(repo.execute({ type: 'record_attendance', employeeId: 1, workDate: '2026-10-12', attendanceStatus: 'SAKIT' }), /Database unavailable/);
+    await assert.rejects(
+      repo.execute({ type: 'record_attendance', employeeId: 1, workDate: '2026-10-12', attendanceStatus: 'SAKIT' }),
+      /Database unavailable/
+    );
     assert.equal(saved.size, 0);
     assert.equal((await repo.load()).records.length, 0);
   } finally {

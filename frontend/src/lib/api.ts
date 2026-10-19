@@ -21,10 +21,15 @@ function getToken(): string | null {
   if (typeof window === 'undefined') return null;
 
   // Try localStorage first
-  const localToken = localStorage.getItem('token');
-  if (localToken) return localToken;
+  try {
+    const localToken = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    if (localToken) return localToken;
+  } catch {
+    // Ignore storage errors in test / iframe environments
+  }
 
   // Fallback to cookie search
+  if (typeof document === 'undefined' || !document.cookie) return null;
   const match = document.cookie.split('; ').find((cookie) => cookie.startsWith(`${AUTH_COOKIE_NAME}=`))?.split('=');
   return match ? decodeURIComponent(match[1]) : null;
 }

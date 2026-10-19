@@ -470,7 +470,7 @@ export function LeaveRequestForm() {
                 value={manualDurationDays}
                 onChange={(e) => setManualDurationDays(e.target.value ? Number(e.target.value) : '')}
                 placeholder="Misal: 2"
-                className="w-full px-3 py-2 text-sm font-bold border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-600 bg-blue-50/30 text-blue-900"
+                className="w-full px-3 py-2 text-sm font-bold border-2 border-emerald-400 rounded-xl focus:ring-2 focus:ring-emerald-600/20 bg-emerald-50/30 text-emerald-950 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 required
               />
               <span className="absolute right-3 top-2 text-xs font-semibold text-blue-700">Hari</span>
@@ -551,7 +551,7 @@ export function LeaveRequestForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 rounded-xl shadow-sm transition cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
         >
           {isSubmitting ? 'Menyimpan...' : 'Ajukan Cuti & Cetak Form F4'}
           <ArrowRight className="w-4 h-4" />

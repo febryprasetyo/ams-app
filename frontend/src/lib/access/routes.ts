@@ -142,6 +142,11 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
     moduleName: 'Attendance Biometric Identities',
   },
   {
+    prefix: '/dashboard/attendance/activity',
+    permission: 'attendance.view',
+    moduleName: 'Riwayat Aktivitas HR',
+  },
+  {
     prefix: '/dashboard/attendance/imports',
     permission: 'attendance.import',
     moduleName: 'Attendance Machine Imports',

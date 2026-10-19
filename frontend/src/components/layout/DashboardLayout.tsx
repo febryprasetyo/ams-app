@@ -79,7 +79,7 @@ export const navGroups: NavGroup[] = [
           { name: 'Impor Absensi', href: '/dashboard/attendance/imports', icon: FileInput, permission: 'attendance.import' },
           { name: 'Kartu Absensi', href: '/dashboard/attendance/employees', icon: ClipboardList, permission: 'attendance.view' },
           { name: 'Laporan Absensi', href: '/dashboard/attendance/reports', icon: FileBarChart, permission: 'attendance.view' },
-          { name: 'Aktivitas Absensi', href: '/dashboard/attendance/activity', icon: History, permission: 'attendance.view' },
+          { name: 'Riwayat Aktivitas HR', href: '/dashboard/attendance/activity', icon: History, permission: 'attendance.view' },
         ],
       },
       {

@@ -137,11 +137,6 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
   },
   // HR Attendance
   {
-    prefix: '/dashboard/attendance/access',
-    permission: 'attendance.manage',
-    moduleName: 'Attendance Access Control',
-  },
-  {
     prefix: '/dashboard/attendance/identities',
     permission: 'attendance.manage',
     moduleName: 'Attendance Biometric Identities',

@@ -30,7 +30,7 @@ export function LeaveRequestForm() {
   const [endDate, setEndDate] = useState("");
 
   // Jumlah cuti yang diambil (Input Manual)
-  const [manualDurationDays, setManualDurationDays] = useState<number | "">(1);
+  const [manualDurationDays, setManualDurationDays] = useState<number | "">("");
   const [manualResumeWorkDate, setManualResumeWorkDate] = useState<string>("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
 
@@ -49,7 +49,7 @@ export function LeaveRequestForm() {
     async function loadBalance() {
       setIsLoadingBalance(true);
       try {
-        const year = new Date().getFullYear();
+        const year = startDate ? Number(startDate.split("-")[0]) : new Date().getFullYear();
         if (!selectedEmployee) return;
         const res = await fetch(`/api/v1/leaves/balance-summary?employeeId=${selectedEmployee.id}&year=${year}`);
         if (res.ok) {
@@ -66,7 +66,33 @@ export function LeaveRequestForm() {
       }
     }
     loadBalance();
-  }, [selectedEmployee]);
+  }, [selectedEmployee, startDate ? startDate.split("-")[0] : null]);
+
+  // Hitung estimasi hari kerja otomatis saat tanggal dipilih (bisa disesuaikan manual)
+  useEffect(() => {
+    if (startDate && endDate && manualDurationDays === "") {
+      try {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (end >= start) {
+          let count = 0;
+          const cur = new Date(start);
+          while (cur <= end) {
+            const day = cur.getDay();
+            if (day !== 0 && day !== 6) {
+              count++;
+            }
+            cur.setDate(cur.getDate() + 1);
+          }
+          if (count > 0) {
+            setManualDurationDays(count);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [startDate, endDate, manualDurationDays]);
 
   // Rekomendasi otomatis tanggal kembali bekerja saat tanggal selesai berubah
   useEffect(() => {
@@ -283,7 +309,15 @@ export function LeaveRequestForm() {
                 {balanceSummary.availableBalance} <span className="text-xs font-normal text-emerald-600">Hari</span>
               </div>
               <div className="text-[11px] text-emerald-700 mt-0.5 font-medium">
-                Setelah diajukan: <strong className="text-slate-900">{remainingAfterEstimate} Hari</strong>
+                {durationNum > 0 ? (
+                  <>
+                    Setelah diajukan (-{durationNum} hari): <strong className="text-slate-900">{remainingAfterEstimate} Hari</strong>
+                  </>
+                ) : (
+                  <>
+                    Sisa setelah diajukan: <strong className="text-slate-900">{balanceSummary.availableBalance} Hari</strong>
+                  </>
+                )}
               </div>
             </div>
           </div>

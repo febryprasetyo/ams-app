@@ -109,7 +109,7 @@ export default function LeaveBalanceEditModal({
               Cuti Bersama
             </span>
             <span className="text-xs font-bold text-amber-600">
-              -{balance.collectiveLeaveDeduction} Hari
+              {balance.collectiveLeaveDeduction} Hari
             </span>
           </div>
         </div>

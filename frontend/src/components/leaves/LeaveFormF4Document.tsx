@@ -42,7 +42,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
           </Link>
           <div>
             <h1 className="text-base font-bold text-slate-800">Form Permohonan Cuti - No: {data.requestNumber}</h1>
-            <p className="text-xs text-slate-500">Standar Cetak Kertas F4 (Folio 215 mm × 330 mm) - 1 Halaman Penuh</p>
+            
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
                 <td>Jumlah Cuti yang sudah diambil sebelumnya</td>
                 <td className="text-center border-l-0 border-r-0">:</td>
                 <td className="border-l-0 font-medium">
-                  {data.historyItems.filter(h => h.description).length > 0 ? '-' : '0'}
+                  {Math.max(0, data.cleanAnnualQuota - data.availableBefore)}
                 </td>
                 <td className="text-right font-medium">Hari</td>
               </tr>

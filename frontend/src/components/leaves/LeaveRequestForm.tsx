@@ -525,7 +525,7 @@ export function LeaveRequestForm() {
           ) : (
             <>
               <Save className="h-4 w-4" />
-              Ajukan Cuti & Cetak Form F4
+              Simpan
             </>
           )}
         </button>

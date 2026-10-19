@@ -16,7 +16,7 @@ export default function NewLeaveRequestPage() {
             <span>Form Pengajuan Cuti</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Isi formulir pengajuan cuti. Dokumen format F4 akan otomatis dihasilkan setelah permohonan dibuat.
+            Isi formulir pengajuan cuti karyawan.
           </p>
         </div>
 

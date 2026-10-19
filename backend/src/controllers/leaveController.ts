@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, lt, asc, notInArray } from 'drizzle-orm';
 import { db } from '../db';
 import { employees } from '../db/schema/employees';
 import { departments } from '../db/schema/master';
@@ -477,10 +477,12 @@ export async function getLeaveRequestById(req: Request, res: Response) {
         and(
           eq(leaveRequests.employeeId, request.employeeId),
           eq(leaveRequests.balanceYear, request.balanceYear),
-          eq(leaveRequests.status, 'APPROVED')
+          eq(leaveRequests.leaveType, 'ANNUAL'),
+          lt(leaveRequests.id, request.id),
+          notInArray(leaveRequests.status, ['REJECTED', 'CANCELLED'])
         )
       )
-      .orderBy(desc(leaveRequests.startDate));
+      .orderBy(asc(leaveRequests.id));
 
     const historyItems: Array<{ no: number; description: string }> = [];
     if (prevLeaves.length <= 10) {

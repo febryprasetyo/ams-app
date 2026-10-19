@@ -174,7 +174,7 @@ export default function MasterLeaveBalancesTable({
 
                       {/* Cuti Bersama */}
                       <td className="py-3.5 px-4 text-center font-semibold text-amber-600">
-                        -{item.collectiveLeaveDeduction} Hari
+                        {item.collectiveLeaveDeduction} Hari
                       </td>
 
                       {/* Hak Bersih */}
@@ -184,7 +184,7 @@ export default function MasterLeaveBalancesTable({
 
                       {/* Terpakai */}
                       <td className="py-3.5 px-4 text-center text-slate-600">
-                        {item.usedQuota > 0 ? `-${item.usedQuota} Hari` : '0 Hari'}
+                        {item.usedQuota} Hari
                       </td>
 
                       {/* Sisa Saldo Badge */}

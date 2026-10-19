@@ -610,7 +610,9 @@ export async function getLeaveRequestById(req: Request, res: Response) {
 // 5. GET /requests (List)
 export async function getLeaveRequests(req: Request, res: Response) {
   try {
-    const records = await db
+    const year = req.query.year ? Number(req.query.year) : undefined;
+
+    let query = db
       .select({
         id: leaveRequests.id,
         requestNumber: leaveRequests.requestNumber,
@@ -624,11 +626,18 @@ export async function getLeaveRequests(req: Request, res: Response) {
         durationDays: leaveRequests.durationDays,
         resumeWorkDate: leaveRequests.resumeWorkDate,
         status: leaveRequests.status,
+        balanceYear: leaveRequests.balanceYear,
         createdAt: leaveRequests.createdAt,
       })
       .from(leaveRequests)
       .leftJoin(employees, eq(leaveRequests.employeeId, employees.id))
-      .orderBy(desc(leaveRequests.createdAt));
+      .$dynamic();
+
+    if (year && !isNaN(year)) {
+      query = query.where(eq(leaveRequests.balanceYear, year));
+    }
+
+    const records = await query.orderBy(desc(leaveRequests.createdAt));
 
     return res.status(200).json(records);
   } catch (error) {

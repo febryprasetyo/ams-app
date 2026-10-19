@@ -39,6 +39,8 @@ interface LeaveItem {
 }
 
 export default function LeaveRequestsListPage() {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -54,10 +56,10 @@ export default function LeaveRequestsListPage() {
   const [confirmDeleteItem, setConfirmDeleteItem] = useState<LeaveItem | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
-  const fetchLeaves = useCallback(async () => {
+  const fetchLeaves = useCallback(async (year: number) => {
     setIsLoading(true);
     try {
-      const data = await api.get<LeaveItem[]>('/leaves/requests');
+      const data = await api.get<LeaveItem[]>(`/leaves/requests?year=${year}`);
       setLeaves(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
       console.error('Failed to fetch leaves:', err);
@@ -69,8 +71,8 @@ export default function LeaveRequestsListPage() {
   }, []);
 
   useEffect(() => {
-    fetchLeaves();
-  }, [fetchLeaves]);
+    fetchLeaves(selectedYear);
+  }, [selectedYear, fetchLeaves]);
 
   // Filter & Search
   const filtered = useMemo(() => {
@@ -117,7 +119,7 @@ export default function LeaveRequestsListPage() {
         text: res.message || `Permohonan cuti ${confirmApproveItem.requestNumber} berhasil disetujui.`,
       });
       setConfirmApproveItem(null);
-      await fetchLeaves();
+      await fetchLeaves(selectedYear);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal menyetujui permohonan cuti.';
       setToastMessage({ type: 'error', text: msg });
@@ -139,7 +141,7 @@ export default function LeaveRequestsListPage() {
         text: res.message || `Draft permohonan cuti ${confirmDeleteItem.requestNumber} berhasil dihapus.`,
       });
       setConfirmDeleteItem(null);
-      await fetchLeaves();
+      await fetchLeaves(selectedYear);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal menghapus draft permohonan cuti.';
       setToastMessage({ type: 'error', text: msg });
@@ -163,15 +165,21 @@ export default function LeaveRequestsListPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={fetchLeaves}
-            disabled={isLoading}
-            className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 text-emerald-600 ${isLoading ? 'animate-spin' : ''}`} />
-            Muat Ulang
-          </button>
+          {/* Filter Tahun */}
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 shadow-sm">
+            <CalendarDays className="w-4 h-4 text-emerald-600 shrink-0" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent font-bold outline-none cursor-pointer text-slate-800"
+            >
+              {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map((yr) => (
+                <option key={yr} value={yr}>
+                  Tahun {yr}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <Link
             href="/dashboard/leaves/new"

@@ -9,6 +9,7 @@ import {
   getLeaveRequests,
   approveLeaveRequest,
   deleteLeaveRequestDraft,
+  updateLeaveRequest,
   getHolidays,
   getAnnualLeaveConfig,
   saveAnnualLeaveConfig,
@@ -30,6 +31,7 @@ router.get('/holidays', getHolidays);
 router.post('/requests', createLeaveRequest);
 router.get('/requests', getLeaveRequests);
 router.get('/requests/:id', getLeaveRequestById);
+router.put('/requests/:id', updateLeaveRequest);
 router.patch(
   '/requests/:id/approve',
   authenticateToken,

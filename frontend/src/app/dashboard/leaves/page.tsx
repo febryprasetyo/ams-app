@@ -19,6 +19,7 @@ import {
   ChevronRight,
   UserCheck,
   Eye,
+  Edit,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -388,6 +389,18 @@ export default function LeaveRequestsListPage() {
                             <Eye className="w-4 h-4" />
                             <span className="hidden sm:inline">View</span>
                           </Link>
+
+                          {/* Action: Edit Form (khusus status PENDING) */}
+                          {isPending && (
+                            <Link
+                              href={`/dashboard/leaves/${item.id}/edit`}
+                              className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-all flex items-center gap-1 font-semibold text-xs cursor-pointer"
+                              title="Edit Permohonan Cuti"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Link>
+                          )}
 
                           {/* Action: Approve Manual HR (Requirement 9) */}
                           {isPending && (

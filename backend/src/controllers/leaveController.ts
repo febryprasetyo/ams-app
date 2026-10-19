@@ -51,6 +51,31 @@ export const updateLeaveBalanceSchema = z
     message: 'Setidaknya salah satu kuota dasar atau carry over harus diisi',
   });
 
+export const updateLeaveRequestSchema = z.object({
+  leaveType: z.enum(['ANNUAL', 'SPECIAL']),
+  specialLeaveReason: z.string().max(100).optional().nullable(),
+  reason: z.string().min(1, 'Alasan cuti wajib diisi').max(500),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD'),
+  durationDays: z.coerce.number().positive('Jumlah cuti minimal 1 hari'),
+  resumeWorkDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal harus YYYY-MM-DD').optional().nullable(),
+  handoverToEmployeeId: z.coerce.number().positive().optional().nullable(),
+  handoverTask: z.string().max(1000).optional().nullable(),
+  emergencyPhone: z.string().max(50).optional().nullable(),
+}).refine((data) => {
+  const startYear = Number(data.startDate.split('-')[0]);
+  const endYear = Number(data.endDate.split('-')[0]);
+  return startYear === endYear;
+}, {
+  message: 'Periode cuti harus berada dalam tahun kalender yang sama. Jika melewati pergantian tahun, ajukan permohonan terpisah untuk masing-masing tahun.',
+  path: ['endDate'],
+}).refine((data) => {
+  return data.endDate >= data.startDate;
+}, {
+  message: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai',
+  path: ['endDate'],
+});
+
 export const createLeaveRequestSchema = z.object({
   employeeId: z.coerce.number().positive(),
   leaveType: z.enum(['ANNUAL', 'SPECIAL']),
@@ -546,6 +571,7 @@ export async function getLeaveRequestById(req: Request, res: Response) {
     return res.status(200).json({
       id: request.id,
       requestNumber: request.requestNumber,
+      status: request.status,
       formNumber: '001',
       revisionCode: 'REV. 170208-1-W',
       createdAt: request.createdAt,
@@ -647,6 +673,137 @@ export async function getLeaveRequests(req: Request, res: Response) {
 }
 
 // 6. GET /holidays
+// 5c. PUT /requests/:id (Edit permohonan cuti yang berstatus PENDING)
+export async function updateLeaveRequest(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: 'ID permohonan cuti tidak valid' });
+    }
+
+    const [request] = await db
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, id));
+
+    if (!request) {
+      return res.status(404).json({ error: 'Data permohonan cuti tidak ditemukan' });
+    }
+
+    if (request.status !== 'PENDING') {
+      return res.status(403).json({
+        error: `Permohonan cuti tidak dapat diedit karena berstatus ${request.status}. Hanya permohonan PENDING yang dapat diubah.`,
+      });
+    }
+
+    const parseResult = updateLeaveRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'Validasi form tidak lengkap',
+        details: parseResult.error.issues,
+      });
+    }
+
+    const data = parseResult.data;
+    const startYear = Number(data.startDate.split('-')[0]);
+    const currentYear = new Date().getFullYear();
+
+    if (startYear < currentYear) {
+      return res.status(400).json({
+        error: `Permohonan cuti tidak dapat diubah ke tahun lampau (${startYear}).`,
+      });
+    }
+
+    const holidays = await db
+      .select()
+      .from(leaveHolidayCalendars)
+      .where(eq(leaveHolidayCalendars.year, startYear));
+    const holidayDates = holidays.map((h) => h.holidayDate);
+
+    let finalResumeWorkDate = data.resumeWorkDate;
+    if (!finalResumeWorkDate) {
+      const daysCalc = calculateLeaveWorkingDays({
+        startDate: data.startDate,
+        endDate: data.endDate,
+        holidayDates,
+      });
+      finalResumeWorkDate = daysCalc.resumeWorkDate;
+    }
+
+    let [balance] = await db
+      .select()
+      .from(leaveBalances)
+      .where(
+        and(
+          eq(leaveBalances.employeeId, request.employeeId),
+          eq(leaveBalances.year, startYear)
+        )
+      );
+
+    const oldUsedDays = request.leaveType === 'ANNUAL' ? request.durationDays : 0;
+    const newUsedDays = data.leaveType === 'ANNUAL' ? data.durationDays : 0;
+    const deltaDays = newUsedDays - oldUsedDays;
+
+    if (balance && deltaDays > 0) {
+      const availableNow = balance.baseQuota - balance.collectiveLeaveDeduction - balance.usedQuota;
+      if (deltaDays > availableNow) {
+        return res.status(400).json({
+          error: `Saldo cuti tahunan tidak mencukupi untuk penambahan durasi cuti. Sisa saldo tersedia: ${availableNow} hari, penambahan: ${deltaDays} hari.`,
+        });
+      }
+    }
+
+    const snapshotRemaining =
+      data.leaveType === 'ANNUAL'
+        ? Math.max(0, request.snapshotAvailableBefore - data.durationDays)
+        : request.snapshotAvailableBefore;
+
+    await db.transaction(async (tx) => {
+      if (balance && deltaDays !== 0) {
+        await tx
+          .update(leaveBalances)
+          .set({
+            usedQuota: Math.max(0, balance.usedQuota + deltaDays),
+            updatedAt: new Date(),
+          })
+          .where(eq(leaveBalances.id, balance.id));
+      }
+
+      await tx
+        .update(leaveRequests)
+        .set({
+          leaveType: data.leaveType,
+          specialLeaveReason: data.leaveType === 'SPECIAL' ? data.specialLeaveReason : null,
+          reason: data.reason,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          durationDays: data.durationDays,
+          resumeWorkDate: finalResumeWorkDate,
+          handoverToEmployeeId: data.handoverToEmployeeId || null,
+          handoverTask: data.handoverTask || null,
+          emergencyPhone: data.emergencyPhone || null,
+          balanceYear: startYear,
+          snapshotRemainingAfter: snapshotRemaining,
+          updatedAt: new Date(),
+        })
+        .where(eq(leaveRequests.id, id));
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Permohonan cuti ${request.requestNumber} berhasil diperbarui.`,
+      data: {
+        id,
+        requestNumber: request.requestNumber,
+        status: 'PENDING',
+      },
+    });
+  } catch (error) {
+    console.error('Error updateLeaveRequest:', error);
+    return res.status(500).json({ error: 'Gagal memperbarui permohonan cuti' });
+  }
+}
+
 // 5a. PATCH /requests/:id/approve
 export async function approveLeaveRequest(req: Request, res: Response) {
   try {

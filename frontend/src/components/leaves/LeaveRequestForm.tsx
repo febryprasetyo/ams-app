@@ -10,37 +10,66 @@ import {
   CheckCircle2,
   Save,
   Loader2,
+  Lock,
 } from "lucide-react";
-import type { LeaveBalanceSummary } from "@/types/leaves";
+import type { LeaveBalanceSummary, FullLeaveDocumentData } from "@/types/leaves";
 import LeaveEmployeePicker, { LeaveEmployeeItem } from "@/components/leaves/LeaveEmployeePicker";
 
-export function LeaveRequestForm() {
+export interface LeaveRequestFormProps {
+  mode?: "create" | "edit";
+  requestId?: number;
+  initialData?: FullLeaveDocumentData;
+}
+
+export function LeaveRequestForm({ mode = "create", requestId, initialData }: LeaveRequestFormProps) {
   const currentYear = new Date().getFullYear();
   const router = useRouter();
 
-  // State Karyawan - Default KOSONG (null)
-  const [selectedEmployee, setSelectedEmployee] = useState<LeaveEmployeeItem | null>(null);
+  // State Karyawan - Default KOSONG (null), diisi jika edit
+  const [selectedEmployee, setSelectedEmployee] = useState<LeaveEmployeeItem | null>(() => {
+    if (initialData?.employee) {
+      return {
+        id: initialData.employee.id,
+        fullName: initialData.employee.fullName,
+        employeeCode: initialData.employee.employeeCode,
+        position: initialData.employee.position,
+        departmentName: initialData.employee.department,
+      };
+    }
+    return null;
+  });
+
   const [balanceSummary, setBalanceSummary] = useState<LeaveBalanceSummary | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-  // Form Fields
-  const [leaveType, setLeaveType] = useState<"ANNUAL" | "SPECIAL">("ANNUAL");
-  const [specialReason, setSpecialReason] = useState<string>("Menikah");
-  const [reason, setReason] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Form Fields - diinisialisasi dari initialData jika edit
+  const [leaveType, setLeaveType] = useState<"ANNUAL" | "SPECIAL">(
+    initialData?.leaveType || "ANNUAL"
+  );
+  const [specialReason, setSpecialReason] = useState<string>(
+    initialData?.specialLeaveReason || "Menikah"
+  );
+  const [reason, setReason] = useState(initialData?.reason || "");
+  const [startDate, setStartDate] = useState(initialData?.startDate || "");
+  const [endDate, setEndDate] = useState(initialData?.endDate || "");
 
   // Jumlah cuti yang diambil (Input Manual)
-  const [manualDurationDays, setManualDurationDays] = useState<number | "">("");
-  const [manualResumeWorkDate, setManualResumeWorkDate] = useState<string>("");
-  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [manualDurationDays, setManualDurationDays] = useState<number | "">(
+    initialData?.leaveDaysRequested ?? ""
+  );
+  const [manualResumeWorkDate, setManualResumeWorkDate] = useState<string>(
+    initialData?.resumeWorkDate || ""
+  );
+  const [emergencyPhone, setEmergencyPhone] = useState(
+    initialData?.handover?.emergencyPhone || ""
+  );
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Fetch data saldo rill saat karyawan dipilih
+  // Fetch data saldo rill saat karyawan dipilih atau startDate berubah
   useEffect(() => {
     if (!selectedEmployee) {
       setBalanceSummary(null);
@@ -69,9 +98,9 @@ export function LeaveRequestForm() {
     loadBalance();
   }, [selectedEmployee, startDate ? startDate.split("-")[0] : null]);
 
-  // Hitung estimasi hari kerja otomatis saat tanggal dipilih (bisa disesuaikan manual)
+  // Hitung estimasi hari kerja otomatis saat tanggal dipilih (hanya pada mode create jika belum diisi)
   useEffect(() => {
-    if (startDate && endDate && manualDurationDays === "") {
+    if (mode === "create" && startDate && endDate && manualDurationDays === "") {
       try {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -93,7 +122,7 @@ export function LeaveRequestForm() {
         // ignore
       }
     }
-  }, [startDate, endDate, manualDurationDays]);
+  }, [mode, startDate, endDate, manualDurationDays]);
 
   // Rekomendasi otomatis tanggal kembali bekerja saat tanggal selesai berubah
   useEffect(() => {
@@ -117,7 +146,14 @@ export function LeaveRequestForm() {
     }
   }, [endDate, manualResumeWorkDate]);
 
-  // Handle Submit Form
+  // Saldo cuti tahunan efektif yang tersedia (memperhitungkan kuota lama jika sedang edit)
+  const oldHeldQuota =
+    mode === "edit" && initialData?.leaveType === "ANNUAL"
+      ? (initialData.leaveDaysRequested || 0)
+      : 0;
+  const effectiveAvailableBalance = (balanceSummary?.availableBalance ?? 0) + oldHeldQuota;
+
+  // Handle Submit Form (Create / Edit)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -156,9 +192,9 @@ export function LeaveRequestForm() {
     const durationNum = Number(manualDurationDays);
 
     if (leaveType === "ANNUAL" && balanceSummary) {
-      if (durationNum > balanceSummary.availableBalance) {
+      if (durationNum > effectiveAvailableBalance) {
         setErrorMessage(
-          `Saldo cuti tahunan tidak mencukupi. Sisa saldo tersedia: ${balanceSummary.availableBalance} hari, jumlah cuti yang diajukan: ${durationNum} hari.`
+          `Saldo cuti tahunan tidak mencukupi. Sisa saldo tersedia: ${effectiveAvailableBalance} hari, jumlah cuti yang diajukan: ${durationNum} hari.`
         );
         return;
       }
@@ -166,32 +202,61 @@ export function LeaveRequestForm() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/v1/leaves/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId: Number(selectedEmployee.id),
-          leaveType,
-          specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
-          reason,
-          startDate,
-          endDate,
-          durationDays: durationNum,
-          resumeWorkDate: manualResumeWorkDate || undefined,
-          emergencyPhone: emergencyPhone || undefined,
-        }),
-      });
+      if (mode === "edit" && requestId) {
+        // Mode Edit: PUT /api/v1/leaves/requests/:id
+        const res = await fetch(`/api/v1/leaves/requests/${requestId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leaveType,
+            specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
+            reason,
+            startDate,
+            endDate,
+            durationDays: durationNum,
+            resumeWorkDate: manualResumeWorkDate || undefined,
+            emergencyPhone: emergencyPhone || undefined,
+          }),
+        });
 
-      const json = await res.json();
-      if (!res.ok) {
-        setErrorMessage(json.error || "Gagal mengajukan permohonan cuti.");
-      } else {
-        setSuccessMessage("Permohonan cuti berhasil disimpan!");
-        if (json.data && json.data.id) {
+        const json = await res.json();
+        if (!res.ok) {
+          setErrorMessage(json.error || "Gagal memperbarui permohonan cuti.");
+        } else {
+          setSuccessMessage("Perubahan permohonan cuti berhasil disimpan!");
           setTimeout(() => {
-            // Gunakan router.replace agar saat tombol back ditekan di view/print, kembali ke list tabel cuti
-            router.replace(`/dashboard/leaves/${json.data.id}/print`);
+            router.replace(`/dashboard/leaves/${requestId}/print`);
           }, 400);
+        }
+      } else {
+        // Mode Create: POST /api/v1/leaves/requests
+        const res = await fetch("/api/v1/leaves/requests", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId: Number(selectedEmployee.id),
+            leaveType,
+            specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
+            reason,
+            startDate,
+            endDate,
+            durationDays: durationNum,
+            resumeWorkDate: manualResumeWorkDate || undefined,
+            emergencyPhone: emergencyPhone || undefined,
+          }),
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          setErrorMessage(json.error || "Gagal mengajukan permohonan cuti.");
+        } else {
+          setSuccessMessage("Permohonan cuti berhasil disimpan!");
+          if (json.data && json.data.id) {
+            setTimeout(() => {
+              // Gunakan router.replace agar saat tombol back ditekan di view/print, kembali ke list tabel cuti
+              router.replace(`/dashboard/leaves/${json.data.id}/print`);
+            }, 400);
+          }
         }
       }
     } catch (err: any) {
@@ -205,7 +270,7 @@ export function LeaveRequestForm() {
   const durationNum = typeof manualDurationDays === "number" ? manualDurationDays : 0;
   const remainingAfterEstimate =
     balanceSummary && leaveType === "ANNUAL"
-      ? Math.max(0, balanceSummary.availableBalance - durationNum)
+      ? Math.max(0, effectiveAvailableBalance - durationNum)
       : balanceSummary?.availableBalance ?? 0;
 
   return (
@@ -232,20 +297,42 @@ export function LeaveRequestForm() {
         </div>
       )}
 
-      {/* === 1. Data Pemohon (Searchable Picker like Assigned Custodian) === */}
+      {/* === 1. Data Pemohon (Searchable Picker atau Locked Card saat Edit) === */}
       <section>
-        <h2 className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2 mb-4">
-          1. Data Pemohon
-        </h2>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-4">
+          <h2 className="text-sm font-bold text-slate-700">
+            1. Data Pemohon
+          </h2>
+          {mode === "edit" && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-medium border border-slate-200">
+              <Lock className="w-3 h-3 text-slate-500" />
+              Pemohon Terkunci
+            </span>
+          )}
+        </div>
+
         <div className="space-y-4">
-          <div className="max-w-xl">
-            <LeaveEmployeePicker
-              value={selectedEmployee}
-              onChange={setSelectedEmployee}
-              required
-              label="Pilih Karyawan"
-            />
-          </div>
+          {mode === "create" ? (
+            <div className="max-w-xl">
+              <LeaveEmployeePicker
+                value={selectedEmployee}
+                onChange={setSelectedEmployee}
+                required
+                label="Pilih Karyawan"
+              />
+            </div>
+          ) : (
+            selectedEmployee && (
+              <div className="max-w-xl p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">{selectedEmployee.fullName}</p>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    NIK: {selectedEmployee.employeeCode} • {selectedEmployee.position || "—"} • {selectedEmployee.departmentName || "—"}
+                  </p>
+                </div>
+              </div>
+            )
+          )}
 
           {selectedEmployee && balanceSummary && (
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
@@ -290,73 +377,62 @@ export function LeaveRequestForm() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="text-[11px] text-slate-400 uppercase font-mono tracking-wider">Kuota Dasar</div>
-              <div className="text-xl font-bold text-slate-900 mt-1">
-                {balanceSummary.baseQuota} <span className="text-xs font-normal text-slate-500">Hari</span>
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Hak Awal Tahun</div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-medium text-slate-500 block font-mono uppercase">Hak Cuti Dasar</span>
+              <p className="text-lg font-extrabold text-slate-800 mt-1 font-mono">{balanceSummary.baseQuota} <span className="text-xs font-normal text-slate-500">Hari</span></p>
             </div>
 
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-              <div className="text-[11px] text-amber-600 uppercase font-mono tracking-wider">Cuti Bersama</div>
-              <div className="text-xl font-bold text-amber-700 mt-1">
-                {balanceSummary.collectiveLeaveDays} <span className="text-xs font-normal text-amber-600">Hari</span>
-              </div>
-              <div className="text-[11px] text-amber-600/80 mt-0.5">Potongan Kebijakan</div>
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-medium text-slate-500 block font-mono uppercase">Cuti Bersama</span>
+              <p className="text-lg font-extrabold text-slate-700 mt-1 font-mono">{balanceSummary.collectiveLeaveDays} <span className="text-xs font-normal text-slate-500">Hari</span></p>
             </div>
 
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-              <div className="text-[11px] text-emerald-600 uppercase font-mono tracking-wider">Hak Cuti Bersih</div>
-              <div className="text-xl font-bold text-emerald-700 mt-1">
-                {balanceSummary.cleanAnnualQuota} <span className="text-xs font-normal text-emerald-600">Hari</span>
-              </div>
-              <div className="text-[11px] text-emerald-600/80 mt-0.5">
-                {balanceSummary.baseQuota} - {balanceSummary.collectiveLeaveDays} = {balanceSummary.cleanAnnualQuota} Hari
-              </div>
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-medium text-slate-500 block font-mono uppercase">Hak Cuti Bersih</span>
+              <p className="text-lg font-extrabold text-slate-800 mt-1 font-mono">{balanceSummary.cleanAnnualQuota} <span className="text-xs font-normal text-slate-500">Hari</span></p>
             </div>
 
-            <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-300">
-              <div className="text-[11px] text-emerald-700 uppercase font-mono tracking-wider font-bold">Sisa Hak Cuti</div>
-              <div className="text-xl font-extrabold text-emerald-700 mt-1">
-                {balanceSummary.availableBalance} <span className="text-xs font-normal text-emerald-600">Hari</span>
-              </div>
-              <div className="text-[11px] text-emerald-700 mt-0.5 font-medium">
-                {durationNum > 0 ? (
-                  <>
-                    Setelah diajukan (-{durationNum} hari): <strong className="text-slate-900">{remainingAfterEstimate} Hari</strong>
-                  </>
-                ) : (
-                  <>
-                    Sisa setelah diajukan: <strong className="text-slate-900">{balanceSummary.availableBalance} Hari</strong>
-                  </>
-                )}
-              </div>
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[11px] font-medium text-slate-500 block font-mono uppercase">Cuti Terpakai</span>
+              <p className="text-lg font-extrabold text-amber-700 mt-1 font-mono">{balanceSummary.usedQuota} <span className="text-xs font-normal text-slate-500">Hari</span></p>
+            </div>
+
+            <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200 col-span-2 sm:col-span-1">
+              <span className="text-[11px] font-bold text-emerald-800 block font-mono uppercase">Sisa Hak Cuti</span>
+              <p className="text-lg font-extrabold text-emerald-700 mt-1 font-mono">
+                {effectiveAvailableBalance}{" "}
+                <span className="text-xs font-normal text-emerald-600">Hari</span>
+              </p>
+              {durationNum > 0 && leaveType === "ANNUAL" && (
+                <p className="text-[10px] text-emerald-600 mt-0.5">
+                  Setelah diajukan: <strong className="font-mono">{remainingAfterEstimate} Hari</strong>
+                </p>
+              )}
             </div>
           </div>
         </section>
       )}
 
-      {/* === 3. Detail Permohonan Cuti === */}
+      {/* === 3. Rincian Pengajuan Cuti === */}
       <section>
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
+        <h2 className="text-sm font-bold text-slate-700 border-b border-slate-100 pb-2 mb-4 flex items-center gap-2">
           <FileText className="w-4 h-4 text-emerald-600" />
-          <h2 className="text-sm font-bold text-slate-700">3. Detail Permohonan Cuti</h2>
-        </div>
+          <span>3. Rincian Permohonan Cuti</span>
+        </h2>
 
-        <div className="space-y-4">
-          {/* Pilihan Jenis Cuti */}
+        <div className="space-y-5">
+          {/* Radio Jenis Cuti */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase mb-2 font-mono">
-              Jenis Cuti Yang Dimohon <span className="text-rose-500">*</span>
+              Jenis Cuti <span className="text-rose-500">*</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
               <label
-                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                   leaveType === "ANNUAL"
-                    ? "border-emerald-600 bg-emerald-50/50 text-emerald-900 ring-1 ring-emerald-600"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-emerald-500 bg-emerald-50/40 text-emerald-950 ring-1 ring-emerald-400"
+                    : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
                 }`}
               >
                 <input
@@ -365,19 +441,19 @@ export function LeaveRequestForm() {
                   value="ANNUAL"
                   checked={leaveType === "ANNUAL"}
                   onChange={() => setLeaveType("ANNUAL")}
-                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Cuti Tahunan *)</div>
-                  <div className="text-[11px] text-slate-500">Mengurangi saldo cuti tahunan karyawan</div>
+                  <span className="font-bold text-xs block">Cuti Tahunan</span>
+                  <span className="text-[11px] text-slate-500">Memotong kuota hak cuti tahunan berjalan.</span>
                 </div>
               </label>
 
               <label
-                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                   leaveType === "SPECIAL"
-                    ? "border-emerald-600 bg-emerald-50/50 text-emerald-900 ring-1 ring-emerald-600"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    ? "border-emerald-500 bg-emerald-50/40 text-emerald-950 ring-1 ring-emerald-400"
+                    : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
                 }`}
               >
                 <input
@@ -386,37 +462,40 @@ export function LeaveRequestForm() {
                   value="SPECIAL"
                   checked={leaveType === "SPECIAL"}
                   onChange={() => setLeaveType("SPECIAL")}
-                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                 />
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Cuti Khusus **)</div>
-                  <div className="text-[11px] text-slate-500">Menikah, Melahirkan, Kematian, Khitanan, dll</div>
+                  <span className="font-bold text-xs block">Cuti Khusus / Ijin Resmi</span>
+                  <span className="text-[11px] text-slate-500">Menikah, melahirkan, kematian, dsb. (Tidak potong saldo tahunan).</span>
                 </div>
               </label>
             </div>
-
-            {leaveType === "SPECIAL" && (
-              <div className="pt-3 max-w-sm">
-                <label className="block text-xs font-semibold text-slate-700 uppercase mb-1 font-mono">
-                  Kategori Cuti Khusus
-                </label>
-                <select
-                  value={specialReason}
-                  onChange={(e) => setSpecialReason(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 cursor-pointer"
-                >
-                  <option value="Menikah">Menikah (3 Hari)</option>
-                  <option value="Melahirkan">Melahirkan / Keguguran</option>
-                  <option value="Kematian">Kematian Keluarga Inti (2 Hari)</option>
-                  <option value="Khitanan/Baptis">Khitanan / Pembaptisan Anak (2 Hari)</option>
-                  <option value="Lain-lain">Lain-lain</option>
-                </select>
-              </div>
-            )}
           </div>
 
-          {/* Grid Periode Cuti & Jumlah Hari */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          {/* Opsi Cuti Khusus */}
+          {leaveType === "SPECIAL" && (
+            <div className="max-w-xl p-4 bg-amber-50/50 rounded-xl border border-amber-200 space-y-2">
+              <label className="block text-xs font-semibold text-amber-900 uppercase font-mono">
+                Kategori Cuti Khusus <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={specialReason}
+                onChange={(e) => setSpecialReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-slate-900 text-xs focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-300 font-medium"
+              >
+                <option value="Menikah">Pernikahan Karyawan (3 Hari)</option>
+                <option value="Menikahkan Anak">Menikahkan Anak (2 Hari)</option>
+                <option value="Melahirkan">Istri Melahirkan / Keguguran (2 Hari)</option>
+                <option value="Kematian Suami/Istri/Anak/Ortu/Mertua">Keluarga Inti Meninggal (2 Hari)</option>
+                <option value="Kematian Anggota Serumah">Anggota Serumah Meninggal (1 Hari)</option>
+                <option value="Khitanan / Baptis Anak">Khitanan / Baptis Anak (2 Hari)</option>
+                <option value="Lain-lain">Lain-lain (Ijin Khusus)</option>
+              </select>
+            </div>
+          )}
+
+          {/* Grid Tanggal Cuti & Durasi */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5 font-mono">
                 Dari Tanggal <span className="text-rose-500">*</span>
@@ -424,18 +503,7 @@ export function LeaveRequestForm() {
               <input
                 type="date"
                 value={startDate}
-                min={`${currentYear}-01-01`}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setStartDate(val);
-                  if (val && endDate) {
-                    const sYear = val.split("-")[0];
-                    const eYear = endDate.split("-")[0];
-                    if (sYear !== eYear || endDate < val) {
-                      setEndDate("");
-                    }
-                  }
-                }}
+                onChange={(e) => setStartDate(e.target.value)}
                 onClick={(e) => e.currentTarget.showPicker?.()}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all font-medium cursor-pointer"
                 required
@@ -449,8 +517,6 @@ export function LeaveRequestForm() {
               <input
                 type="date"
                 value={endDate}
-                min={startDate || `${currentYear}-01-01`}
-                max={startDate ? `${startDate.split("-")[0]}-12-31` : undefined}
                 onChange={(e) => setEndDate(e.target.value)}
                 onClick={(e) => e.currentTarget.showPicker?.()}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all font-medium cursor-pointer"
@@ -460,25 +526,20 @@ export function LeaveRequestForm() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5 font-mono">
-                Jumlah Cuti Diambil <span className="text-rose-500">*</span>
+                Jumlah Cuti (Hari) <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={manualDurationDays}
-                  onChange={(e) => setManualDurationDays(e.target.value ? Number(e.target.value) : "")}
-                  placeholder="Misal: 2"
-                  className="w-full px-3 py-2 pr-12 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs font-bold focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  required
-                />
-                <span className="absolute right-3.5 top-2 text-xs font-bold text-emerald-700 pointer-events-none">
-                  Hari
-                </span>
-              </div>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={manualDurationDays}
+                onChange={(e) => setManualDurationDays(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="Jumlah hari"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/30 transition-all font-mono font-bold"
+                required
+              />
               <p className="text-[11px] text-slate-400 mt-1">
-                Input manual (misal: Jumat & Senin dihitung 2 hari kerja).
+                Dapat disesuaikan jika ada hari libur/shift.
               </p>
             </div>
           </div>
@@ -551,7 +612,7 @@ export function LeaveRequestForm() {
           ) : (
             <>
               <Save className="h-4 w-4" />
-              Simpan
+              {mode === "edit" ? "Simpan Perubahan" : "Simpan"}
             </>
           )}
         </button>

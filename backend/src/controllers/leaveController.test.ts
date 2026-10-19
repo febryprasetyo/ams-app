@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateDaysSchema, createLeaveRequestSchema, annualLeaveConfigSchema, updateLeaveBalanceSchema } from './leaveController';
+import { calculateDaysSchema, createLeaveRequestSchema, updateLeaveRequestSchema, annualLeaveConfigSchema, updateLeaveBalanceSchema } from './leaveController';
 import {
   calculateLeaveWorkingDays,
   calculateLeaveBalances,
@@ -115,6 +115,32 @@ describe('Leave Controller Schema Validation', () => {
     const crossYear = calculateDaysSchema.safeParse({
       startDate: '2026-12-28',
       endDate: '2027-01-04',
+    });
+    assert.strictEqual(crossYear.success, false);
+  });
+
+  test('updateLeaveRequestSchema validates valid edit payload', () => {
+    const valid = updateLeaveRequestSchema.safeParse({
+      leaveType: 'ANNUAL',
+      reason: 'Revisi keperluan keluarga mendadak',
+      startDate: '2026-10-25',
+      endDate: '2026-10-27',
+      durationDays: 3,
+      resumeWorkDate: '2026-10-28',
+      handoverToEmployeeId: 10,
+      handoverTask: 'Pendelegasian tugas server',
+      emergencyPhone: '08123456789',
+    });
+    assert.strictEqual(valid.success, true);
+  });
+
+  test('updateLeaveRequestSchema rejects cross-year edit payload', () => {
+    const crossYear = updateLeaveRequestSchema.safeParse({
+      leaveType: 'ANNUAL',
+      reason: 'Cuti lintas tahun',
+      startDate: '2026-12-30',
+      endDate: '2027-01-05',
+      durationDays: 4,
     });
     assert.strictEqual(crossYear.success, false);
   });

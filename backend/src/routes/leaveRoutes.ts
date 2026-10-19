@@ -19,28 +19,61 @@ import {
 
 const router = Router();
 
-// Endpoint daftar karyawan untuk form cuti
-router.get('/employees', getActiveEmployeesForLeaves);
+// Middleware autentikasi global untuk semua route cuti
+router.use(authenticateToken);
 
-// Endpoint perhitungan & kalender libur
-router.get('/balance-summary', getLeaveBalanceSummary);
-router.post('/calculate-days', calculateWorkingDays);
-router.get('/holidays', getHolidays);
+// Endpoint daftar karyawan untuk form cuti (baca)
+router.get(
+  '/employees',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getActiveEmployeesForLeaves
+);
 
-// Endpoint form & dokumen
-router.post('/requests', createLeaveRequest);
-router.get('/requests', getLeaveRequests);
-router.get('/requests/:id', getLeaveRequestById);
-router.put('/requests/:id', updateLeaveRequest);
+// Endpoint perhitungan & kalender libur (baca / calculate)
+router.get(
+  '/balance-summary',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getLeaveBalanceSummary
+);
+router.post(
+  '/calculate-days',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  calculateWorkingDays
+);
+router.get(
+  '/holidays',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getHolidays
+);
+
+// Endpoint form & dokumen (baca & mutasi)
+router.get(
+  '/requests',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getLeaveRequests
+);
+router.get(
+  '/requests/:id',
+  requirePermission(['attendance.view', 'attendance.manage']),
+  getLeaveRequestById
+);
+router.post(
+  '/requests',
+  requirePermission(['attendance.manage']),
+  createLeaveRequest
+);
+router.put(
+  '/requests/:id',
+  requirePermission(['attendance.manage']),
+  updateLeaveRequest
+);
 router.patch(
   '/requests/:id/approve',
-  authenticateToken,
   requirePermission(['attendance.manage']),
   approveLeaveRequest
 );
 router.delete(
   '/requests/:id',
-  authenticateToken,
   requirePermission(['attendance.manage']),
   deleteLeaveRequestDraft
 );
@@ -48,28 +81,21 @@ router.delete(
 // Endpoint Master Cuti, Pengaturan Cuti Bersama & Rekap Saldo
 router.get(
   '/master/config',
-  authenticateToken,
   requirePermission(['attendance.view', 'attendance.manage']),
   getAnnualLeaveConfig
 );
-
 router.post(
   '/master/config',
-  authenticateToken,
   requirePermission(['attendance.manage']),
   saveAnnualLeaveConfig
 );
-
 router.get(
   '/master/balances',
-  authenticateToken,
   requirePermission(['attendance.view', 'attendance.manage']),
   getMasterLeaveBalances
 );
-
 router.put(
   '/master/balances/:id',
-  authenticateToken,
   requirePermission(['attendance.manage']),
   updateEmployeeLeaveBalance
 );

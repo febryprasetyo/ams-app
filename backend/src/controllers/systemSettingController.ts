@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { db } from '../db';
 import { systemSettings } from '../db/schema/system';
 import { eq, sql } from 'drizzle-orm';
+import { resolveAuditContext } from '../services/hrAudit';
+import { runHrMutation } from '../services/hrMutation';
+import { hashRequestPayload } from '../domain/hrAudit';
+import { setHrSetting as executeSetHrSetting } from '../services/hrMasterMutations';
 
 export async function getSystemSetting(req: Request, res: Response) {
   try {
@@ -40,6 +44,15 @@ export async function setSystemSetting(req: Request, res: Response) {
       return res.status(400).json({ error: 'Value is required' });
     }
 
+    if ((req as any).user) {
+      const context = await resolveAuditContext(req as any);
+      const requestHash = hashRequestPayload({ command: 'set_setting', key, value });
+      const result = await runHrMutation(context, requestHash, async (tx) => {
+        return await executeSetHrSetting(tx, context, { key, value, description });
+      });
+      return res.status(200).json(result.setting);
+    }
+
     const result = await db
       .insert(systemSettings)
       .values({
@@ -59,7 +72,7 @@ export async function setSystemSetting(req: Request, res: Response) {
       .returning();
 
     return res.status(200).json(result[0]);
-  } catch (err) {
-    return res.status(500).json({ error: 'Failed to update system setting' });
+  } catch (err: any) {
+    return res.status(err.statusCode || 500).json({ error: err.message || 'Failed to update system setting' });
   }
 }

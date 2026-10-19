@@ -27,3 +27,19 @@ test('leave routes register expected endpoints', () => {
   assert.ok(paths.includes('GET /master/balances'), 'GET /master/balances must exist');
   assert.ok(paths.includes('PUT /master/balances/:id'), 'PUT /master/balances/:id must exist');
 });
+
+test('leave routes enforce authentication and permissions', () => {
+  const router = leaveRoutes;
+  // Verify top-level middleware includes authentication
+  const middlewareLayers = router.stack.filter((layer: any) => !layer.route);
+  assert.ok(middlewareLayers.length > 0, 'Router should have top-level middleware');
+
+  // Verify route handlers have permission checks
+  const routeLayers = router.stack.filter((layer: any) => layer.route);
+  for (const layer of routeLayers) {
+    assert.ok(
+      layer.route.stack.length >= 2,
+      `Route ${layer.route.path} must have permission middleware before handler`
+    );
+  }
+});

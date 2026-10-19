@@ -1,3 +1,5 @@
+import { resolveAuditContext, appendHrAudit } from '../services/hrAudit';
+import { sanitizeAuditTarget } from '../domain/hrAudit';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { eq, and, sql, desc, lt, asc, notInArray } from 'drizzle-orm';
@@ -410,6 +412,13 @@ export async function createLeaveRequest(req: Request, res: Response) {
         ? Math.max(0, balanceCalc.availableBefore - data.durationDays)
         : balanceCalc.availableBefore;
 
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     // Database transaction
     const createdRequest = await db.transaction(async (tx) => {
       const [leaveReq] = await tx
@@ -474,6 +483,24 @@ export async function createLeaveRequest(req: Request, res: Response) {
           status: 'PENDING',
         },
       ]);
+
+      if (auditContext) {
+        const target = sanitizeAuditTarget('leave_request', null, leaveReq, {
+          entityId: String(leaveReq.id),
+          entityLabel: `Cuti ${employee.fullName} (${leaveReq.requestNumber})`,
+        });
+        await appendHrAudit(tx, {
+          operationId: auditContext.operationId,
+          actor: auditContext.actor,
+          action: 'CREATE',
+          entityType: 'leave_request',
+          entityId: String(leaveReq.id),
+          entityLabel: `Cuti ${employee.fullName} (${leaveReq.requestNumber})`,
+          outcome: 'SUCCESS',
+          summary: `Pengajuan cuti ${leaveReq.requestNumber} (${employee.fullName}, ${data.durationDays} hari)`,
+          targets: [target],
+        });
+      }
 
       return leaveReq;
     });
@@ -758,6 +785,13 @@ export async function updateLeaveRequest(req: Request, res: Response) {
         ? Math.max(0, request.snapshotAvailableBefore - data.durationDays)
         : request.snapshotAvailableBefore;
 
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     await db.transaction(async (tx) => {
       if (balance && deltaDays !== 0) {
         await tx
@@ -787,6 +821,24 @@ export async function updateLeaveRequest(req: Request, res: Response) {
           updatedAt: new Date(),
         })
         .where(eq(leaveRequests.id, id));
+
+      if (auditContext) {
+        const target = sanitizeAuditTarget('leave_request', request, { ...request, ...data }, {
+          entityId: String(id),
+          entityLabel: `Cuti ${request.requestNumber}`,
+        });
+        await appendHrAudit(tx, {
+          operationId: auditContext.operationId,
+          actor: auditContext.actor,
+          action: 'UPDATE',
+          entityType: 'leave_request',
+          entityId: String(id),
+          entityLabel: `Cuti ${request.requestNumber}`,
+          outcome: 'SUCCESS',
+          summary: `Memperbarui permohonan cuti ${request.requestNumber} (${data.durationDays} hari)`,
+          targets: [target],
+        });
+      }
     });
 
     return res.status(200).json({
@@ -831,6 +883,13 @@ export async function approveLeaveRequest(req: Request, res: Response) {
     const user = (req as any).user;
     const approverName = user?.fullName || user?.username || "HR Administrator";
 
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(leaveRequests)
@@ -854,6 +913,24 @@ export async function approveLeaveRequest(req: Request, res: Response) {
             eq(leaveApprovals.stage, "HRD")
           )
         );
+
+      if (auditContext) {
+        const target = sanitizeAuditTarget('leave_request', request, { ...request, status: 'APPROVED' }, {
+          entityId: String(id),
+          entityLabel: `Cuti ${request.requestNumber}`,
+        });
+        await appendHrAudit(tx, {
+          operationId: auditContext.operationId,
+          actor: auditContext.actor,
+          action: 'APPROVE',
+          entityType: 'leave_request',
+          entityId: String(id),
+          entityLabel: `Cuti ${request.requestNumber}`,
+          outcome: 'SUCCESS',
+          summary: `Menyetujui permohonan cuti ${request.requestNumber} oleh HRD`,
+          targets: [target],
+        });
+      }
     });
 
     return res.status(200).json({
@@ -890,6 +967,13 @@ export async function deleteLeaveRequestDraft(req: Request, res: Response) {
       });
     }
 
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     await db.transaction(async (tx) => {
       if (request.leaveType === "ANNUAL") {
         const [balance] = await tx
@@ -921,6 +1005,24 @@ export async function deleteLeaveRequestDraft(req: Request, res: Response) {
       await tx
         .delete(leaveRequests)
         .where(eq(leaveRequests.id, id));
+
+      if (auditContext) {
+        const target = sanitizeAuditTarget('leave_request', request, null, {
+          entityId: String(id),
+          entityLabel: `Draft Cuti ${request.requestNumber}`,
+        });
+        await appendHrAudit(tx, {
+          operationId: auditContext.operationId,
+          actor: auditContext.actor,
+          action: 'DELETE',
+          entityType: 'leave_request',
+          entityId: String(id),
+          entityLabel: `Draft Cuti ${request.requestNumber}`,
+          outcome: 'SUCCESS',
+          summary: `Menghapus draft permohonan cuti ${request.requestNumber}`,
+          targets: [target],
+        });
+      }
     });
 
     return res.status(200).json({
@@ -991,6 +1093,13 @@ export async function saveAnnualLeaveConfig(req: Request, res: Response) {
     }
 
     const data = parseResult.data;
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     let savedConfig: any = null;
     let syncedCount = 0;
 
@@ -1099,6 +1208,19 @@ export async function saveAnnualLeaveConfig(req: Request, res: Response) {
             .where(eq(leaveBalances.id, curr.id));
           syncedCount++;
         }
+      }
+
+      if (auditContext) {
+        await appendHrAudit(tx, {
+          operationId: auditContext.operationId,
+          actor: auditContext.actor,
+          action: 'UPDATE',
+          entityType: 'hr_setting',
+          entityId: `annual_leave_${data.year}`,
+          entityLabel: `Konfigurasi Cuti ${data.year}`,
+          outcome: 'SUCCESS',
+          summary: `Menyimpan konfigurasi master cuti tahun ${data.year} (Kuota: ${data.baseQuota}, Bersama: ${data.collectiveLeaveDays})`,
+        });
       }
     });
 
@@ -1285,11 +1407,31 @@ export async function updateEmployeeLeaveBalance(req: Request, res: Response) {
       updatePayload.isCustomCarryForward = true;
     }
 
+    let auditContext: any = null;
+    if ((req as any).user) {
+      try {
+        auditContext = await resolveAuditContext(req as any);
+      } catch (err) {}
+    }
+
     const [updated] = await db
       .update(leaveBalances)
       .set(updatePayload)
       .where(eq(leaveBalances.id, id))
       .returning();
+
+    if (auditContext) {
+      await appendHrAudit(db as any, {
+        operationId: auditContext.operationId,
+        actor: auditContext.actor,
+        action: 'UPDATE',
+        entityType: 'leave_balance',
+        entityId: String(id),
+        entityLabel: `Saldo Cuti Karyawan #${existing.employeeId} (${existing.year})`,
+        outcome: 'SUCCESS',
+        summary: `Menyesuaikan kuota cuti karyawan #${existing.employeeId} tahun ${existing.year}`,
+      });
+    }
 
     const calc = calculateLeaveBalances({
       baseQuota: updated.baseQuota,

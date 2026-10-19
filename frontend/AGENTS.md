@@ -25,7 +25,7 @@ Tema sudah ditetapkan: GAJIANICH / Emerald Enterprise, berdasarkan aplikasi saat
 
 - Gunakan `DashboardLayout`, font global, dan token yang sudah ada.
 - Reuse `ModalShell`, `ConfirmDeleteModal`, dan `StatusBadge` sesuai fungsi dan API aktualnya.
-- Untuk list/master/transaksi, ikuti `EmployeeDirectoryPage` dan bagian pola halaman pada master.
+- Ikuti aturan global bagian 2–5 master. Pilih struktur sesuai tugas; `EmployeeDirectoryPage` hanya contoh direktori, bukan template wajib semua halaman.
 - Jangan menambah tema per departemen, font, warna brand, ikon dari pustaka lain, atau shell baru.
 - Dokumen halaman hanya melengkapi kebutuhan bisnis; tidak boleh mengganti aturan visual master.
 - Jika komponen belum tersedia, buat komponen sesuai master; jangan mengarang import komponen.

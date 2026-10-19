@@ -16,7 +16,7 @@ const migrations = path.resolve(__dirname, '../../drizzle');
 
 test('HR Mutation & Audit Transactional Integration Tests', async (t) => {
   const fixture = await createHrAuditTestDatabase();
-  t.after(() => fixture.cleanup());
+  t.after(async () => { await fixture.cleanup(); });
   const { owner, runtime, runtimeRole, ownerUrl } = fixture;
 
   await runMigrations(ownerUrl, migrations, runtimeRole);

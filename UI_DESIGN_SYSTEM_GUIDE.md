@@ -1,7 +1,7 @@
 # Master Desain GAJIANICH / AMS — Emerald Enterprise
 
 > **Golden Rule**: Dilarang keras menggunakan gaya "AI Vibe" (background kartu gelap, gradient ungu/indigo/neon, glow shadow, floating glassmorphism, atau pill badge bertumpuk yang aneh).  
-> **Referensi pola halaman**: [`frontend/src/components/master/EmployeeDirectoryPage.tsx`](frontend/src/components/master/EmployeeDirectoryPage.tsx) (Halaman Data Karyawan).
+> **Dasar global**: token, identitas brand, shell, dan komponen bersama aplikasi saat ini. Referensi halaman pada bagian 8 merupakan contoh sesuai konteks, bukan template wajib.
 > Seluruh halaman master data, rekapitulasi, pengaturan, dan transaksi di dashboard AMS **wajib** mengikuti struktur, warna, dan komponen di dokumen ini.
 
 ---
@@ -20,8 +20,8 @@ Urutan acuan visual:
 3. Komponen referensi pada bagian 8, sesuai jenis halaman.
 4. Catatan kebutuhan halaman atau modul yang tetap tunduk pada master.
 
-Contoh kelas di bawah adalah resep tampilan dari aplikasi saat ini, bukan komponen siap pakai.
-Saat menyalin resep, terapkan aturan label, fokus, kontras, dan target sentuh pada bagian 10.
+Contoh kelas dan rujukan kode menjelaskan pemakaian tema, bukan menentukan susunan semua halaman.
+Saat mengadaptasi contoh, terapkan aturan label, fokus, kontras, dan target sentuh pada bagian 10.
 Jangan menyalin logika bisnis, autentikasi, atau kekurangan aksesibilitas halaman referensi.
 
 Permintaan fitur baru tidak mengizinkan agen mengubah identitas visual. Jangan mengubah master
@@ -52,151 +52,90 @@ sidebar atau kartu dashboard ke hasil cetak. Login mempertahankan layout autenti
 
 ---
 
-## 2. Struktur Header Halaman
+## 2. Struktur halaman dan hierarki informasi global
 
-Setiap halaman modul memiliki header dengan icon hijau, judul tebal, subjudul kecil, dan tombol aksi di kanan:
+Aturan global menetapkan bahasa visual dan hierarki informasi. Susunan konten dipilih
+berdasarkan pekerjaan pengguna: daftar, detail, formulir, dashboard, laporan, atau pengaturan.
+Tidak ada satu halaman existing yang menjadi template wajib untuk seluruh aplikasi.
 
-```tsx
-<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-  <div>
-    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-      <Icon className="w-6 h-6 text-emerald-600" />
-      <span>{Judul Halaman}</span>
-    </h1>
-    <p className="text-xs text-slate-500 mt-1">
-      {Deskripsi ringkas fungsi halaman untuk operasional.}
-    </p>
-  </div>
+- Halaman operasional menggunakan shell aplikasi yang sama. Padding, lebar konten,
+  sidebar, topbar, dan breadcrumb mengikuti shell; jangan digandakan di setiap fitur.
+- Setiap halaman memiliki judul utama yang jelas. Judul bagian berada pada hierarki
+  di bawahnya; gunakan skala tipografi global, bukan ukuran baru per departemen.
+- Deskripsi, ikon judul, breadcrumb tambahan, dan aksi header ditampilkan bila memberi
+  konteks atau fungsi. Tidak wajib ada ikon dan subjudul pada setiap halaman.
+- Kelompokkan informasi sesuai urutan kerja. Gunakan spacing, border, dan surface existing
+  untuk membedakan bagian, tanpa mewajibkan setiap bagian dibungkus kartu.
+- Pada desktop, judul dan aksi dapat berdampingan jika ruang cukup. Di layar kecil,
+  susun atau bungkus kontrol agar terbaca dan dapat digunakan.
+- Posisi aksi mengikuti objeknya: aksi halaman pada area halaman, aksi baris pada baris,
+  aksi field dekat field, dan aksi simpan di area formulir/modal yang mudah dijangkau.
+- Perubahan susunan untuk kebutuhan bisnis diperbolehkan selama tema, komponen,
+  kepadatan informasi, dan perilaku interaksi tetap konsisten.
 
-  <div className="flex flex-wrap items-center gap-2.5">
-    {/* Tombol Sekunder (Putih Border Abu-abu) */}
-    <button
-      type="button"
-      className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-    >
-      <RefreshCw className="w-4 h-4 text-emerald-600" />
-      Muat Ulang
-    </button>
+## 3. Komponen, surface, dan hierarki aksi global
 
-    {/* Tombol Utama (Hijau Emerald Solid) */}
-    <Link
-      href="/dashboard/.../new"
-      className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-    >
-      <Plus className="w-4 h-4" />
-      Tambah Data
-    </Link>
-  </div>
-</div>
-```
+Gunakan kembali komponen bersama yang sesuai fungsi dan API aktualnya. Komponen halaman
+tertentu boleh menjadi referensi implementasi, tetapi tata letak dan datanya tidak otomatis
+berlaku untuk halaman lain.
 
----
+| Elemen | Aturan global |
+|---|---|
+| Surface/panel | Gunakan canvas slate, surface putih, border slate, radius, dan shadow sesuai token master. Jumlah panel mengikuti kelompok informasi. |
+| Aksi utama | Gunakan gaya primary emerald untuk tindakan utama pada konteks tersebut; label menyebut tindakan sebenarnya. |
+| Aksi sekunder | Gunakan surface putih/netral dan border existing; jangan bersaing dengan aksi utama. |
+| Aksi berisiko | Gunakan tone destructive untuk tindakan yang berdampak merusak; konfirmasi sesuai dampaknya. |
+| Input dan pilihan | Gunakan font, radius, border, fokus, label, dan validasi yang konsisten; pilih jenis kontrol sesuai nilai yang dimasukkan. |
+| Status dan feedback | Gunakan tone semantik yang sama antarmodul, disertai teks yang menjelaskan keadaan. |
+| Modal | Gunakan modal bersama untuk tugas yang memerlukan dialog; tugas panjang dapat memakai halaman form. |
+| Ringkasan/metrik | Tambahkan hanya jika membantu keputusan pengguna dan memiliki data nyata; jumlah, ikon, dan grid tidak ditetapkan secara global. |
 
-## 3. Kartu Ringkasan / KPI Stats Cards
+Jangan mewajibkan KPI, tiga/empat kartu ringkasan, tombol tambah, atau tombol muat ulang
+pada semua halaman. Jika komponen baru dibutuhkan, susun dengan token existing dan perilaku
+yang sejalan dengan komponen bersama; jangan menciptakan identitas visual baru.
 
-Gunakan grid 3 atau 4 kolom dengan kotak icon berwarna pastel lembut di sebelah kiri dan angka besar di sebelah kanan:
+## 4. Pencarian, filter, dan kontrol konteks global
 
-```tsx
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-  {[
-    { label: 'KARYAWAN AKTIF', value: 242, icon: <Users className="w-5 h-5" />, tone: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-    { label: 'DEPARTEMEN', value: 24, icon: <Building2 className="w-5 h-5" />, tone: 'bg-amber-50 border-amber-100 text-amber-600' },
-    { label: 'LOKASI', value: 5, icon: <MapPin className="w-5 h-5" />, tone: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-  ].map((s) => (
-    <div key={s.label} className="p-4 rounded-2xl flex items-center gap-4 bg-white border border-slate-200 shadow-sm">
-      <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${s.tone}`}>
-        {s.icon}
-      </div>
-      <div>
-        <p className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">{s.label}</p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5">{s.value}</p>
-      </div>
-    </div>
-  ))}
-</div>
-```
+Pencarian dan filter adalah alat untuk mengendalikan data yang sedang dilihat. Kehadirannya,
+jenis kontrol, dan penempatannya mengikuti volume data serta kebutuhan pekerjaan.
 
----
+- Sediakan pencarian hanya untuk objek/field yang memang dapat dicari. Label dan placeholder
+  menjelaskan cakupannya; jangan menampilkan pencarian yang tidak berfungsi.
+- Gunakan filter berdasarkan atribut domain yang relevan. Kontrol tanggal, status, kategori,
+  atau pemohon tidak wajib muncul pada setiap halaman.
+- Kelompokkan kontrol yang memengaruhi kumpulan data yang sama. Boleh memakai toolbar,
+  area di atas konten, atau panel filter sesuai kompleksitas; tidak wajib satu bilah putih.
+- Pertahankan gaya input, select, tombol, dan active state dari master. Perbedaan jenis filter
+  tidak menjadi alasan mengganti font, palet, atau bentuk kontrol.
+- Perubahan filter harus terlihat hasilnya. Tampilkan pilihan aktif dan cara mereset bila
+  diperlukan; angka hasil hanya ditampilkan jika benar dan berguna.
+- Bedakan kondisi data memang kosong, pencarian tanpa hasil, proses memuat, dan kegagalan.
+- Pada layar kecil, kontrol membungkus atau tersusun vertikal. Jangan memaksa filter penting
+  keluar layar; filter tambahan boleh ditempatkan dalam area yang dapat dibuka dengan jelas.
 
-## 4. Toolbar Pencarian & Filter
+## 5. Penyajian data dan konten global
 
-Bilah filter tunggal memanjang dengan background putih, rounded-2xl, border abu-abu tipis:
+Pilih bentuk penyajian berdasarkan informasi dan tindakan pengguna. Tabel digunakan untuk
+membandingkan record dengan atribut serupa; detail, formulir, kalender, daftar, atau riwayat
+menggunakan bentuk yang sesuai tanpa harus disulap menjadi tabel.
 
-```tsx
-<div className="bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-wrap items-center gap-3 shadow-sm">
-  <div className="relative flex-1 min-w-48">
-    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-    <input
-      type="text"
-      placeholder="Cari data..."
-      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
-    />
-  </div>
-  <div className="flex items-center gap-2">
-    <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-    <select className="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all cursor-pointer">
-      <option value="">Semua Filter</option>
-    </select>
-  </div>
-  <span className="text-xs text-slate-500 ml-auto hidden sm:inline">
-    Menampilkan <strong className="text-slate-900">{filteredCount}</strong> dari {totalCount} data
-  </span>
-</div>
-```
-
----
-
-## 5. Tabel Data Standar
-
-Tabel wajib dibungkus kontainer putih `rounded-2xl border border-slate-200 overflow-hidden shadow-sm`:
-
-```tsx
-<div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-  <div className="overflow-x-auto">
-    <table className="w-full text-left text-xs border-collapse">
-      <thead>
-        <tr className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider font-mono">
-          <th className="py-3.5 px-4">KODE / NIK</th>
-          <th className="py-3.5 px-4">NAMA</th>
-          <th className="py-3.5 px-4">STATUS</th>
-          <th className="py-3.5 px-4 text-right">AKSI</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100">
-        <tr className="hover:bg-emerald-50/30 transition-colors group">
-          <td className="py-3.5 px-4 font-mono">
-            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold text-[11px]">
-              {kode}
-            </span>
-          </td>
-          <td className="py-3.5 px-4 font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
-            {nama}
-          </td>
-          <td className="py-3.5 px-4">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Aktif
-            </span>
-          </td>
-          <td className="py-3.5 px-4 text-right">
-            <div className="flex items-center justify-end gap-1">
-              <button className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer">
-                <Eye className="w-4 h-4" />
-              </button>
-              <button className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 border border-transparent hover:border-amber-200 transition-all cursor-pointer">
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-```
+- Semua bentuk penyajian mengikuti font, surface, border, radius, spacing, dan tone semantik
+  master. Struktur konten boleh berbeda antarmodul, identitas visual tetap sama.
+- Jika memakai tabel, heading kolom jelas, selaras dengan isinya, dan memiliki struktur HTML
+  semantik. Gunakan pemisah dan hover yang konsisten dengan surface aplikasi.
+- Nama, kode, tanggal, uang, jumlah, dan status mengikuti makna datanya. Angka pembanding
+  disejajarkan konsisten; satuan dan formatnya jelas. Tidak semua teks harus monospace,
+  uppercase, berupa badge, atau memakai titik status.
+- Kolom dan aksi ditentukan kebutuhan domain. Kolom KODE/NIK, NAMA, STATUS, dan AKSI dari
+  direktori karyawan tidak menjadi struktur wajib seluruh tabel.
+- Tautan membuka tujuan yang nyata; tombol menjalankan aksi. Aksi penting tidak hanya
+  muncul saat hover sehingga tetap dapat diakses di perangkat sentuh dan keyboard.
+- Gunakan pagination, sorting, atau pilihan massal hanya jika diperlukan oleh jumlah data
+  dan proses pengguna; pertahankan perilaku yang konsisten ketika tersedia.
+- Konten lebar dapat digulir dalam panelnya. Pada ponsel, pilih scroll tabel atau susunan
+  alternatif yang tetap mempertahankan informasi serta tindakan penting.
+- Loading, kosong, error, read-only, dan sukses mengikuti kondisi nyata. Hindari mengisi
+  ruang dengan data contoh, kartu tambahan, atau visual tanpa fungsi.
 
 ---
 
@@ -229,9 +168,9 @@ Semua path di bawah relatif terhadap root proyek dan menunjuk sumber yang sudah 
 | Identitas brand | `frontend/src/lib/gajianichBrand.ts` | Pakai konstanta brand, jangan mengetik brand baru di setiap modul. |
 | Token dan font global | `frontend/src/app/globals.css` | Gunakan token yang ada; jangan menimpa dari CSS modul. |
 | Shell, sidebar, topbar, breadcrumb | `frontend/src/components/layout/DashboardLayout.tsx` | Gunakan shell existing; pertahankan collapse, drawer mobile, dan izin menu. |
-| Master/list/transaksi | `frontend/src/components/master/EmployeeDirectoryPage.tsx` | Acuan header, toolbar, tabel, kartu ringkasan, loading, dan empty state. |
-| Form master | `frontend/src/components/master/EmployeeFormPage.tsx`, `EmployeeFormFields.tsx` pada direktori yang sama | Ikuti pengelompokan field dan hierarki aksi; isi field sesuai domain baru. |
-| Form transaksi | `frontend/src/components/leaves/LeaveRequestForm.tsx` | Acuan pengelompokan informasi dan proses simpan; aturan bisnis cuti tidak dipindahkan. |
+| Contoh direktori data | `frontend/src/components/master/EmployeeDirectoryPage.tsx` | Contoh penerapan tema pada list karyawan; bukan template wajib untuk semua list, transaksi, atau modul. |
+| Contoh form master | `frontend/src/components/master/EmployeeFormPage.tsx`, `EmployeeFormFields.tsx` pada direktori yang sama | Referensi gaya field dan aksi; pengelompokan field mengikuti domain fitur. |
+| Contoh form transaksi | `frontend/src/components/leaves/LeaveRequestForm.tsx` | Referensi penerapan tema; struktur dan aturan cuti tidak diwajibkan pada transaksi lain. |
 | Modal umum | `frontend/src/components/ui/ModalShell.tsx` | Pakai prop aktual: `isOpen`, `onClose`, `title`, `children`, `footer`, `isLoading`; jangan membuat overlay sendiri. |
 | Konfirmasi hapus/aksi berisiko | `frontend/src/components/ui/ConfirmDeleteModal.tsx` | Tampilkan nama objek, alasan, loading/error, dan aksi spesifik; jangan gunakan `window.confirm` / `alert`. |
 | Status umum | `frontend/src/components/ui/StatusBadge.tsx` | Pakai variant semantik aktual: `success`, `warning`, `danger`, `slate`, `default`, atau `info`. |
@@ -276,19 +215,19 @@ bernama serupa tidak harus menghasilkan nilai hex persis sama.
 - Animasi hanya untuk feedback, transisi singkat, dan loading. Hormati reduced motion.
 - Light ERP adalah tema operasional aktif. Jangan menambah dark mode khusus modul.
 
-### Susunan halaman list/master/transaksi
+### Pemilihan pola halaman
 
-1. `DashboardLayout` menyediakan shell dan padding halaman. Jangan menggandakan shell/padding.
-2. Wrapper konten `space-y-6`.
-3. Header: judul kiri, deskripsi ringkas, aksi kanan yang membungkus di layar kecil.
-4. Kartu ringkasan hanya bila membantu keputusan dan memiliki sumber data nyata.
-   Jangan mengarang 3–4 KPI agar halaman terlihat penuh.
-5. Tab jika ada kategori kerja nyata; toolbar filter/pencarian yang terkait dengan tabel.
-6. Panel tabel/list, lalu pagination bila memang diperlukan data.
+Bagian 2–5 berlaku lintas jenis halaman. Pilih struktur sesuai tugas pengguna:
 
-Untuk detail dan form, pertahankan header, panel, label, warna, dan hierarki tombol yang sama;
-susunan field menyesuaikan tugas pengguna. Jangan memaksakan KPI dan tabel pada semua form.
-Gunakan satu aksi utama yang jelas dalam satu kelompok tugas; aksi lain sekunder.
+- Direktori/list: penelusuran dan perbandingan data, dengan filter atau tabel bila diperlukan.
+- Detail: identitas objek, informasi terkait, riwayat, dan tindakan yang relevan.
+- Form: kelompok field sesuai urutan pengisian, validasi, serta aksi simpan/ajukan.
+- Dashboard/laporan: ringkasan dan visualisasi yang menjawab kebutuhan operasional dari data nyata.
+- Pengaturan: kelompok konfigurasi dengan penjelasan dampak dan pola penyimpanan yang jelas.
+
+Gunakan shell dan ritme spacing existing. Urutan header, KPI, toolbar, dan tabel dari halaman
+tertentu tidak menjadi kewajiban global. Contoh halaman dipilih untuk mengadaptasi bagian
+relevan saja, bukan untuk menyalin keseluruhan susunannya.
 
 ### Penambahan menu
 

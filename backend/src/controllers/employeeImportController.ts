@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import { db } from '../db';
 import { employees } from '../db/schema/employees';
 import { departments } from '../db/schema/master';
@@ -9,6 +10,9 @@ import {
   buildEmployeeImportTemplate,
   EmployeeImportLookups,
 } from '../lib/employeeImport';
+import { resolveAuditContext, appendHrAudit } from '../services/hrAudit';
+import { runHrMutation } from '../services/hrMutation';
+import { hashRequestPayload } from '../domain/hrAudit';
 
 export async function downloadEmployeeTemplate(_req: Request, res: Response) {
   try {
@@ -117,9 +121,7 @@ export async function commitEmployeeImport(req: Request, res: Response) {
       return res.status(400).json({ error: 'File Excel kosong atau tidak memiliki baris data karyawan' });
     }
 
-    const userId = (req as any).user?.userId ?? (req as any).user?.id ?? 1;
-
-    const result = await db.transaction(async (tx) => {
+    const executeImport = async (tx: any) => {
       const { lookups, deptMap } = await loadEmployeeImportLookups(tx);
       const validation = validateEmployeeImport(rows, lookups);
 
@@ -189,22 +191,65 @@ export async function commitEmployeeImport(req: Request, res: Response) {
         });
       }
 
-      // Record audit log
+      return {
+        importedCount: rows.length,
+        createdDepartmentsCount: createdDeptCount,
+      };
+    };
+
+    if ((req as any).user) {
+      const context = await resolveAuditContext(req as any);
+      const fileChecksum = createHash('sha256').update(req.file.buffer).digest('hex');
+      const requestHash = hashRequestPayload({ command: 'employee.import', count: rows.length, checksum: fileChecksum });
+
+      const result = await runHrMutation(context, requestHash, async (tx) => {
+        const importSummary = await executeImport(tx);
+
+        await appendHrAudit(tx, {
+          operationId: context.operationId,
+          actor: context.actor,
+          action: 'IMPORT',
+          entityType: 'employee',
+          entityId: null,
+          entityLabel: `Batch Import (${importSummary.importedCount} karyawan)`,
+          outcome: 'SUCCESS',
+          summary: `Berhasil mengimpor ${importSummary.importedCount} data karyawan dan menambahkan ${importSummary.createdDepartmentsCount} departemen baru`,
+          metadata: {
+            importedCount: importSummary.importedCount,
+            createdDepartmentsCount: importSummary.createdDepartmentsCount,
+          },
+        });
+
+        return {
+          message: `Successfully imported ${importSummary.importedCount} employees`,
+          importedCount: importSummary.importedCount,
+          createdDepartmentsCount: importSummary.createdDepartmentsCount,
+        };
+      });
+
+      return res.status(200).json(result);
+    }
+
+    // Fallback for unauthenticated legacy test calls
+    const userId = (req as any).user?.userId ?? (req as any).user?.id ?? 1;
+    const result = await db.transaction(async (tx) => {
+      const importSummary = await executeImport(tx);
+
       await tx.insert(auditLogs).values({
         userId,
         action: 'IMPORT',
         entity: 'employees',
         entityId: 0,
         newValues: {
-          importedCount: rows.length,
-          createdDepartmentsCount: createdDeptCount,
+          importedCount: importSummary.importedCount,
+          createdDepartmentsCount: importSummary.createdDepartmentsCount,
         },
       });
 
       return {
-        message: `Successfully imported ${rows.length} employees`,
-        importedCount: rows.length,
-        createdDepartmentsCount: createdDeptCount,
+        message: `Successfully imported ${importSummary.importedCount} employees`,
+        importedCount: importSummary.importedCount,
+        createdDepartmentsCount: importSummary.createdDepartmentsCount,
       };
     });
 
@@ -213,6 +258,6 @@ export async function commitEmployeeImport(req: Request, res: Response) {
     if (err.message && err.message.startsWith('Validation failed')) {
       return res.status(400).json({ error: err.message });
     }
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(err.statusCode || 500).json({ error: err.message || 'Internal server error' });
   }
 }

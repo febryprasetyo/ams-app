@@ -30,7 +30,12 @@ export const DASHBOARD_ROUTE_RULES: RouteRule[] = [
     moduleName: 'Welcome Overview',
   },
 
-  // HR Leave Requests
+  // HR Leave Settings & Requests
+  {
+    prefix: '/dashboard/leaves/settings',
+    permission: 'attendance.manage',
+    moduleName: 'Pengaturan Cuti',
+  },
   {
     prefix: '/dashboard/leaves',
     permission: 'attendance.view',

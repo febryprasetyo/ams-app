@@ -116,15 +116,21 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
       return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
     }
 
-    // Ambil hari libur / cuti bersama tahun berjalan
+    // 1. Ambil konfigurasi kebijakan cuti tahunan aktif
+    const [cfg] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, year));
+
+    // 2. Ambil hari libur / cuti bersama tahun berjalan
     const holidays = await db
       .select()
       .from(leaveHolidayCalendars)
       .where(eq(leaveHolidayCalendars.year, year));
 
-    // Cuti bersama yang memotong kuota tahunan
     const collectiveLeaves = holidays.filter((h) => h.isCollectiveLeave);
-    const collectiveLeaveDays = collectiveLeaves.length;
+    const effectiveBaseQuota = cfg?.baseQuota ?? 12;
+    const effectiveCollectiveLeaveDays = cfg?.collectiveLeaveDays ?? collectiveLeaves.length;
 
     // Ambil atau buat record saldo cuti karyawan untuk tahun bersangkutan
     let [balance] = await db
@@ -138,20 +144,29 @@ export async function getLeaveBalanceSummary(req: Request, res: Response) {
         .values({
           employeeId,
           year,
-          baseQuota: 12,
-          collectiveLeaveDeduction: collectiveLeaveDays,
+          baseQuota: effectiveBaseQuota,
+          collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
           usedQuota: 0,
           carriedOverQuota: 0,
+          isCustomQuota: false,
         })
         .returning();
       balance = inserted;
-    } else if (balance.collectiveLeaveDeduction !== collectiveLeaveDays) {
-      const [updated] = await db
-        .update(leaveBalances)
-        .set({ collectiveLeaveDeduction: collectiveLeaveDays, updatedAt: new Date() })
-        .where(eq(leaveBalances.id, balance.id))
-        .returning();
-      balance = updated;
+    } else {
+      const needsSyncBase = !balance.isCustomQuota && balance.baseQuota !== effectiveBaseQuota;
+      const needsSyncCollective = balance.collectiveLeaveDeduction !== effectiveCollectiveLeaveDays;
+      if (needsSyncBase || needsSyncCollective) {
+        const [updated] = await db
+          .update(leaveBalances)
+          .set({
+            baseQuota: !balance.isCustomQuota ? effectiveBaseQuota : balance.baseQuota,
+            collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
+            updatedAt: new Date(),
+          })
+          .where(eq(leaveBalances.id, balance.id))
+          .returning();
+        balance = updated;
+      }
     }
 
     // Ambil histori cuti yang sudah diambil sebelumnya (maks 5 item sesuai slot format F4)
@@ -288,8 +303,15 @@ export async function createLeaveRequest(req: Request, res: Response) {
       finalResumeWorkDate = daysCalc.resumeWorkDate;
     }
 
-    // Ambil saldo
-    const collectiveLeaveDays = holidays.filter((h) => h.isCollectiveLeave).length;
+    // 1. Ambil kebijakan cuti aktif
+    const [cfg] = await db
+      .select()
+      .from(annualLeaveConfigs)
+      .where(eq(annualLeaveConfigs.year, startYear));
+    const effectiveBaseQuota = cfg?.baseQuota ?? 12;
+    const effectiveCollectiveLeaveDays = cfg?.collectiveLeaveDays ?? holidays.filter((h) => h.isCollectiveLeave).length;
+
+    // 2. Ambil saldo
     let [balance] = await db
       .select()
       .from(leaveBalances)
@@ -301,9 +323,11 @@ export async function createLeaveRequest(req: Request, res: Response) {
         .values({
           employeeId: data.employeeId,
           year: startYear,
-          baseQuota: 12,
-          collectiveLeaveDeduction: collectiveLeaveDays,
+          baseQuota: effectiveBaseQuota,
+          collectiveLeaveDeduction: effectiveCollectiveLeaveDays,
           usedQuota: 0,
+          carriedOverQuota: 0,
+          isCustomQuota: false,
         })
         .returning();
       balance = inserted;

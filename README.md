@@ -76,3 +76,10 @@ Use the production commands above for releases and backups.
 for a host with PostgreSQL and an upstream TLS proxy. They are not the active
 LAN deployment. A container replacement can cause a brief interruption; schema
 migrations are not automatically reversed during an application rollback.
+
+## Design Master
+
+Before adding menus, pages, features, or styles, read [DESIGN.md](DESIGN.md) and the
+[GAJIANICH / AMS UI design master](UI_DESIGN_SYSTEM_GUIDE.md). New modules follow the
+existing Emerald Enterprise theme and shared components. Page-specific notes cannot
+replace the application's visual identity.

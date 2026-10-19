@@ -60,3 +60,7 @@ docs/WhatsApp Image*
 /docs/
 /design-system/*
 /hardware-collector/*
+
+# Shared design instructions (explicit exceptions)
+!/AGENTS.md
+!/frontend/AGENTS.md

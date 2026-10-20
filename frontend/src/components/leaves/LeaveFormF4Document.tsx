@@ -8,9 +8,10 @@ import Link from 'next/link';
 interface LeaveFormF4DocumentProps {
   data: FullLeaveDocumentData;
   backHref?: string;
+  printActions?: React.ReactNode;
 }
 
-export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: LeaveFormF4DocumentProps) {
+export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves', printActions }: LeaveFormF4DocumentProps) {
   const handlePrint = () => {
     window.print();
   };
@@ -32,8 +33,8 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
   return (
     <div className="min-h-screen bg-slate-100 py-6 px-4 print:p-0 print:bg-white text-black font-sans">
       {/* Action Bar (Hanya Tampil di Layar / Hidden saat Print) */}
-      <div className="max-w-[215mm] mx-auto mb-4 flex items-center justify-between no-print bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-3">
+      <div className="max-w-[215mm] mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 no-print bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Link
             href={backHref}
             className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
@@ -45,7 +46,8 @@ export function LeaveFormF4Document({ data, backHref = '/dashboard/leaves' }: Le
             
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {printActions}
           <button
             onClick={handlePrint}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"

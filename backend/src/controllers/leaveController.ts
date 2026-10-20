@@ -615,6 +615,13 @@ export async function getLeaveRequestById(req: Request, res: Response) {
       collectiveLeaveDays: request.snapshotCollectiveLeave,
       cleanAnnualQuota,
       historyItems,
+      detailedHistoryItems: prevLeaves.map((previous, index) => ({
+        no: index + 1,
+        description: `${previous.durationDays} = Cuti tahunan tgl ${previous.startDate}`,
+        startDate: previous.startDate,
+        endDate: previous.endDate,
+        durationDays: previous.durationDays,
+      })),
       availableBefore: request.snapshotAvailableBefore,
       leaveDaysRequested: request.durationDays,
       remainingAfter: request.snapshotRemainingAfter,

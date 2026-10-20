@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { LeaveFormF4Document } from '@/components/leaves/LeaveFormF4Document';
 import type { FullLeaveDocumentData } from '@/types/leaves';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Eye } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LeavePrintPage() {
@@ -62,5 +62,18 @@ export default function LeavePrintPage() {
     );
   }
 
-  return <LeaveFormF4Document data={documentData} backHref="/dashboard/leaves" />;
+  return (
+    <LeaveFormF4Document
+      data={documentData}
+      backHref="/dashboard/leaves"
+      printActions={
+        <Link
+          href={`/dashboard/leaves/${id}/print/new`}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          <Eye className="size-4" aria-hidden="true" /> Live View
+        </Link>
+      }
+    />
+  );
 }

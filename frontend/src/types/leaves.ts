@@ -9,6 +9,9 @@ export type ApprovalStage = 'APPLICANT' | 'DIRECT_SUPERVISOR' | 'HRD' | 'HIGHER_
 export interface LeaveHistoryItem {
   no: number;
   description: string;
+  startDate?: string;
+  endDate?: string;
+  durationDays?: number;
 }
 
 export interface EmployeeProfileSummary {
@@ -77,6 +80,7 @@ export interface FullLeaveDocumentData {
   collectiveLeaveDays: number;
   cleanAnnualQuota: number;
   historyItems: LeaveHistoryItem[];
+  detailedHistoryItems?: LeaveHistoryItem[];
   availableBefore: number;
   leaveDaysRequested: number;
   remainingAfter: number;

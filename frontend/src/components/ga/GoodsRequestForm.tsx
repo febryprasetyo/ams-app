@@ -456,6 +456,7 @@ export default function GoodsRequestForm() {
 
               <button
                 type="submit"
+                aria-label="Simpan Pengajuan"
                 disabled={busy || processing}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
               >

@@ -215,7 +215,7 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                 {request?.title || 'Permintaan Barang'}
               </h1>
-              {badge && (
+              {request && badge && (
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-bold ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
                 >

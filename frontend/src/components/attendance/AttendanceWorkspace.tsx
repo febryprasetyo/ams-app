@@ -13,6 +13,7 @@ import './attendance.css';
 interface AttendanceContextValue {
   data: AttendanceDataset;
   execute: (command: AttendanceCommand) => Promise<AttendanceDataset>;
+  refresh: () => Promise<void>;
   canWrite: boolean;
   canReview: boolean;
 }
@@ -60,6 +61,11 @@ function Provider({ children }: { children: React.ReactNode }) {
     const next = await repository.execute(command);
     setData(next);
     return next;
+  }, [repository]);
+
+  const refresh = useCallback(async () => {
+    const fresh = await repository.reset();
+    setData(fresh);
   }, [repository]);
 
   const effectiveRole = useMemo((): AttendanceRole => {
@@ -123,7 +129,7 @@ function Provider({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       ) : (
-        <AttendanceContext.Provider value={{ data: resolvedData!, execute, canWrite: effectiveRole === 'HR_ADMIN' || effectiveRole === 'HR_STAFF' || Boolean(user?.permissions?.includes('attendance.import')), canReview: effectiveRole !== 'REPORT_VIEWER' }}>
+        <AttendanceContext.Provider value={{ data: resolvedData!, execute, refresh, canWrite: effectiveRole === 'HR_ADMIN' || effectiveRole === 'HR_STAFF' || Boolean(user?.permissions?.includes('attendance.import')), canReview: effectiveRole !== 'REPORT_VIEWER' }}>
           {children}
         </AttendanceContext.Provider>
       )}

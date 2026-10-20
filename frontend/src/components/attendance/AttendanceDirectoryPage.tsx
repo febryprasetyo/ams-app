@@ -16,7 +16,7 @@ const titles: Record<Mode, string> = { employees: 'Master Karyawan Absensi', dep
 const descriptions: Record<Mode, string> = { employees: 'Master karyawan HR dengan sinkronisasi master data AMS & Talenta.', departments: 'Kelola departemen yang digunakan oleh karyawan absensi.', locations: 'Kelola lokasi kerja absensi. Lokasi yang tidak tersedia pada file sumber tetap kosong.', identities: 'Hubungkan nomor mesin ke karyawan. Angka nol di depan nomor tetap dipertahankan.', sources: 'Sumber file menjadi pembeda nomor identitas mesin.', access: 'Simulasi grant modul HR. Perubahan di sini tidak mengubah akun atau hak akses login AMS.', cards: 'Pilih karyawan untuk melihat catatan harian, total durasi, dan riwayat koreksi.' };
 type Entry = Employee | MasterItem | Identity | AttendanceGrant;
 export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
-  const { data, execute, canWrite } = useAttendance();
+  const { data, execute, canWrite, refresh } = useAttendance();
   const [q, setQ] = useState(''), [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Entry | null | undefined>(undefined);
   const [isExporting, setIsExporting] = useState(false);
@@ -117,7 +117,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
           setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);
-        await reset();
+        await refresh();
       } catch (err: any) {
         setNotice({ type: 'error', text: err.message || 'Gagal menyimpan departemen.' });
       }
@@ -131,7 +131,7 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
           setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);
-        await reset();
+        await refresh();
       } catch (err: any) {
         setNotice({ type: 'error', text: err.message || 'Gagal menyimpan lokasi.' });
       }

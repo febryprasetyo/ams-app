@@ -75,10 +75,49 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   const submit = async (form: FormData) => {
     const text = (key: string) => String(form.get(key) ?? '');
     const id = editing?.id ?? 0; const isActive = text('isActive') === 'true';
-    if (mode === 'employees') await execute({ type: 'employee', value: { id, fullName: text('fullName'), employeeCode: text('employeeCode'), email: text('email'), departmentId: Number(text('departmentId')), locationId: text('locationId') ? Number(text('locationId')) : null, position: text('position'), isActive } });
-    else if (mode === 'identities') await execute({ type: 'identity', value: { id, externalNoId: text('externalNoId'), sourceId: Number(text('sourceId')), employeeId: Number(text('employeeId')) } });
-    else if (mode === 'access') await execute({ type: 'grant', value: { id, principalKey: text('principalKey'), displayName: text('displayName'), role: text('role') as AttendanceGrant['role'], isActive } });
-    else if (mode !== 'cards') await execute({ type: 'master', collection: mode, value: { id, code: text('code'), name: text('name'), isActive } });
+    if (mode === 'sources') {
+      await execute({
+        type: 'source',
+        action: id ? 'update' : 'create',
+        source: {
+          id,
+          code: text('code'),
+          name: text('name'),
+          isActive,
+        },
+      });
+    } else if (mode === 'identities') {
+      await execute({
+        type: 'identity',
+        value: {
+          id,
+          externalNoId: text('externalNoId'),
+          sourceId: Number(text('sourceId')),
+          employeeId: Number(text('employeeId')),
+        },
+      });
+    } else if (mode === 'access') {
+      await execute({
+        type: 'grant',
+        value: {
+          id,
+          principalKey: text('principalKey'),
+          displayName: text('displayName'),
+          role: text('role') as AttendanceGrant['role'],
+          isActive,
+        },
+      });
+    } else if (mode === 'employees') {
+      setNotice({
+        type: 'error',
+        text: 'Pengelolaan master karyawan dilakukan melalui menu Data Karyawan AMS atau import Talenta.',
+      });
+    } else if (mode !== 'cards') {
+      setNotice({
+        type: 'error',
+        text: `Pengelolaan master ${mode} dilakukan melalui menu Master Data AMS.`,
+      });
+    }
   };
 
   const handleExport = async () => {

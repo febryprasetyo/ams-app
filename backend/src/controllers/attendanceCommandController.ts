@@ -36,9 +36,17 @@ export async function postAttendanceCommand(req: Request, res: Response) {
   try {
     const parseResult = postAttendanceCommandBodySchema.safeParse(req.body);
     if (!parseResult.success) {
+      const issueSummary = parseResult.error.issues
+        .map((iss) => `${iss.path.join('.') || 'body'}: ${iss.message}`)
+        .join('; ');
+      console.warn("postAttendanceCommand validation failed:", {
+        summary: issueSummary,
+        issues: parseResult.error.issues,
+        body: req.body,
+      });
       return res.status(400).json({
         success: false,
-        error: "Validation failed",
+        error: `Validation failed: ${issueSummary}`,
         details: parseResult.error.issues,
       });
     }

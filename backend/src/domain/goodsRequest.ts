@@ -110,5 +110,6 @@ export function validateGoodsRequest(input: unknown, uploadKeys: string[] = [], 
     return { ...item, subtotal };
   });
   if (used.size !== uploadKeys.length) throw new GoodsInputError('Ada lampiran yang tidak digunakan.');
-  return { ...parsed.data, status: 'ready_to_print' as GoodsRequestStatus, items };
+  const title = parsed.data.title || (items[0]?.name ? ((`Pengadaan ` + items[0].name)) : 'Permintaan Barang');
+  return { ...parsed.data, title, status: 'ready_to_print' as GoodsRequestStatus, items };
 }

@@ -111,13 +111,6 @@ export default function GoodsRequestList() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={reload}
-              className="px-3.5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
-              Segarkan
-            </button>
             {hasPermission('ga.requests.create') && (
               <Link
                 href={`${GA_BASE_PATH}/new`}

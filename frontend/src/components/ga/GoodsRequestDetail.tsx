@@ -200,13 +200,7 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
             <ArrowLeft size={16} /> Kembali ke daftar permintaan barang
           </Link>
 
-          <button
-            onClick={reload}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-          >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Segarkan
-          </button>
-        </div>
+          </div>
 
         {/* Title & Actions Bar */}
         <div className="flex flex-wrap items-start justify-between gap-4">

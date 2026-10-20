@@ -3,10 +3,10 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Plus, Save, Trash2, FileEdit } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
-import { GoodsDocumentHeading, GoodsDocumentSignatures, goodsIdentityRowClass } from './GoodsRequestDocument';
+import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
 import { api } from '@/lib/api';
 import { compressEvidence, localEvidenceKey, GA_API_PATH, GA_BASE_PATH, rupiah } from '@/lib/goodsRequests';
 import { validateFormSubmission } from '@/lib/ga/goodsFormValidation';
@@ -14,14 +14,12 @@ import { validateFormSubmission } from '@/lib/ga/goodsFormValidation';
 interface Evidence { key: string; file: File; url: string }
 interface Row { key: string; name: string; quantity: string; estimatedPrice: string; notes: string; evidence: Evidence[] }
 const newRow = (key = localEvidenceKey()): Row => ({ key, name: '', quantity: '1', estimatedPrice: '', notes: '', evidence: [] });
-const inputClass = 'w-full min-h-11 rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 focus:border-emerald-600 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const inputClass = 'w-full min-h-11 rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const secondary = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
 
 export default function GoodsRequestForm() {
-  const { user, hasPermission } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [purpose, setPurpose] = useState('');
   const [identity, setIdentity] = useState({
     requestDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     requesterName: user?.fullName || '',
@@ -84,13 +82,14 @@ export default function GoodsRequestForm() {
     }
   }
 
-  async function handleSubmit(isDraft: boolean) {
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
     if (busy || processing) return;
 
     setError('');
     const validation = validateFormSubmission({
-      title,
-      purpose,
+      title: rows[0]?.name ? `Pengadaan ${rows[0].name.trim()}` : 'Permintaan Barang',
+      purpose: 'Operasional kantor',
       identity,
       rows: rows.map(r => ({
         name: r.name,
@@ -99,7 +98,7 @@ export default function GoodsRequestForm() {
         notes: r.notes,
         evidenceCount: r.evidence.length,
       })),
-    }, isDraft);
+    }, false);
 
     if (!validation.isValid) {
       const missingEvidence = rows.filter(r => r.evidence.length === 0).map(r => r.key);
@@ -114,10 +113,10 @@ export default function GoodsRequestForm() {
     try {
       const form = new FormData();
       const payload = {
-        title: title.trim(),
-        purpose: purpose.trim(),
-        isDraft,
-        status: isDraft ? 'draft' : 'ready_to_print',
+        title: rows[0]?.name ? `Pengadaan ${rows[0].name.trim()}` : 'Permintaan Barang',
+        purpose: 'Operasional kantor',
+        isDraft: false,
+        status: 'ready_to_print',
         requestDate: identity.requestDate,
         requesterName: identity.requesterName.trim(),
         jobTitle: identity.jobTitle.trim(),
@@ -139,84 +138,48 @@ export default function GoodsRequestForm() {
       }
 
       const result = await api.post<{ id: string }>(GA_API_PATH, form);
-      router.push(`${GA_BASE_PATH}/${result.id}`);
+      router.push(`${GA_BASE_PATH}/${result.id}?saved=1`);
     } catch (cause) {
       locked.current = false;
       setBusy(false);
-      setError((cause as Error).message || 'Pengajuan belum dapat disimpan. Coba kembali.');
+      setError((cause as Error).message || 'Pengajuan belum dapat diproses. Coba kembali; data formulir tetap tersedia.');
     }
   }
 
   return (
     <DashboardLayout>
       <main className="mx-auto min-w-0 max-w-5xl space-y-6 pb-12">
+        {/* Navigation & Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={GA_BASE_PATH}
-            className="inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+            className="inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-slate-600 hover:text-emerald-700"
           >
-            <ArrowLeft size={16} /> Kembali ke daftar pengajuan
+            <ArrowLeft size={16} /> Kembali ke daftar permintaan barang
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-              Persetujuan Tanda Tangan Basah
-            </span>
-          </div>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+            Persetujuan Tanda Tangan Basah
+          </span>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleSubmit(false);
-          }}
-          className="space-y-6"
-        >
-          {/* Card Form Header & Identity */}
-          <div className="rounded-2xl border border-slate-300 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Card Form Lembar Permintaan Barang */}
+          <section
+            aria-label="Lembar permintaan barang"
+            className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden"
+          >
             <GoodsDocumentHeading />
 
-            <div className="p-4 sm:p-6 space-y-4 border-b border-slate-200 dark:border-slate-800">
-              <div>
-                <label htmlFor="form-title" className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Judul Pengajuan Kebutuhan <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  id="form-title"
-                  type="text"
-                  maxLength={255}
-                  placeholder="Misal: Pengadaan 3 Unit Laptop Tim Engineering"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2.5 text-xs text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="form-purpose" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Alasan / Keperluan Pembelian
-                </label>
-                <textarea
-                  id="form-purpose"
-                  rows={2}
-                  maxLength={2000}
-                  placeholder="Jelaskan latar belakang kebutuhan barang ini..."
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3.5 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                />
-              </div>
-            </div>
-
             {/* Document Business Identity */}
-            <div className="grid grid-cols-1 border-b border-slate-300 sm:grid-cols-2 text-xs">
+            <div className="divide-y divide-slate-200 border-b border-slate-300 text-xs">
               {([
                 ['requestDate', 'Tanggal', 'date'],
-                ['requesterName', 'Diajukan', 'text'],
+                ['requesterName', 'Nama', 'text'],
                 ['jobTitle', 'Jabatan', 'text'],
                 ['division', 'Divisi', 'text'],
               ] as const).map(([key, label, type]) => (
-                <div key={key} className={goodsIdentityRowClass}>
-                  <label htmlFor={key} className="font-medium text-slate-800 dark:text-slate-200">
+                <div key={key} className="grid min-h-11 grid-cols-[100px_16px_minmax(0,1fr)] items-center px-4 py-1">
+                  <label htmlFor={key} className="font-medium text-slate-800">
                     {label}
                   </label>
                   <span aria-hidden="true">:</span>
@@ -224,9 +187,10 @@ export default function GoodsRequestForm() {
                     id={key}
                     type={type}
                     maxLength={150}
+                    aria-label={label}
                     value={identity[key]}
                     onChange={(e) => setIdentity(c => ({ ...c, [key]: e.target.value }))}
-                    className="min-h-11 min-w-0 w-full rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 dark:text-white"
+                    className="min-h-11 min-w-0 w-full rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 focus:outline-none"
                   />
                 </div>
               ))}
@@ -237,90 +201,109 @@ export default function GoodsRequestForm() {
               <table aria-label="Daftar barang" className="w-full min-w-[850px] border-collapse text-left text-xs">
                 <thead>
                   <tr>
-                    {['No', 'Qty', 'Nama Barang', 'Estimasi Harga', 'Subtotal Harga', 'Keterangan'].map(col => (
-                      <th
-                        key={col}
-                        scope="col"
-                        className="border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200"
-                      >
-                        {col}
-                      </th>
-                    ))}
+                    <th scope="col" className="w-12 border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800 whitespace-nowrap">
+                      No
+                    </th>
+                    <th scope="col" className="w-24 border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800 whitespace-nowrap">
+                      Qty
+                    </th>
+                    <th scope="col" className="border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800">
+                      Nama Barang
+                    </th>
+                    <th scope="col" className="w-40 border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800">
+                      Estimasi Harga
+                    </th>
+                    <th scope="col" className="w-40 border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800">
+                      Subtotal Harga
+                    </th>
+                    <th scope="col" className="w-56 border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800">
+                      Keterangan
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={row.key} className="align-top">
-                      <td className="w-12 border border-slate-300 p-3 text-center text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                        {index + 1}
-                      </td>
-                      <td className="w-24 border border-slate-300 p-1 dark:border-slate-800">
-                        <input
-                          id={`qty-${row.key}`}
-                          type="number"
-                          min={1}
-                          max={1000000}
-                          step={1}
-                          value={row.quantity}
-                          onChange={(e) => update(row.key, 'quantity', e.target.value)}
-                          className={inputClass}
-                        />
-                      </td>
-                      <td className="min-w-52 border border-slate-300 p-1 dark:border-slate-800">
-                        <textarea
-                          id={`name-${row.key}`}
-                          rows={2}
-                          maxLength={1000}
-                          placeholder="Nama dan spesifikasi barang..."
-                          value={row.name}
-                          onChange={(e) => update(row.key, 'name', e.target.value)}
-                          className={inputClass}
-                        />
-                      </td>
-                      <td className="w-40 border border-slate-300 p-1 dark:border-slate-800">
-                        <input
-                          id={`price-${row.key}`}
-                          type="number"
-                          min={0}
-                          max={100000000000}
-                          step={1}
-                          placeholder="0"
-                          value={row.estimatedPrice}
-                          onChange={(e) => update(row.key, 'estimatedPrice', e.target.value)}
-                          className={inputClass}
-                        />
-                      </td>
-                      <td className="whitespace-nowrap border border-slate-300 px-3 py-4 text-right font-semibold text-slate-900 dark:border-slate-800 dark:text-white">
-                        {rupiah((Number(row.quantity) || 0) * (Number(row.estimatedPrice) || 0))}
-                      </td>
-                      <td className="min-w-40 border border-slate-300 p-1 dark:border-slate-800">
-                        <textarea
-                          id={`notes-${row.key}`}
-                          rows={2}
-                          maxLength={2000}
-                          placeholder="Catatan..."
-                          value={row.notes}
-                          onChange={(e) => update(row.key, 'notes', e.target.value)}
-                          className={inputClass}
-                        />
-                        <button
-                          type="button"
-                          disabled={rows.length === 1}
-                          className="inline-flex min-h-8 items-center gap-1.5 px-2 text-rose-600 hover:bg-rose-50 disabled:opacity-30 dark:hover:bg-rose-950/30"
-                          onClick={() => {
-                            row.evidence.forEach(revoke);
-                            setRows(c => c.filter(item => item.key !== row.key));
-                          }}
-                        >
-                          <Trash2 size={14} /> Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.map((row, index) => {
+                    const qtyNum = Number(row.quantity) || 0;
+                    const priceNum = Number(row.estimatedPrice) || 0;
+                    const subtotal = qtyNum * priceNum;
+
+                    return (
+                      <tr key={row.key} className="align-top">
+                        <td className="w-12 border border-slate-300 p-3 text-center text-slate-700">
+                          {index + 1}
+                        </td>
+                        <td className="w-24 border border-slate-300 p-1">
+                          <input
+                            id={`qty-${row.key}`}
+                            type="number"
+                            min={1}
+                            max={1000000}
+                            step={1}
+                            aria-label={`Qty item ${index + 1}`}
+                            value={row.quantity}
+                            onChange={(e) => update(row.key, 'quantity', e.target.value)}
+                            className={inputClass}
+                          />
+                        </td>
+                        <td className="min-w-52 border border-slate-300 p-1">
+                          <textarea
+                            id={`name-${row.key}`}
+                            rows={2}
+                            maxLength={1000}
+                            aria-label={`Nama barang item ${index + 1}`}
+                            placeholder="Nama dan spesifikasi barang..."
+                            value={row.name}
+                            onChange={(e) => update(row.key, 'name', e.target.value)}
+                            className={inputClass}
+                          />
+                        </td>
+                        <td className="w-40 border border-slate-300 p-1">
+                          <input
+                            id={`price-${row.key}`}
+                            type="number"
+                            min={0}
+                            step={1}
+                            aria-label={`Estimasi harga item ${index + 1}`}
+                            placeholder="0"
+                            value={row.estimatedPrice}
+                            onChange={(e) => update(row.key, 'estimatedPrice', e.target.value)}
+                            className={inputClass}
+                          />
+                        </td>
+                        <td className="w-40 border border-slate-300 p-3 text-right font-semibold text-slate-800">
+                          <span aria-label={`Subtotal item ${index + 1}`}>
+                            {rupiah(subtotal)}
+                          </span>
+                        </td>
+                        <td className="w-56 border border-slate-300 p-1">
+                          <textarea
+                            id={`notes-${row.key}`}
+                            rows={2}
+                            maxLength={2000}
+                            placeholder="Catatan..."
+                            value={row.notes}
+                            onChange={(e) => update(row.key, 'notes', e.target.value)}
+                            className={inputClass}
+                          />
+                          <button
+                            type="button"
+                            disabled={rows.length === 1}
+                            className="inline-flex min-h-8 items-center gap-1.5 px-2 text-rose-600 hover:bg-rose-50 disabled:opacity-30"
+                            onClick={() => {
+                              row.evidence.forEach(revoke);
+                              setRows(c => c.filter(item => item.key !== row.key));
+                            }}
+                          >
+                            <Trash2 size={14} /> Hapus
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {Array.from({ length: Math.max(0, 5 - rows.length) }, (_, i) => (
                     <tr key={`blank-${i}`} aria-hidden="true">
                       {Array.from({ length: 6 }, (_, col) => (
-                        <td key={col} className="h-9 border border-slate-300 dark:border-slate-800" />
+                        <td key={col} className="h-9 border border-slate-300" />
                       ))}
                     </tr>
                   ))}
@@ -330,14 +313,14 @@ export default function GoodsRequestForm() {
               <GoodsDocumentSignatures requesterName={identity.requesterName} />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300 p-3 sm:px-6 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300 p-3 sm:px-6">
               <button
                 type="button"
                 disabled={rows.length >= 20}
                 className={secondary}
                 onClick={() => setRows(c => [...c, newRow()])}
               >
-                <Plus size={16} /> Tambah baris barang
+                <Plus size={16} /> Tambah barang
               </button>
               <p className="text-xs text-slate-500">
                 Harga satuan dalam Rupiah · Maksimal 20 item
@@ -346,7 +329,7 @@ export default function GoodsRequestForm() {
 
             {/* Price Evidence Upload Section */}
             <div className="p-4 sm:p-6 space-y-4" aria-label="Lampiran bukti harga">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              <h3 className="text-sm font-bold text-slate-800">
                 Lampiran Bukti Harga per Barang
               </h3>
               {rows.map((row, index) => (
@@ -354,6 +337,7 @@ export default function GoodsRequestForm() {
                   key={row.key}
                   id={`evidence-${row.key}`}
                   tabIndex={0}
+                  aria-label={`Lampiran item ${index + 1}`}
                   onPaste={(event) => {
                     const files = Array.from(event.clipboardData.items)
                       .filter(item => item.type.startsWith('image/'))
@@ -366,16 +350,19 @@ export default function GoodsRequestForm() {
                   }}
                   className={`rounded-xl border p-4 transition ${
                     invalidRows.includes(row.key)
-                      ? 'border-rose-300 bg-rose-50/60 dark:border-rose-900/60 dark:bg-rose-950/20'
-                      : 'border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50'
+                      ? 'border-rose-300 bg-rose-50/60'
+                      : 'border-slate-200 bg-slate-50/50'
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    <p className="text-xs font-semibold text-slate-800">
                       Item {index + 1}: {row.name || 'Barang baru'}{' '}
                       <span className="font-normal text-slate-500">({row.evidence.length}/3 gambar)</span>
                     </p>
-                    <label className={`${secondary} relative cursor-pointer`}>
+                    <label
+                      aria-label={`Pilih gambar item ${index + 1}`}
+                      className={`${secondary} relative cursor-pointer`}
+                    >
                       Pilih gambar
                       <input
                         type="file"
@@ -394,7 +381,7 @@ export default function GoodsRequestForm() {
                   </p>
                   {invalidRows.includes(row.key) && (
                     <p className="mt-2 text-xs font-semibold text-rose-600">
-                      Lampiran bukti harga wajib ditambahkan untuk mode Siap Cetak.
+                      Item {index + 1} belum memiliki bukti harga.
                     </p>
                   )}
                   {row.evidence.map((file, imgIdx) => (
@@ -424,7 +411,7 @@ export default function GoodsRequestForm() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
           {processing && (
             <p role="status" className="flex items-center gap-2 text-sm text-slate-600">
@@ -438,32 +425,20 @@ export default function GoodsRequestForm() {
             </div>
           )}
 
-          {/* Action Bar with Dual Buttons */}
+          {/* Action Bar with Simpan Pengajuan */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <Link href={GA_BASE_PATH} className={secondary}>
               Batal
             </Link>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled={busy || processing}
-                onClick={() => void handleSubmit(true)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              >
-                <FileEdit size={16} /> Simpan Draft
-              </button>
-
-              <button
-                type="submit"
-                aria-label="Simpan Pengajuan"
-                disabled={busy || processing}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
-              >
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {busy ? 'Menyimpan...' : 'Simpan & Siap Cetak'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={busy || processing}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {busy ? 'Menyimpan...' : 'Simpan Pengajuan'}
+            </button>
           </div>
         </form>
       </main>

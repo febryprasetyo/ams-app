@@ -62,6 +62,15 @@ export async function createDepartment(req: Request, res: Response) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
     }
+    const isUnique =
+      err.code === '23505' ||
+      err.cause?.code === '23505' ||
+      /unique constraint|duplicate key/i.test(err.message || '');
+    if (isUnique) {
+      return res.status(409).json({
+        error: 'Departemen dengan nama atau kode tersebut sudah terdaftar.',
+      });
+    }
     return res.status(err.statusCode || 500).json({ error: err.message || 'Internal server error' });
   }
 }
@@ -97,6 +106,15 @@ export async function updateDepartment(req: Request, res: Response) {
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
+    }
+    const isUnique =
+      err.code === '23505' ||
+      err.cause?.code === '23505' ||
+      /unique constraint|duplicate key/i.test(err.message || '');
+    if (isUnique) {
+      return res.status(409).json({
+        error: 'Departemen dengan nama atau kode tersebut sudah terdaftar.',
+      });
     }
     return res.status(err.statusCode || 500).json({ error: err.message || 'Internal server error' });
   }
@@ -163,6 +181,15 @@ export async function createLocation(req: Request, res: Response) {
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation failed', details: err.issues });
+    }
+    const isUnique =
+      err.code === '23505' ||
+      err.cause?.code === '23505' ||
+      /unique constraint|duplicate key/i.test(err.message || '');
+    if (isUnique) {
+      return res.status(409).json({
+        error: 'Lokasi dengan nama atau kode tersebut sudah terdaftar.',
+      });
     }
     return res.status(err.statusCode || 500).json({ error: err.message || 'Internal server error' });
   }

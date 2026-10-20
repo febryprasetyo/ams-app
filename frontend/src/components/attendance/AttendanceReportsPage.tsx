@@ -262,17 +262,7 @@ export default function AttendanceReportsPage({ employeeId }: { employeeId?: num
               placeholder="Cari nama atau ID karyawan"
             />
           )}
-          {!employee && (
-            <button
-              type="button"
-              className="hr-btn"
-              disabled={!!error || !reports.length}
-              onClick={() => setIsExportModalOpen(true)}
-            >
-              <Download size={15} />
-              <span>Ekspor</span>
-            </button>
-          )}
+
         </div>
       </div>
 

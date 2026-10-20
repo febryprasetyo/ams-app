@@ -107,15 +107,38 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
           isActive,
         },
       });
+    } else if (mode === 'departments') {
+      try {
+        if (id) {
+          await api.put(`/departments/${id}`, { code: text('code'), name: text('name') });
+          setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil diperbarui.` });
+        } else {
+          await api.post('/departments', { code: text('code'), name: text('name') });
+          setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil ditambahkan.` });
+        }
+        setEditing(undefined);
+        await reset();
+      } catch (err: any) {
+        setNotice({ type: 'error', text: err.message || 'Gagal menyimpan departemen.' });
+      }
+    } else if (mode === 'locations') {
+      try {
+        if (id) {
+          await api.put(`/locations/${id}`, { code: text('code'), name: text('name') });
+          setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil diperbarui.` });
+        } else {
+          await api.post('/locations', { code: text('code'), name: text('name') });
+          setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil ditambahkan.` });
+        }
+        setEditing(undefined);
+        await reset();
+      } catch (err: any) {
+        setNotice({ type: 'error', text: err.message || 'Gagal menyimpan lokasi.' });
+      }
     } else if (mode === 'employees') {
       setNotice({
         type: 'error',
         text: 'Pengelolaan master karyawan dilakukan melalui menu Data Karyawan AMS atau import Talenta.',
-      });
-    } else if (mode !== 'cards') {
-      setNotice({
-        type: 'error',
-        text: `Pengelolaan master ${mode} dilakukan melalui menu Master Data AMS.`,
       });
     }
   };

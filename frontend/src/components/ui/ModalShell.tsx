@@ -33,33 +33,53 @@ export default function ModalShell({
   const dialogRef = useRef<HTMLDivElement>(null);
   const generatedId = useId();
   const titleId = ariaLabelledBy ?? generatedId;
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isLoading) {
-        onClose();
+
+  // Use refs to stabilize callbacks and prevent re-triggering focus effects on every keystroke
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && !isLoadingRef.current) {
+      onCloseRef.current();
+    }
+    if (e.key === 'Tab') {
+      const elements = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
+      );
+      if (!elements?.length) {
+        e.preventDefault();
+        return;
       }
-      if (e.key === 'Tab') {
-        const elements = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]');
-        if (!elements?.length) { e.preventDefault(); return; }
-        const first = elements[0], last = elements[elements.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      const first = elements[0],
+        last = elements[elements.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
-    },
-    [isLoading, onClose]
-  );
+    }
+  }, []);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-      dialogRef.current?.focus();
-    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    // Only focus the dialog container once upon initial modal open, not on every re-render
+    dialogRef.current?.focus();
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      if (isOpen) { document.body.style.overflow = previousOverflow; previousFocus?.focus(); }
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
     };
   }, [isOpen, handleKeyDown]);
 

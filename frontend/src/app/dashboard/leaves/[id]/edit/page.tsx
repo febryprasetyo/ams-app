@@ -1,5 +1,7 @@
 'use client';
 
+import { api } from '@/lib/api';
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';

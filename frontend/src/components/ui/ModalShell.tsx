@@ -36,9 +36,12 @@ export default function ModalShell({
 
   // Use refs to stabilize callbacks and prevent re-triggering focus effects on every keystroke
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
   const isLoadingRef = useRef(isLoading);
-  isLoadingRef.current = isLoading;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    isLoadingRef.current = isLoading;
+  }, [onClose, isLoading]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' && !isLoadingRef.current) {

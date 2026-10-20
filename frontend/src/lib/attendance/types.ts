@@ -86,6 +86,8 @@ export type AttendanceCommand =
   | { type: 'toggle_strict_integrity'; batchId: number; enabled: boolean }
   | { type: 'set_strict_integrity'; enabled: boolean }
   | { type: 'record_attendance'; employeeId: number; workDate: string; attendanceStatus: AttendanceStatus; shiftId?: number; isDayOff?: boolean; scanIn?: string | null; scanOut?: string | null; reason?: string }
+  | { type: 'source'; action: 'create' | 'update' | 'delete'; source: { id?: number; code: string; name: string; isActive?: boolean } }
+  | { type: 'delete_identity'; id: number }
   | { type: 'shift'; action: 'create' | 'update' | 'delete'; shift: WorkShift }
   | { type: 'assign_shift'; assignment: ShiftAssignment }
   | { type: 'sync_employees'; employees: Employee[]; departments?: MasterItem[] };

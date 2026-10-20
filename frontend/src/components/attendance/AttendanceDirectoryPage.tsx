@@ -477,10 +477,10 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
               ? 'Apakah Anda yakin ingin menghapus departemen ini? Departemen yang masih memiliki karyawan atau jadwal terkait tidak dapat dihapus.'
               : 'Apakah Anda yakin ingin menghapus data ini?'
           }
-          itemName={'name' in itemToDelete.item ? itemToDelete.item.name : 'code' in itemToDelete.item ? itemToDelete.item.code : String(itemToDelete.item.id)}
+          itemName={'name' in itemToDelete.item ? String((itemToDelete.item as any).name ?? '') : 'code' in itemToDelete.item ? String((itemToDelete.item as any).code ?? '') : String(itemToDelete.item.id)}
           itemDetails={[
-            { label: 'Kode', value: 'code' in itemToDelete.item ? itemToDelete.item.code : '-' },
-            { label: 'Nama', value: 'name' in itemToDelete.item ? itemToDelete.item.name : '-' },
+            { label: 'Kode', value: 'code' in itemToDelete.item ? String((itemToDelete.item as any).code ?? '-') : '-' },
+            { label: 'Nama', value: 'name' in itemToDelete.item ? String((itemToDelete.item as any).name ?? '-') : '-' },
           ]}
           confirmText="Hapus Data"
           variant="danger"

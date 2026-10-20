@@ -159,7 +159,7 @@ export async function loadAttendanceWorkspace(
       canManageAccess: true,
       strictIntegrity,
     },
-    departments: deptRows.map((d) => ({ id: d.id, code: d.code, name: d.name, isActive: true })),
+    departments: deptRows.map((d) => ({ id: d.id, code: d.code, name: d.name, isActive: Boolean(d.isActive) })),
     locations: locRows.map((l) => ({ id: l.id, code: l.code, name: l.name, isActive: true })),
     sources: sourceRows.map((s) => ({ id: s.id, code: s.code, name: s.name, isActive: s.isActive })),
     employees: empRows.map((e) => ({

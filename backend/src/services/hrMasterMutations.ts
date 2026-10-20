@@ -7,13 +7,13 @@ import { appendHrAudit, type AuditTx } from './hrAudit';
 import { assessEmployeeDeletion, getAttendanceDeletionCheck } from '../domain/employeeDeletion';
 
 export type DepartmentCommand =
-  | { type: 'CREATE'; data: { name: string; code: string } }
-  | { type: 'UPDATE'; id: number; data: Partial<{ name: string; code: string }> }
+  | { type: 'CREATE'; data: { name: string; code: string; isActive?: boolean } }
+  | { type: 'UPDATE'; id: number; data: Partial<{ name: string; code: string; isActive?: boolean }> }
   | { type: 'DELETE'; id: number };
 
 export type LocationCommand =
-  | { type: 'CREATE'; data: { name: string; code: string; address?: string | null } }
-  | { type: 'UPDATE'; id: number; data: Partial<{ name: string; code: string; address?: string | null }> }
+  | { type: 'CREATE'; data: { name: string; code: string; address?: string | null; isActive?: boolean } }
+  | { type: 'UPDATE'; id: number; data: Partial<{ name: string; code: string; address?: string | null; isActive?: boolean }> }
   | { type: 'DELETE'; id: number };
 
 export type EmployeeCommand =

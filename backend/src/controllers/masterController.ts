@@ -13,17 +13,28 @@ import { mutateDepartment, mutateLocation } from '../services/hrMasterMutations'
 const createDepartmentSchema = z.object({
   name: z.string().min(1, 'Department name is required').max(100),
   code: z.string().min(1, 'Department code is required').max(20),
+  isActive: z.boolean().optional().default(true),
 });
 
-const updateDepartmentSchema = createDepartmentSchema.partial();
+const updateDepartmentSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  code: z.string().min(1).max(20).optional(),
+  isActive: z.boolean().optional(),
+});
 
 const createLocationSchema = z.object({
   code: z.string().min(1).max(20).optional(),
   name: z.string().min(1, 'Location name is required').max(100),
   address: z.string().max(255).optional().nullable(),
+  isActive: z.boolean().optional().default(true),
 });
 
-const updateLocationSchema = createLocationSchema.partial();
+const updateLocationSchema = z.object({
+  code: z.string().min(1).max(20).optional(),
+  name: z.string().min(1).max(100).optional(),
+  address: z.string().max(255).optional().nullable(),
+  isActive: z.boolean().optional(),
+});
 
 const createVendorSchema = z.object({
   name: z.string().min(1, 'Vendor name is required').max(150),

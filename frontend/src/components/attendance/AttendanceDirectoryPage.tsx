@@ -25,6 +25,9 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
   const [grantToDelete, setGrantToDelete] = useState<AttendanceGrant | null>(null);
   const [isDeletingGrant, setIsDeletingGrant] = useState(false);
   const [deleteGrantError, setDeleteGrantError] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ mode: Mode; item: Entry } | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+  const [deleteItemError, setDeleteItemError] = useState<string | null>(null);
 
   const allowed = mode === 'access' ? data.meta.canManageAccess : canWrite;
   const entries: Entry[] = mode === 'cards' || mode === 'employees' ? data.employees : mode === 'access' ? data.grants : data[mode];
@@ -72,6 +75,32 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     }
   };
 
+  const handleDeleteItem = async () => {
+    if (!itemToDelete) return;
+    setIsDeletingItem(true);
+    setDeleteItemError(null);
+    try {
+      if (itemToDelete.mode === 'departments' || itemToDelete.mode === 'locations') {
+        await api.delete(`/master/${itemToDelete.mode}/${itemToDelete.item.id}`);
+        setNotice({ type: 'success', text: `${itemToDelete.mode === 'departments' ? 'Departemen' : 'Lokasi'} berhasil dihapus.` });
+        setItemToDelete(null);
+        await refresh();
+      } else if (itemToDelete.mode === 'sources') {
+        await execute({ type: 'source', action: 'delete', source: itemToDelete.item as any });
+        setNotice({ type: 'success', text: 'Sumber absensi berhasil dihapus.' });
+        setItemToDelete(null);
+      } else if (itemToDelete.mode === 'identities') {
+        await execute({ type: 'delete_identity', id: itemToDelete.item.id });
+        setNotice({ type: 'success', text: 'Pemetaan identitas berhasil dihapus.' });
+        setItemToDelete(null);
+      }
+    } catch (err: unknown) {
+      setDeleteItemError((err as Error).message || 'Gagal menghapus data.');
+    } finally {
+      setIsDeletingItem(false);
+    }
+  };
+
   const submit = async (form: FormData) => {
     const text = (key: string) => String(form.get(key) ?? '');
     const id = editing?.id ?? 0; const isActive = text('isActive') === 'true';
@@ -109,11 +138,12 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
       });
     } else if (mode === 'departments') {
       try {
+        const payload = { code: text('code'), name: text('name'), isActive };
         if (id) {
-          await api.put(`/master/departments/${id}`, { code: text('code'), name: text('name') });
+          await api.put(`/master/departments/${id}`, payload);
           setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil diperbarui.` });
         } else {
-          await api.post('/master/departments', { code: text('code'), name: text('name') });
+          await api.post('/master/departments', payload);
           setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);
@@ -123,11 +153,12 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
       }
     } else if (mode === 'locations') {
       try {
+        const payload = { code: text('code'), name: text('name'), isActive };
         if (id) {
-          await api.put(`/master/locations/${id}`, { code: text('code'), name: text('name') });
+          await api.put(`/master/locations/${id}`, payload);
           setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil diperbarui.` });
         } else {
-          await api.post('/master/locations', { code: text('code'), name: text('name') });
+          await api.post('/master/locations', payload);
           setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);
@@ -353,6 +384,20 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
                           <span>Hapus</span>
                         </button>
                       )}
+                      {(mode === 'departments' || mode === 'locations' || mode === 'sources' || mode === 'identities') && allowed && (
+                        <button
+                          type="button"
+                          className="hr-btn text-rose-600 hover:text-rose-700 hover:bg-rose-50 hover:border-rose-300"
+                          onClick={() => {
+                            setDeleteItemError(null);
+                            setItemToDelete({ mode, item: entry });
+                          }}
+                          title={`Hapus ${mode === 'departments' ? 'Departemen' : 'Data'}`}
+                        >
+                          <Trash2 size={13} className="text-rose-600" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -413,6 +458,34 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
           variant="danger"
           isLoading={isDeletingGrant}
           error={deleteGrantError}
+        />
+      )}
+
+      {itemToDelete && (
+        <ConfirmDeleteModal
+          isOpen={true}
+          onClose={() => {
+            if (!isDeletingItem) {
+              setItemToDelete(null);
+              setDeleteItemError(null);
+            }
+          }}
+          onConfirm={handleDeleteItem}
+          title={`Hapus ${itemToDelete.mode === 'departments' ? 'Departemen' : itemToDelete.mode === 'locations' ? 'Lokasi' : 'Data'}`}
+          description={
+            itemToDelete.mode === 'departments'
+              ? 'Apakah Anda yakin ingin menghapus departemen ini? Departemen yang masih memiliki karyawan atau jadwal terkait tidak dapat dihapus.'
+              : 'Apakah Anda yakin ingin menghapus data ini?'
+          }
+          itemName={'name' in itemToDelete.item ? itemToDelete.item.name : 'code' in itemToDelete.item ? itemToDelete.item.code : String(itemToDelete.item.id)}
+          itemDetails={[
+            { label: 'Kode', value: 'code' in itemToDelete.item ? itemToDelete.item.code : '-' },
+            { label: 'Nama', value: 'name' in itemToDelete.item ? itemToDelete.item.name : '-' },
+          ]}
+          confirmText="Hapus Data"
+          variant="danger"
+          isLoading={isDeletingItem}
+          error={deleteItemError}
         />
       )}
     </div>

@@ -119,6 +119,13 @@
       "when": 1792394871984,
       "tag": "0016_goofy_random",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792460733641,
+      "tag": "0017_department_location_is_active",
+      "breakpoints": true
     }
   ],
   "version": "7"

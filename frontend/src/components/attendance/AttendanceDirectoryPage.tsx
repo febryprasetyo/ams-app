@@ -110,10 +110,10 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     } else if (mode === 'departments') {
       try {
         if (id) {
-          await api.put(`/departments/${id}`, { code: text('code'), name: text('name') });
+          await api.put(`/master/departments/${id}`, { code: text('code'), name: text('name') });
           setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil diperbarui.` });
         } else {
-          await api.post('/departments', { code: text('code'), name: text('name') });
+          await api.post('/master/departments', { code: text('code'), name: text('name') });
           setNotice({ type: 'success', text: `Departemen "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);
@@ -124,10 +124,10 @@ export default function AttendanceDirectoryPage({ mode }: { mode: Mode }) {
     } else if (mode === 'locations') {
       try {
         if (id) {
-          await api.put(`/locations/${id}`, { code: text('code'), name: text('name') });
+          await api.put(`/master/locations/${id}`, { code: text('code'), name: text('name') });
           setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil diperbarui.` });
         } else {
-          await api.post('/locations', { code: text('code'), name: text('name') });
+          await api.post('/master/locations', { code: text('code'), name: text('name') });
           setNotice({ type: 'success', text: `Lokasi "${text('name')}" berhasil ditambahkan.` });
         }
         setEditing(undefined);

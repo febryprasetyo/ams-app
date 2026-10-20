@@ -126,6 +126,20 @@
       "when": 1792460733641,
       "tag": "0017_department_location_is_active",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792475602958,
+      "tag": "0018_marvelous_ma_gnuci",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792479280589,
+      "tag": "0019_goofy_khan",
+      "breakpoints": true
     }
   ],
   "version": "7"

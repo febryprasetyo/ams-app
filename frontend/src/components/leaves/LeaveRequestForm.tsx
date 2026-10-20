@@ -199,59 +199,41 @@ export function LeaveRequestForm({ mode = "create", requestId, initialData }: Le
     try {
       if (mode === "edit" && requestId) {
         // Mode Edit: PUT /api/v1/leaves/requests/:id
-        const res = await fetch(`/api/v1/leaves/requests/${requestId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leaveType,
-            specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
-            reason,
-            startDate,
-            endDate,
-            durationDays: durationNum,
-            resumeWorkDate: manualResumeWorkDate || undefined,
-            emergencyPhone: emergencyPhone || undefined,
-          }),
+        await api.put(`/leaves/requests/${requestId}`, {
+          leaveType,
+          specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
+          reason,
+          startDate,
+          endDate,
+          durationDays: durationNum,
+          resumeWorkDate: manualResumeWorkDate || undefined,
+          emergencyPhone: emergencyPhone || undefined,
         });
 
-        const json = await res.json();
-        if (!res.ok) {
-          setErrorMessage(json.error || "Gagal memperbarui permohonan cuti.");
-        } else {
-          setSuccessMessage("Perubahan permohonan cuti berhasil disimpan!");
-          setTimeout(() => {
-            router.replace(`/dashboard/leaves/${requestId}/print`);
-          }, 400);
-        }
+        setSuccessMessage("Perubahan permohonan cuti berhasil disimpan!");
+        setTimeout(() => {
+          router.replace(`/dashboard/leaves/${requestId}/print`);
+        }, 400);
       } else {
         // Mode Create: POST /api/v1/leaves/requests
-        const res = await fetch("/api/v1/leaves/requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            employeeId: Number(selectedEmployee.id),
-            leaveType,
-            specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
-            reason,
-            startDate,
-            endDate,
-            durationDays: durationNum,
-            resumeWorkDate: manualResumeWorkDate || undefined,
-            emergencyPhone: emergencyPhone || undefined,
-          }),
+        const resData = await api.post<{ message?: string; data?: { id: number } }>("/leaves/requests", {
+          employeeId: Number(selectedEmployee.id),
+          leaveType,
+          specialLeaveReason: leaveType === "SPECIAL" ? specialReason : undefined,
+          reason,
+          startDate,
+          endDate,
+          durationDays: durationNum,
+          resumeWorkDate: manualResumeWorkDate || undefined,
+          emergencyPhone: emergencyPhone || undefined,
         });
 
-        const json = await res.json();
-        if (!res.ok) {
-          setErrorMessage(json.error || "Gagal mengajukan permohonan cuti.");
-        } else {
-          setSuccessMessage("Permohonan cuti berhasil disimpan!");
-          if (json.data && json.data.id) {
-            setTimeout(() => {
-              // Gunakan router.replace agar saat tombol back ditekan di view/print, kembali ke list tabel cuti
-              router.replace(`/dashboard/leaves/${json.data.id}/print`);
-            }, 400);
-          }
+        setSuccessMessage("Permohonan cuti berhasil disimpan!");
+        if (resData?.data?.id) {
+          setTimeout(() => {
+            // Gunakan router.replace agar saat tombol back ditekan di view/print, kembali ke list tabel cuti
+            router.replace(`/dashboard/leaves/${resData.data!.id}/print`);
+          }, 400);
         }
       }
     } catch (err: any) {

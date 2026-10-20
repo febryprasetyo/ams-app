@@ -104,6 +104,12 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'GA',
+    items: [
+      { name: 'Permintaan Barang', href: '/dashboard/ga/requests', icon: ClipboardList, permission: 'ga.requests.view' },
+    ],
+  },
+  {
     title: 'IT & Assets',
     items: [
       {
@@ -148,6 +154,8 @@ export const navGroups: NavGroup[] = [
 ];
 
 const ROUTE_PERMISSION_MAP: { prefix: string; permission: string; moduleName: string }[] = [
+  { prefix: '/dashboard/ga/requests/new', permission: 'ga.requests.create', moduleName: 'Buat Permintaan Barang' },
+  { prefix: '/dashboard/ga/requests', permission: 'ga.requests.view', moduleName: 'Permintaan Barang GA' },
   { prefix: '/dashboard/assets/overview', permission: 'assets.view', moduleName: 'Asset Management Dashboard' },
   { prefix: '/dashboard/assets', permission: 'assets.view', moduleName: 'IT Asset Inventory' },
   { prefix: '/dashboard/hardware-audits', permission: 'hardware_audits.view', moduleName: 'Hardware Audits' },

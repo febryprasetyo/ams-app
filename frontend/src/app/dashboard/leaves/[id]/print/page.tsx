@@ -20,16 +20,10 @@ export default function LeavePrintPage() {
 
     async function fetchDoc() {
       try {
-        const res = await fetch(`/api/v1/leaves/requests/${id}`);
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}));
-          setError(json.error || 'Gagal memuat dokumen permohonan cuti');
-        } else {
-          const data = await res.json();
-          setDocumentData(data);
-        }
+        const data = await api.get<FullLeaveDocumentData>(`/leaves/requests/${id}`);
+        setDocumentData(data);
       } catch (err: any) {
-        setError(err.message || 'Terjadi kesalahan jaringan');
+        setError(err.message || 'Gagal memuat dokumen permohonan cuti');
       } finally {
         setIsLoading(false);
       }

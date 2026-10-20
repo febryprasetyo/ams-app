@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Search, X, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 export interface LeaveEmployeeItem {
   id: number;
@@ -37,12 +38,9 @@ export default function LeaveEmployeePicker({
     async function fetchEmployees() {
       setLoading(true);
       try {
-        const res = await fetch("/api/v1/leaves/employees");
-        if (res.ok) {
-          const data = await res.json();
-          if (active && Array.isArray(data)) {
-            setEmployees(data);
-          }
+        const data = await api.get<LeaveEmployeeItem[]>("/leaves/employees");
+        if (active && Array.isArray(data)) {
+          setEmployees(data);
         }
       } catch (err) {
         console.error("Gagal mengambil data karyawan:", err);

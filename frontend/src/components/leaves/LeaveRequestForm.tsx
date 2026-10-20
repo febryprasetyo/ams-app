@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LeaveBalanceSummary, FullLeaveDocumentData } from "@/types/leaves";
 import LeaveEmployeePicker, { LeaveEmployeeItem } from "@/components/leaves/LeaveEmployeePicker";
+import { api } from "@/lib/api";
 
 export interface LeaveRequestFormProps {
   mode?: "create" | "edit";
@@ -81,14 +82,8 @@ export function LeaveRequestForm({ mode = "create", requestId, initialData }: Le
       try {
         const year = startDate ? Number(startDate.split("-")[0]) : new Date().getFullYear();
         if (!selectedEmployee) return;
-        const res = await fetch(`/api/v1/leaves/balance-summary?employeeId=${selectedEmployee.id}&year=${year}`);
-        if (res.ok) {
-          const data = await res.json();
-          setBalanceSummary(data);
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          console.error("Gagal mengambil saldo cuti:", errData);
-        }
+        const data = await api.get<LeaveBalanceSummary>(`/leaves/balance-summary?employeeId=${selectedEmployee.id}&year=${year}`);
+        setBalanceSummary(data);
       } catch (err) {
         console.error("Failed to load balance summary:", err);
       } finally {

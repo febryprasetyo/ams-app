@@ -21,19 +21,12 @@ export default function EditLeaveRequestPage() {
 
     async function fetchDoc() {
       try {
-        const res = await fetch(`/api/v1/leaves/requests/${id}`);
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}));
-          setError(json.error || 'Gagal memuat data permohonan cuti');
-        } else {
-          const data = await res.json();
-          setDocumentData(data);
-          // Cek status dari approvals atau field status
-          const status = data.status || data.approvals?.applicant?.status || 'PENDING';
-          setRequestStatus(status);
-        }
+        const data = await api.get<FullLeaveDocumentData>(`/leaves/requests/${id}`);
+        setDocumentData(data);
+        const status = (data as any).status || (data as any).approvals?.applicant?.status || 'PENDING';
+        setRequestStatus(status);
       } catch (err: any) {
-        setError(err.message || 'Terjadi kesalahan jaringan');
+        setError(err.message || 'Gagal memuat data permohonan cuti');
       } finally {
         setIsLoading(false);
       }

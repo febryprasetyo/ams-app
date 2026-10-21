@@ -1,6 +1,6 @@
 export const CMC_LOGO_SRC = '/images/logo-cmc.png';
 export const goodsIdentityRowClass =
-  'grid min-h-11 grid-cols-[88px_12px_minmax(0,1fr)] items-center border-b border-slate-200 text-xs dark:border-slate-800';
+  'grid min-h-11 grid-cols-[88px_12px_minmax(0,1fr)] items-center border-b border-slate-200 text-[11px] dark:border-slate-800';
 
 export function GoodsDocumentHeading({ detail = false, title, headingColorClass = 'text-black' }: { detail?: boolean; title?: string; headingColorClass?: string }) {
   const Heading = detail ? 'h2' : 'h1';
@@ -48,7 +48,7 @@ export function GoodsDocumentSignatures({
   return (
     <table
       aria-label="Pengesahan permintaan barang"
-      className="w-full table-fixed border-collapse text-center text-xs text-black border-t border-black"
+      className="w-full table-fixed border-collapse text-center text-[11px] text-black border-t border-black"
     >
       <thead>
         <tr className="border-b border-black font-semibold">
@@ -56,7 +56,7 @@ export function GoodsDocumentSignatures({
             <th
               key={col.label}
               scope="col"
-              className={`py-1.5 px-1 text-center font-semibold text-[11px] sm:text-xs text-black ${
+              className={`py-1.5 px-1 text-center font-semibold text-[11px] text-black ${
                 idx < columns.length - 1 ? 'border-r border-black' : ''
               }`}
             >
@@ -70,7 +70,7 @@ export function GoodsDocumentSignatures({
           {columns.map((col, idx) => (
             <td
               key={idx}
-              className={`h-16 sm:h-20 print:h-16 px-1 pb-1.5 sm:pb-2 text-center align-bottom text-[11px] sm:text-xs text-black ${
+              className={`h-16 sm:h-20 print:h-16 px-1 pb-1.5 sm:pb-2 text-center align-bottom text-[11px] text-black ${
                 idx < columns.length - 1 ? 'border-r border-black' : ''
               }`}
             >
@@ -78,7 +78,7 @@ export function GoodsDocumentSignatures({
                 {col.name ? (
                   <span className="truncate px-0.5 font-semibold">( {col.name} )</span>
                 ) : (
-                  <span className="w-full block text-center tracking-tight text-[11px] sm:text-xs overflow-hidden whitespace-nowrap">
+                  <span className="w-full block text-center tracking-tight text-[11px] overflow-hidden whitespace-nowrap">
                     (............................................................)
                   </span>
                 )}

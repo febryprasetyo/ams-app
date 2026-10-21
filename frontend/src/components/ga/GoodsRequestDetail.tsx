@@ -129,7 +129,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
   );
 
   const paddedRows = Array.from(
-    { length: Math.max(3, request?.items?.length || 0) },
+    { length: Math.max(8, request?.items?.length || 0) },
     (_, i) => request?.items?.[i] || null
   );
 
@@ -224,7 +224,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
               <GoodsDocumentHeading headingColorClass="text-black" />
 
               {/* Form Info Identity */}
-              <div className="border-b border-black text-xs text-black pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 print:pt-2 print:pb-2">
+              <div className="border-b border-black text-[11px] text-black pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 print:pt-2 print:pb-2">
                 {[
                   ['Tanggal', formatFormDate(request.requestDate)],
                   ['Nama', request.requesterName],
@@ -246,7 +246,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
 
               {/* Items Table */}
               <div className="overflow-x-auto">
-                <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-xs text-black">
+                <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-[11px] text-black">
                   <thead>
                     <tr className="border-b border-black text-center font-bold">
                       <th scope="col" className="w-10 border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-bold">No</th>

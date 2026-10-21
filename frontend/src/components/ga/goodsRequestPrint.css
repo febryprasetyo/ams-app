@@ -48,6 +48,7 @@
 
   /* Kotak Formulir Utama */
   .ga-request-document {
+    font-size: 11px !important;
     border: 1px solid #000000 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -81,7 +82,7 @@
   .ga-request-document th,
   .ga-request-document td {
     padding: 2px 4px !important;
-    font-size: 9.5px !important;
+    font-size: 11px !important;
     line-height: 1.15 !important;
     white-space: normal !important;
     overflow-wrap: anywhere;

@@ -142,8 +142,8 @@
   }
 
   .ga-evidence-img {
-    max-width: 100% !important;
-    max-height: 125mm !important;
+    max-width: 80% !important;
+    max-height: 100mm !important;
     width: auto !important;
     height: auto !important;
     object-fit: contain !important;

@@ -223,7 +223,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
               <GoodsDocumentHeading headingColorClass="text-black" />
 
               {/* Form Info Identity */}
-              <div className="border-b border-black text-xs text-black">
+              <div className="border-b border-black text-xs text-black pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 print:pt-2 print:pb-2">
                 {[
                   ['Tanggal', formatFormDate(request.requestDate)],
                   ['Nama', request.requesterName],
@@ -232,8 +232,8 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                 ].map(([label, value], idx, arr) => (
                   <div
                     key={label}
-                    className={`grid grid-cols-[85px_16px_minmax(0,1fr)] sm:grid-cols-[110px_20px_minmax(0,1fr)] items-center px-3 sm:px-4 py-1.5 ${
-                      idx < arr.length - 1 ? 'border-b border-black' : ''
+                    className={`grid grid-cols-[85px_16px_minmax(0,1fr)] sm:grid-cols-[110px_20px_minmax(0,1fr)] items-center px-3 sm:px-4 py-0.5 print:py-[1px] leading-tight ${
+                      idx < arr.length - 1 ? 'border-b border-black/30' : ''
                     }`}
                   >
                     <span className="font-semibold">{label}</span>
@@ -248,23 +248,23 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                 <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-xs text-black">
                   <thead>
                     <tr className="border-b border-black text-center font-bold">
-                      <th scope="col" className="w-10 border-r border-black py-2 px-1 text-center font-bold">No</th>
-                      <th scope="col" className="w-14 border-r border-black py-2 px-1 text-center font-bold">Qty</th>
-                      <th scope="col" className="border-r border-black py-2 px-2 text-left font-bold">Nama Barang</th>
-                      <th scope="col" className="w-36 border-r border-black py-2 px-2 text-center font-bold">Estimasi Harga</th>
-                      <th scope="col" className="w-28 border-r border-black py-2 px-2 text-center font-bold">Harga</th>
-                      <th scope="col" className="w-44 py-2 px-2 text-left font-bold">Keterangan</th>
+                      <th scope="col" className="w-10 border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-bold">No</th>
+                      <th scope="col" className="w-14 border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-bold">Qty</th>
+                      <th scope="col" className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-left font-bold">Nama Barang</th>
+                      <th scope="col" className="w-36 border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-center font-bold">Estimasi Harga</th>
+                      <th scope="col" className="w-28 border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-center font-bold">Harga</th>
+                      <th scope="col" className="w-44 py-1.5 sm:py-2 px-2 print:py-1 text-left font-bold">Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paddedRows.map((item, idx) => (
                       <tr key={idx} className="border-b border-black">
-                        <td className="border-r border-black py-2 px-1 text-center font-medium">{idx + 1}</td>
-                        <td className="border-r border-black py-2 px-1 text-center font-medium">{item?.quantity ?? ''}</td>
-                        <td className="border-r border-black py-2 px-2 text-left font-medium break-words leading-tight">
+                        <td className="border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-medium">{idx + 1}</td>
+                        <td className="border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-medium">{item?.quantity ?? ''}</td>
+                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-left font-medium break-words leading-tight">
                           {item?.name ?? ''}
                         </td>
-                        <td className="border-r border-black py-2 px-2 whitespace-nowrap">
+                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 whitespace-nowrap">
                           {item ? (
                             <div className="flex justify-between items-center w-full">
                               <span>Rp</span>
@@ -272,8 +272,8 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                             </div>
                           ) : null}
                         </td>
-                        <td className="border-r border-black py-2 px-2 text-right"></td>
-                        <td className="py-2 px-2 text-left text-slate-800 break-words leading-tight">
+                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-right"></td>
+                        <td className="py-1.5 sm:py-2 px-2 print:py-1 text-left text-slate-800 break-words leading-tight">
                           {item?.notes || ''}
                         </td>
                       </tr>

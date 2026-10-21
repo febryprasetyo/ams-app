@@ -16,7 +16,7 @@ export function GoodsDocumentHeading({ detail = false, title, headingColorClass 
           className="h-10 w-12 sm:h-12 sm:w-16 object-contain"
         />
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-3 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-2 sm:py-3 text-center">
         <Heading className={`text-base sm:text-xl font-bold uppercase underline tracking-wider ${headingColorClass}`}>
           FORM PERMINTAAN BARANG
         </Heading>
@@ -70,12 +70,18 @@ export function GoodsDocumentSignatures({
           {columns.map((col, idx) => (
             <td
               key={idx}
-              className={`h-20 sm:h-24 px-1 pb-2 text-center align-bottom text-[11px] sm:text-xs text-black ${
+              className={`h-16 sm:h-20 print:h-16 px-1 pb-1.5 sm:pb-2 text-center align-bottom text-[11px] sm:text-xs text-black ${
                 idx < columns.length - 1 ? 'border-r border-black' : ''
               }`}
             >
-              <div className="flex w-full justify-center text-center font-medium">
-                {col.name ? `( ${col.name} )` : '(                )'}
+              <div className="flex w-full justify-center text-center font-medium overflow-hidden">
+                {col.name ? (
+                  <span className="truncate px-0.5 font-semibold">( {col.name} )</span>
+                ) : (
+                  <span className="w-full block text-center tracking-tight text-[11px] sm:text-xs overflow-hidden whitespace-nowrap">
+                    (............................................................)
+                  </span>
+                )}
               </div>
             </td>
           ))}

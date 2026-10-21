@@ -146,48 +146,61 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
           </Link>
         </div>
 
-        {/* Title & Actions Bar */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {request && badge && (
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-bold ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${badge.dotClass}`} />
-                  {getStatusLabel(request.status)}
-                </span>
+        {/* Header Bar: Prominent Request Number & Status Badge */}
+        {request && (
+          <div className="no-print rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {/* Left: Request Number & Status Badge */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-xl sm:text-2xl font-black font-mono tracking-tight text-slate-900">
+                    {requestNumber(request)}
+                  </h1>
+                  {badge && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs font-bold shadow-2xs ${badge.bgClass} ${badge.textClass} ${badge.borderClass}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${badge.dotClass}`} />
+                      {getStatusLabel(request.status)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2.5 text-xs text-slate-500 flex-wrap">
+                  <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                    Versi {request.version || 1}
+                  </span>
+                  <span>•</span>
+                  <span>Pemohon: <strong className="font-semibold text-slate-800">{request.requesterName}</strong></span>
+                  <span>•</span>
+                  <span>Tanggal: <strong className="font-semibold text-slate-800">{formatFormDate(request.requestDate)}</strong></span>
+                </div>
+              </div>
+
+              {/* Right: Actions */}
+              {!loading && (
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {canManageStatus && (
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(true)}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
+                    >
+                      <CheckCircle2 size={15} /> Perbarui Status
+                    </button>
+                  )}
+
+                  <button
+                    disabled={imageLoading || !!imageError}
+                    onClick={print}
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-400 active:scale-95 disabled:opacity-50 transition"
+                  >
+                    <Printer size={15} /> Cetak Formulir
+                  </button>
+                </div>
               )}
             </div>
-            {request && (
-              <p className="mt-1 font-mono text-xs text-slate-500">
-                {requestNumber(request)} · Versi {request.version || 1}
-              </p>
-            )}
           </div>
-
-          {request && !loading && (
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {canManageStatus && (
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(true)}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
-                >
-                  <CheckCircle2 size={15} /> Perbarui Status
-                </button>
-              )}
-
-              <button
-                disabled={imageLoading || !!imageError}
-                onClick={print}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-              >
-                <Printer size={15} /> Cetak Formulir
-              </button>
-            </div>
-          )}
-        </div>
+        )}
 
         {saved && !loading && !error && (
           <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
@@ -213,13 +226,14 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             </button>
           </div>
         ) : request && (
-          <div className="ga-request-document-area space-y-4">
-            {/* Document Article */}
-            <article
-              role="group"
-              aria-label="Lembar permintaan barang"
-              className="ga-request-document min-w-0 border border-black bg-white shadow-sm print:shadow-none"
-            >
+          <div className="ga-request-document-area space-y-6">
+            {/* Document Paper Preview Canvas with Padding */}
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-4 sm:p-6 md:p-8 shadow-xs print:p-0 print:border-none print:bg-transparent print:shadow-none print:rounded-none">
+              <article
+                role="group"
+                aria-label="Lembar permintaan barang"
+                className="ga-request-document mx-auto max-w-4xl min-w-0 border border-black bg-white shadow-md print:shadow-none print:border-black print:max-w-none print:m-0"
+              >
               <GoodsDocumentHeading headingColorClass="text-black" />
 
               {/* Form Info Identity */}
@@ -247,23 +261,23 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                 <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-[11px] text-black">
                   <thead>
                     <tr className="border-b border-black text-center font-bold">
-                      <th scope="col" className="w-10 border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-bold">No</th>
-                      <th scope="col" className="w-14 border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-bold">Qty</th>
-                      <th scope="col" className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-left font-bold">Nama Barang</th>
-                      <th scope="col" className="w-36 border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-center font-bold">Estimasi Harga</th>
-                      <th scope="col" className="w-28 border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-center font-bold">Harga</th>
-                      <th scope="col" className="w-44 py-1.5 sm:py-2 px-2 print:py-1 text-left font-bold">Keterangan</th>
+                      <th scope="col" className="w-10 border-r border-black py-2 px-1.5 sm:px-2 print:py-1 text-center font-bold">No</th>
+                      <th scope="col" className="w-14 border-r border-black py-2 px-1.5 sm:px-2 print:py-1 text-center font-bold">Qty</th>
+                      <th scope="col" className="border-r border-black py-2 px-2 sm:px-3 print:py-1 text-left font-bold">Nama Barang</th>
+                      <th scope="col" className="w-36 border-r border-black py-2 px-2 sm:px-3 print:py-1 text-center font-bold">Estimasi Harga</th>
+                      <th scope="col" className="w-28 border-r border-black py-2 px-2 sm:px-3 print:py-1 text-center font-bold">Harga</th>
+                      <th scope="col" className="w-44 py-2 px-2 sm:px-3 print:py-1 text-left font-bold">Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paddedRows.map((item, idx) => (
                       <tr key={idx} className="border-b border-black">
-                        <td className="border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-medium">{idx + 1}</td>
-                        <td className="border-r border-black py-1.5 sm:py-2 px-1 print:py-1 text-center font-medium">{item?.quantity ?? ''}</td>
-                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-left font-medium break-words leading-tight">
+                        <td className="border-r border-black py-2 px-1.5 sm:px-2 print:py-1 text-center font-medium">{idx + 1}</td>
+                        <td className="border-r border-black py-2 px-1.5 sm:px-2 print:py-1 text-center font-medium">{item?.quantity ?? ''}</td>
+                        <td className="border-r border-black py-2 px-2 sm:px-3 print:py-1 text-left font-medium break-words leading-tight">
                           {item?.name ?? ''}
                         </td>
-                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 whitespace-nowrap">
+                        <td className="border-r border-black py-2 px-2 sm:px-3 print:py-1 whitespace-nowrap">
                           {item ? (
                             <div className="flex justify-between items-center w-full">
                               <span>Rp</span>
@@ -271,8 +285,8 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                             </div>
                           ) : null}
                         </td>
-                        <td className="border-r border-black py-1.5 sm:py-2 px-2 print:py-1 text-right"></td>
-                        <td className="py-1.5 sm:py-2 px-2 print:py-1 text-left text-slate-800 break-words leading-tight">
+                        <td className="border-r border-black py-2 px-2 sm:px-3 print:py-1 text-right"></td>
+                        <td className="py-2 px-2 sm:px-3 print:py-1 text-left text-slate-800 break-words leading-tight">
                           {item?.notes || ''}
                         </td>
                       </tr>
@@ -286,6 +300,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                 <GoodsDocumentSignatures requesterName={request.requesterName} />
               </div>
             </article>
+            </div>
 
             {/* Price Evidence Gallery */}
             <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-6 space-y-4 print:mt-2 print:space-y-2">

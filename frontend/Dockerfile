@@ -13,7 +13,7 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN npm run build && test -f .next/standalone/server.js
 
 FROM node:20-alpine AS production
 WORKDIR /app

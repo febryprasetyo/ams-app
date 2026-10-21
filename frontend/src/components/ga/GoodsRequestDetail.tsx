@@ -283,7 +283,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
 
               {/* Signatures Table */}
               <div className="overflow-x-auto">
-                <GoodsDocumentSignatures requesterName={request.requesterName} approverName="Jef Budiharto" />
+                <GoodsDocumentSignatures requesterName={request.requesterName} />
               </div>
             </article>
 

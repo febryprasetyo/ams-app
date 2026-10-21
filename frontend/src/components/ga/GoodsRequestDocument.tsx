@@ -32,7 +32,7 @@ export function GoodsDocumentHeading({ detail = false, title, headingColorClass 
 
 export function GoodsDocumentSignatures({
   requesterName,
-  approverName = 'Jef Budiharto',
+  approverName = '',
 }: {
   requesterName: string;
   approverName?: string;

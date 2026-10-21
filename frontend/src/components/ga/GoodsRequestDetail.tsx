@@ -70,7 +70,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
         const urlMap: Record<string, string> = {};
         for (const file of files) {
           try {
-            const blob = await api.download(`${GA_API_PATH}/${id}/attachments/${file.id}`);
+            const blob = await api.download(`${GA_API_PATH}/${id}/evidence/${file.id}`);
             if (!active) return;
             const objectUrl = URL.createObjectURL(blob);
             ownedUrls.push(objectUrl);
@@ -289,36 +289,53 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             </article>
 
             {/* Price Evidence Gallery */}
-            {allAttachments.length > 0 && (
-              <div aria-label="Lampiran bukti harga" className="ga-request-evidence-container mt-4 print:mt-3">
-                <h3 className="no-print text-sm font-bold text-slate-900 mb-2">
-                  Lampiran Bukti Harga per Barang
-                </h3>
-                {imageLoading && <p role="status" className="no-print text-xs text-slate-500">Memuat bukti gambar...</p>}
-                {imageError && (
-                  <div role="alert" className="no-print text-xs text-rose-700 bg-rose-50 p-3 rounded-lg mb-2">
-                    <p>{imageError}</p>
-                    <button onClick={reload} className="mt-1 underline">Muat kembali</button>
-                  </div>
-                )}
-                <div className="ga-request-evidence-list space-y-4 print:space-y-3">
-                  {allAttachments.map((att) =>
-                    images[att.id] ? (
-                      <div key={att.id} className="ga-evidence-item flex flex-col items-center justify-center">
-                        <img
-                          src={images[att.id]}
-                          alt={`Bukti harga ${att.itemName}`}
-                          className="ga-evidence-img max-h-[140mm] w-auto max-w-full object-contain print:max-h-[135mm]"
-                        />
-                        <span className="no-print mt-1 text-[11px] text-slate-500">
-                          Item {att.itemPosition}: {att.itemName} ({Math.ceil(att.size / 1024)} KB)
-                        </span>
-                      </div>
-                    ) : null
-                  )}
+            <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-4 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">
+                Lampiran Bukti Harga per Barang
+              </h3>
+              {imageLoading && <p role="status" className="no-print text-xs text-slate-500">Memuat bukti gambar...</p>}
+              {imageError && (
+                <div role="alert" className="no-print text-xs text-rose-700 bg-rose-50 p-3 rounded-lg mb-2">
+                  <p>{imageError}</p>
+                  <button onClick={reload} className="mt-1 underline">Muat kembali</button>
                 </div>
-              </div>
-            )}
+              )}
+              {(request.items || []).map((item) => {
+                const itemAttachments = item.attachments || [];
+                if (itemAttachments.length === 0) return null;
+                return (
+                  <section key={item.id} className="ga-evidence-section rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                    <h4 className="ga-evidence-title text-xs font-semibold text-slate-800">
+                      Item {item.position}: {item.name}
+                    </h4>
+                    <div className="mt-2 flex flex-wrap gap-4">
+                      {itemAttachments.map((file, idx) =>
+                        images[file.id] ? (
+                          <div key={file.id} className="ga-evidence-card">
+                            <a
+                              href={images[file.id]}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={`Buka bukti harga item ${item.position}, gambar ${idx + 1}`}
+                              className="group block rounded-xl border border-slate-200 bg-white p-1.5 hover:border-emerald-500 transition shadow-xs"
+                            >
+                              <img
+                                src={images[file.id]}
+                                alt={`Bukti harga ${item.name}`}
+                                className="ga-evidence-img h-32 sm:h-44 w-auto max-w-full object-contain rounded-lg"
+                              />
+                              <span className="no-print mt-1.5 block text-center text-[11px] font-medium text-emerald-700 group-hover:underline">
+                                Buka ukuran penuh ({Math.ceil(file.size / 1024)} KB)
+                              </span>
+                            </a>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
           </div>
         )}
 

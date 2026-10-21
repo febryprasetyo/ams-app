@@ -66,24 +66,53 @@
     overflow-wrap: anywhere;
   }
 
-  /* Bagian Bukti / Lampiran Gambar Harga */
-  .ga-request-evidence-container {
+  /* Bagian Bukti / Lampiran Gambar Harga di Hasil Cetak */
+  .ga-request-evidence-area {
     margin-top: 4mm !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  .ga-evidence-item {
+  .ga-request-evidence-area h3,
+  .ga-evidence-title,
+  .no-print {
+    display: none !important;
+  }
+
+  .ga-evidence-section {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .ga-evidence-section:not(:first-child) {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .ga-evidence-card {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    width: 100% !important;
+    margin: 0 auto !important;
   }
 
-  .ga-evidence-item:not(:first-child) {
-    page-break-before: always;
-    break-before: page;
+  .ga-evidence-card a {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    justify-content: center !important;
   }
 
   .ga-evidence-img {

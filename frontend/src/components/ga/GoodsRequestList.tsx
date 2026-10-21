@@ -20,6 +20,7 @@ import {
   GA_API_PATH,
   GA_BASE_PATH,
   GoodsRequest,
+  formatFirstItemTitle,
   requestNumber,
   rupiah,
 } from '@/lib/goodsRequests';
@@ -197,6 +198,9 @@ export default function GoodsRequestList() {
                   <tbody className="divide-y divide-slate-100">
                     {items.map((request) => {
                       const badge = getStatusBadgeConfig(request.status);
+                      const displayTitle = formatFirstItemTitle(request);
+                      const itemCount = request.itemCount ?? request.items?.length ?? 1;
+                      const extraItems = Math.max(0, itemCount - 1);
                       return (
                         <tr
                           key={request.id}
@@ -206,14 +210,19 @@ export default function GoodsRequestList() {
                             <div className="font-mono font-bold text-slate-900">
                               {requestNumber(request)}
                             </div>
-                            <div className="mt-0.5 max-w-48 truncate font-medium text-slate-700 xl:max-w-64" title={request.firstItemName || undefined}>
-                              {request.firstItemName || 'Belum ada barang'}
+                            <div
+                              className="mt-0.5 block max-w-[200px] sm:max-w-xs md:max-w-sm lg:max-w-md truncate font-medium text-slate-700 whitespace-nowrap overflow-hidden text-ellipsis"
+                              title={displayTitle}
+                            >
+                              {displayTitle}
                             </div>
-                            {(request.itemCount || 0) > 1 && (
-                              <p className="mt-1 text-xs text-slate-600">+{(request.itemCount || 0) - 1} barang</p>
+                            {extraItems > 0 && (
+                              <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                +{extraItems} barang
+                              </p>
                             )}
                             {!!request.matchedItemNames?.length && (
-                              <p className="mt-1 max-w-48 truncate text-xs text-emerald-800 xl:max-w-64" title={request.matchedItemNames.join(', ')}>
+                              <p className="mt-1 max-w-[200px] sm:max-w-xs md:max-w-sm lg:max-w-md truncate text-xs text-emerald-800" title={request.matchedItemNames.join(', ')}>
                                 Barang cocok: {request.matchedItemNames.join(', ')}
                               </p>
                             )}

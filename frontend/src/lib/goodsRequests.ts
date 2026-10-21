@@ -17,6 +17,13 @@ export const rupiah = (value: number | string) =>
 export const requestNumber = (request: { id: string; requestDate: string }) =>
   'GA-' + request.requestDate.replaceAll('-', '') + '-' + request.id.slice(0, 8).toUpperCase();
 
+export function formatFirstItemTitle(request: { firstItemName?: string | null; title?: string | null }): string {
+  let name = request.firstItemName?.trim() || request.title?.trim() || 'Belum ada barang';
+  name = name.replace(/^(pengajuan|pengadaan|permintaan)\s*[:-]?\s*/i, '');
+  name = name.replace(/\bpengajuan\s*[:-]?\s*/gi, '');
+  return name.trim() || 'Belum ada barang';
+}
+
 export async function compressEvidence(file: File): Promise<File> {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
     throw new Error('Gunakan gambar PNG, JPEG, atau WebP.');

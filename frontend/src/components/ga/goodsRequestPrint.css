@@ -57,7 +57,7 @@
   /* Kotak Formulir Utama */
   .ga-request-document {
     font-size: 11px !important;
-    border: 1px solid #000000 !important;
+    border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     margin: 0 0 2mm 0 !important;
@@ -69,6 +69,15 @@
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
+  }
+
+  .ga-request-document-box {
+    border: 1px solid #000000 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .ga-request-document * {

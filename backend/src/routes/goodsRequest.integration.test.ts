@@ -150,4 +150,61 @@ test('GA API saves complete requests, protects evidence, handles drafts, status 
   assert.equal(reject.status, 200);
   assert.equal((await (await fetch(base + '/' + draftId, { headers: auth })).json()).status, 'rejected');
 
+  // 7. Edit (PUT) and Delete (DELETE) testing
+  const testDraftData = new FormData();
+  testDraftData.append('payload', JSON.stringify({
+    title: 'Pengadaan Keyboard Mekanikal',
+    purpose: 'Developer baru',
+    requestDate: '2026-10-21',
+    requesterName: 'Febry Prasetyo',
+    jobTitle: 'GA',
+    division: 'HRGA',
+    isDraft: true,
+    items: [{ name: 'Keyboard Keychron', quantity: 1, estimatedPrice: 1200000, notes: 'RGB', attachmentKeys: [] }]
+  }));
+  const draftCreateRes = await fetch(base, { method: 'POST', headers: auth, body: testDraftData });
+  assert.equal(draftCreateRes.status, 201);
+  const editableId = (await draftCreateRes.json()).id;
+
+  // Edit draft request
+  const editData = new FormData();
+  editData.append('payload', JSON.stringify({
+    title: 'Pengadaan Keyboard & Mouse',
+    purpose: 'Developer baru revisi',
+    requestDate: '2026-10-21',
+    requesterName: 'Febry Prasetyo',
+    jobTitle: 'GA',
+    division: 'HRGA',
+    isDraft: true,
+    items: [
+      { name: 'Keyboard Keychron Q1', quantity: 2, estimatedPrice: 1500000, notes: 'Revisi jumlah', attachmentKeys: [] }
+    ]
+  }));
+  const editRes = await fetch(base + '/' + editableId, { method: 'PUT', headers: auth, body: editData });
+  assert.equal(editRes.status, 200);
+  const editResult = await editRes.json();
+  assert.equal(editResult.version, 2);
+
+  // Verify updated detail
+  const updatedDetail = await (await fetch(base + '/' + editableId, { headers: auth })).json();
+  assert.equal(updatedDetail.title, 'Pengadaan Keyboard & Mouse');
+  assert.equal(updatedDetail.version, 2);
+  assert.equal(updatedDetail.items[0].name, 'Keyboard Keychron Q1');
+  assert.equal(updatedDetail.items[0].quantity, 2);
+
+  // Delete draft request
+  const deleteRes = await fetch(base + '/' + editableId, { method: 'DELETE', headers: auth });
+  assert.equal(deleteRes.status, 200);
+
+  // Subsequent fetch must return 404
+  const deletedFetch = await fetch(base + '/' + editableId, { headers: auth });
+  assert.equal(deletedFetch.status, 404);
+
+  // Guard: Attempting to edit or delete non-editable request (e.g. cancelled/rejected/approved) must return 403
+  const editLocked = await fetch(base + '/' + id, { method: 'PUT', headers: auth, body: editData });
+  assert.equal(editLocked.status, 403);
+  const deleteLocked = await fetch(base + '/' + id, { method: 'DELETE', headers: auth });
+  assert.equal(deleteLocked.status, 403);
+
+
 });

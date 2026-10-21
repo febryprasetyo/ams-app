@@ -140,6 +140,13 @@
       "when": 1792479280589,
       "tag": "0019_goofy_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792565909710,
+      "tag": "0020_ga_goods_requests_edit_delete_grants",
+      "breakpoints": true
     }
   ],
   "version": "7"

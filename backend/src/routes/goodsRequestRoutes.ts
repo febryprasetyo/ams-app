@@ -17,6 +17,7 @@ import { authenticateToken, requirePermission, AuthenticatedRequest } from '../m
 import {
   GoodsInputError,
   GoodsRequestStatus,
+  isRequestEditable,
   isValidStatusTransition,
   validateGoodsRequest,
 } from '../domain/goodsRequest';
@@ -368,6 +369,125 @@ router.post('/', create, upload, asyncRoute(async (req, res) => {
     );
     throw error;
   }
+}));
+
+
+router.put('/:id', create, upload, asyncRoute(async (req, res) => {
+  if (!validId(req.params.id)) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+  const [request] = await db.select().from(goodsRequests).where(eq(goodsRequests.id, req.params.id));
+  if (!request) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+
+  if (!isRequestEditable(request.status)) {
+    return res.status(403).json({ error: 'Pengajuan yang sudah disetujui atau diproses tidak dapat diubah.' });
+  }
+
+  const files = (req.files || []) as Express.Multer.File[];
+  let raw: any;
+  try {
+    raw = JSON.parse(req.body.payload);
+  } catch {
+    throw new GoodsInputError('Data pengajuan tidak valid.');
+  }
+
+  const existingItems = await db.select().from(goodsRequestItems).where(eq(goodsRequestItems.requestId, request.id));
+  const existingAtts = existingItems.length
+    ? await db.select().from(goodsRequestAttachments).where(inArray(goodsRequestAttachments.itemId, existingItems.map(i => i.id)))
+    : [];
+  const existingAttMap = new Map(existingAtts.map(att => [att.id, att]));
+
+  const newFileNames = files.map(file => file.originalname);
+  const availableKeys = [...newFileNames, ...existingAtts.map(att => att.id)];
+
+  const isDraft = raw.isDraft === true || raw.isDraft === 'true';
+  const input = validateGoodsRequest(raw, availableKeys, isDraft);
+  const directory = path.join(GOODS_STORAGE_ROOT, request.id);
+
+  const evidence = new Map<string, { storageKey: string; size: number }>();
+  for (const file of files) {
+    const stored = await saveGoodsEvidence(directory, file.buffer);
+    evidence.set(file.originalname, { ...stored, storageKey: request.id + '/' + stored.storageKey });
+  }
+
+  const nextVersion = (request.version || 1) + 1;
+
+  await db.transaction(async tx => {
+    await tx.update(goodsRequests)
+      .set({
+        title: input.title,
+        purpose: input.purpose,
+        requestDate: input.requestDate,
+        requesterName: input.requesterName,
+        jobTitle: input.jobTitle,
+        division: input.division,
+        version: nextVersion,
+      })
+      .where(eq(goodsRequests.id, request.id));
+
+    await tx.insert(goodsRequestStatusLogs).values({
+      requestId: request.id,
+      fromStatus: request.status,
+      toStatus: request.status,
+      notes: `Pengajuan diperbarui (Versi ${nextVersion})`,
+      changedBy: req.user!.userId,
+    });
+
+    // Delete existing items (cascades to attachments)
+    await tx.delete(goodsRequestItems).where(eq(goodsRequestItems.requestId, request.id));
+
+    // Re-insert items and re-link attachments
+    for (const [position, item] of input.items.entries()) {
+      const [saved] = await tx.insert(goodsRequestItems).values({
+        requestId: request.id,
+        position: position + 1,
+        name: item.name,
+        quantity: item.quantity,
+        estimatedPrice: String(item.estimatedPrice),
+        subtotal: String(item.subtotal),
+        notes: item.notes,
+      }).returning();
+
+      if (item.attachmentKeys && item.attachmentKeys.length > 0) {
+        const attValues = item.attachmentKeys.map(key => {
+          if (existingAttMap.has(key)) {
+            const oldAtt = existingAttMap.get(key)!;
+            return {
+              id: oldAtt.id,
+              itemId: saved.id,
+              storageKey: oldAtt.storageKey,
+              size: oldAtt.size,
+            };
+          }
+          const newlyStored = evidence.get(key)!;
+          return {
+            id: randomUUID(),
+            itemId: saved.id,
+            storageKey: newlyStored.storageKey,
+            size: newlyStored.size,
+          };
+        });
+        await tx.insert(goodsRequestAttachments).values(attValues);
+      }
+    }
+  });
+
+  res.json({ success: true, id: request.id, version: nextVersion });
+}));
+
+router.delete('/:id', create, asyncRoute(async (req, res) => {
+  if (!validId(req.params.id)) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+  const [request] = await db.select().from(goodsRequests).where(eq(goodsRequests.id, req.params.id));
+  if (!request) return res.status(404).json({ error: 'Pengajuan tidak ditemukan.' });
+
+  if (!isRequestEditable(request.status)) {
+    return res.status(403).json({ error: 'Pengajuan yang sudah disetujui atau diproses tidak dapat dihapus.' });
+  }
+
+  await db.delete(goodsRequests).where(eq(goodsRequests.id, request.id));
+
+  const directory = path.join(GOODS_STORAGE_ROOT, request.id);
+  await rm(directory, { recursive: true, force: true }).catch(() => {});
+
+  res.json({ success: true, message: 'Pengajuan berhasil dihapus.' });
 }));
 
 router.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {

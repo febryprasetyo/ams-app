@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isValidStatusTransition, validateGoodsRequest, GoodsInputError } from './goodsRequest';
+import { isValidStatusTransition, isRequestEditable, validateGoodsRequest, GoodsInputError } from './goodsRequest';
 
 const payload = () => ({
   title: 'Pengadaan Laptop Baru',
@@ -80,4 +80,15 @@ test('new complete requests stay draft until staff approval', () => {
 test('staff can reject drafts but cannot reopen rejected requests', () => {
  assert.equal(isValidStatusTransition('draft', 'rejected'), true);
  assert.equal(isValidStatusTransition('rejected', 'approved_manually'), false);
+});
+
+test('isRequestEditable allows edit only for draft, ready_to_print, and pending_signature', () => {
+  assert.equal(isRequestEditable('draft'), true);
+  assert.equal(isRequestEditable('ready_to_print'), true);
+  assert.equal(isRequestEditable('pending_signature'), true);
+  assert.equal(isRequestEditable('approved_manually'), false);
+  assert.equal(isRequestEditable('processing'), false);
+  assert.equal(isRequestEditable('completed'), false);
+  assert.equal(isRequestEditable('rejected'), false);
+  assert.equal(isRequestEditable('cancelled'), false);
 });

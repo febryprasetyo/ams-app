@@ -27,6 +27,10 @@ export function isValidStatusTransition(from: GoodsRequestStatus, to: GoodsReque
   return allowed ? allowed.includes(to) : false;
 }
 
+export function isRequestEditable(status: string): boolean {
+  return ['draft', 'ready_to_print', 'pending_signature'].includes(status);
+}
+
 export class GoodsInputError extends Error {}
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {

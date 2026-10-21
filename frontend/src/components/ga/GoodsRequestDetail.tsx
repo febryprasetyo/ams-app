@@ -306,7 +306,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             {/* Price Evidence Gallery */}
             <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-6 space-y-4 print:mt-2 print:space-y-2">
               <h3 className="no-print text-sm font-bold text-slate-900">
-                Lampiran Bukti Harga per Barang
+                Lampiran
               </h3>
               {imageLoading && <p role="status" className="no-print text-xs text-slate-500">Memuat bukti gambar...</p>}
               {imageError && (

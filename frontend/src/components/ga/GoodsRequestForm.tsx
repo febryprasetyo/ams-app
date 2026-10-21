@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
-import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
+import { GoodsDocumentHeading } from './GoodsRequestDocument';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -381,12 +381,10 @@ export default function GoodsRequestForm() {
               </button>
 
             </div>
-            <div className="mx-4 overflow-x-auto sm:mx-6">
-              <GoodsDocumentSignatures requesterName={identity.requesterName} />
-            </div>
+
             <div className="p-4 sm:p-6 space-y-4" aria-label="Lampiran bukti harga">
               <h3 className="text-sm font-bold text-slate-800">
-                Lampiran Bukti Harga per Barang
+                Lampiran
               </h3>
               {rows.map((row, index) => (
                 <div
@@ -415,8 +413,7 @@ export default function GoodsRequestForm() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs font-semibold text-slate-800">
-                      Item {index + 1}: {row.name || 'Barang baru'}{' '}
-                      <span className="font-normal text-slate-600">({row.evidence.length}/3 gambar)</span>
+                      Item {index + 1}: {row.name || 'Barang baru'}
                     </p>
                     <label
                       aria-label={`Pilih gambar item ${index + 1}`}
@@ -436,7 +433,7 @@ export default function GoodsRequestForm() {
                     </label>
                   </div>
                   <p className="mt-1 text-xs text-slate-600">
-                    Fokuskan area ini lalu Ctrl+V untuk menempel screenshot, atau pilih gambar PNG, JPEG, atau WebP. Maksimal 3 gambar per barang; gambar dikompresi hingga 500 KB.
+                    Fokuskan area ini lalu Ctrl+V untuk menempel screenshot, atau pilih gambar PNG, JPEG, atau WebP.
                   </p>
                   {invalidRows.includes(row.key) && (
                     <p className="mt-2 text-xs font-semibold text-rose-700">

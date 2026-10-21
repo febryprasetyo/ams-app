@@ -61,8 +61,9 @@ docs/WhatsApp Image*
 /design-system/*
 /hardware-collector/*
 
-# Shared design instructions (explicit exceptions)
-!/AGENTS.md
-!/frontend/AGENTS.md
 
 /backend/data/
+
+# Local LAN Deployment Configuration
+deploy/nginx.lan.conf
+!deploy/nginx.lan.conf.example

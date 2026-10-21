@@ -74,7 +74,11 @@ with open(sys.argv[2], 'w') as out:
 PY
     cp "$REPO_DIR/deploy/compose.lan.yml" "$RELEASE_DIR/compose.yml"
     cp "$REPO_DIR/deploy/compose.migrate.yml" "$RELEASE_DIR/compose.migrate.yml"
-    cp "$REPO_DIR/deploy/nginx.lan.conf" "$RELEASE_DIR/nginx.conf"
+    if [ -f "$REPO_DIR/deploy/nginx.lan.conf" ]; then
+      cp "$REPO_DIR/deploy/nginx.lan.conf" "$RELEASE_DIR/nginx.conf"
+    else
+      cp "$REPO_DIR/deploy/nginx.lan.conf.example" "$RELEASE_DIR/nginx.conf"
+    fi
     git -C "$REPO_DIR" rev-parse HEAD > "$RELEASE_DIR/source-commit"
     git -C "$REPO_DIR" diff --stat > "$RELEASE_DIR/source-changes"
     PREVIOUS=""

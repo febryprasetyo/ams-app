@@ -1,13 +1,9 @@
-# Temporary HTTP-only ingress for the office LAN.
+# Template HTTP-only ingress for office LAN deployment.
+# Copy this file to deploy/nginx.lan.conf and adjust allow rules for your internal LAN subnets.
 server {
     listen 80;
     server_name _;
-    allow 192.168.5.0/24;
-    allow 192.168.10.0/23;
-    allow 192.168.20.0/24;
-    allow 192.168.30.0/24;
-    allow 192.168.40.0/24;
-    allow 192.168.50.0/24;
+    # Replace with your office LAN subnet(s)
     allow 192.168.1.0/24;
     allow 127.0.0.1;
     deny all;

@@ -101,26 +101,22 @@
   }
 
   .ga-request-evidence-area h3,
-  .ga-evidence-title,
   .no-print {
     display: none !important;
   }
 
   .ga-evidence-items-grid {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    gap: 3mm !important;
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
   }
 
   .ga-evidence-section {
     border: 0 !important;
     background: transparent !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 0 2mm 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     page-break-before: avoid !important;
@@ -131,24 +127,36 @@
     break-after: avoid !important;
   }
 
+  .ga-evidence-title {
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+    text-align: left !important;
+    margin: 1.5mm 0 1mm 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
   .ga-evidence-grid {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
-    justify-content: center !important;
-    gap: 2mm !important;
+    justify-content: flex-start !important;
+    gap: 3mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
   }
 
   .ga-evidence-card {
-    display: flex !important;
-    /* justify-content: center !important; */
-    /* align-items: center !important; */
-    width: 100% !important;
-    margin: 0 auto !important;
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
+    box-shadow: none !important;
     page-break-before: avoid !important;
     break-before: avoid !important;
   }
@@ -159,18 +167,7 @@
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
-    display: flex !important;
-    /* justify-content: center !important; */
-  }
-
-  .ga-evidence-thumb-wrapper {
-    aspect-ratio: unset !important;
-    height: auto !important;
-    width: auto !important;
-    background: transparent !important;
-    border: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    display: block !important;
   }
 
   .ga-evidence-img {

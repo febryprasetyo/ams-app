@@ -7,7 +7,6 @@ import {
   Printer,
   CheckCircle2,
   Loader2,
-  ExternalLink,
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -290,17 +289,10 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             </article>
 
             {/* Price Evidence Gallery */}
-            <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-4 space-y-4">
-              <div className="no-print flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Lampiran Bukti Harga per Barang
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Bukti perbandingan harga atau invoice untuk verifikasi pengadaan barang.
-                  </p>
-                </div>
-              </div>
+            <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-6 space-y-4 print:mt-2 print:space-y-2">
+              <h3 className="no-print text-sm font-bold text-slate-900">
+                Lampiran Bukti Harga per Barang
+              </h3>
               {imageLoading && <p role="status" className="no-print text-xs text-slate-500">Memuat bukti gambar...</p>}
               {imageError && (
                 <div role="alert" className="no-print text-xs text-rose-700 bg-rose-50 p-3 rounded-lg mb-2">
@@ -316,7 +308,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
 
                 return (
                   <div
-                    className={`ga-evidence-items-grid grid gap-4 ${
+                    className={`ga-evidence-items-grid grid gap-6 print:gap-2 ${
                       itemsWithAttachments.length > 1
                         ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
                         : 'grid-cols-1'
@@ -325,66 +317,41 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                     {itemsWithAttachments.map((item) => {
                       const itemAttachments = item.attachments || [];
                       return (
-                        <section
-                          key={item.id}
-                          className="ga-evidence-section rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2 mb-3">
-                              <div className="min-w-0">
-                                <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mr-2">
-                                  Item {item.position}
-                                </span>
-                                <h4 className="ga-evidence-title inline text-xs font-semibold text-slate-900 align-middle">
-                                  {item.name}
-                                </h4>
-                              </div>
-                              <span className="no-print shrink-0 text-[11px] font-medium text-slate-500">
-                                {itemAttachments.length} lampiran
-                              </span>
-                            </div>
+                        <div key={item.id} className="ga-evidence-section">
+                          <h4 className="ga-evidence-title text-xs font-semibold text-slate-900 mb-2 print:text-[10px] print:font-bold print:text-black print:mb-1">
+                            Item {item.position}: {item.name}
+                          </h4>
 
-                            <div
-                              className={`ga-evidence-grid grid gap-3 ${
-                                itemsWithAttachments.length === 1
-                                  ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-                                  : itemAttachments.length > 1
-                                  ? 'grid-cols-2'
-                                  : 'grid-cols-1'
-                              }`}
-                            >
-                              {itemAttachments.map((file, idx) =>
-                                images[file.id] ? (
-                                  <div key={file.id} className="ga-evidence-card w-full">
-                                    <a
-                                      href={images[file.id]}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      aria-label={`Buka bukti harga item ${item.position}, gambar ${idx + 1}`}
-                                      className="group flex flex-col h-full rounded-xl border border-slate-200 bg-slate-50/50 p-2 transition hover:border-emerald-500 hover:bg-white hover:shadow-xs"
-                                    >
-                                      <div className="ga-evidence-thumb-wrapper relative aspect-4/3 w-full overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200/60 group-hover:bg-slate-100/70 transition-colors">
-                                        <img
-                                          src={images[file.id]}
-                                          alt={`Bukti harga ${item.name} ${idx + 1}`}
-                                          className="ga-evidence-img max-h-full max-w-full object-contain p-1 transition-transform duration-200 group-hover:scale-105"
-                                        />
-                                      </div>
-                                      <div className="no-print mt-2 flex items-center justify-between text-[11px] text-slate-500">
-                                        <span className="font-medium text-slate-700 truncate">Gambar {idx + 1}</span>
-                                        <span className="font-mono text-slate-400">{Math.ceil(file.size / 1024)} KB</span>
-                                      </div>
-                                      <div className="no-print mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-700 group-hover:text-emerald-800">
-                                        <ExternalLink className="h-3 w-3" />
-                                        <span>Buka ukuran penuh</span>
-                                      </div>
-                                    </a>
-                                  </div>
-                                ) : null
-                              )}
-                            </div>
+                          <div
+                            className={`ga-evidence-grid grid gap-3 print:gap-2 ${
+                              itemsWithAttachments.length === 1
+                                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+                                : itemAttachments.length > 1
+                                ? 'grid-cols-2'
+                                : 'grid-cols-1'
+                            }`}
+                          >
+                            {itemAttachments.map((file, idx) =>
+                              images[file.id] ? (
+                                <div key={file.id} className="ga-evidence-card">
+                                  <a
+                                    href={images[file.id]}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    aria-label={`Buka bukti harga item ${item.position}, gambar ${idx + 1}`}
+                                    className="block group"
+                                  >
+                                    <img
+                                      src={images[file.id]}
+                                      alt={`Bukti harga ${item.name}`}
+                                      className="ga-evidence-img max-h-60 w-auto max-w-full object-contain rounded-lg hover:opacity-90 transition-opacity print:rounded-none"
+                                    />
+                                  </a>
+                                </div>
+                              ) : null
+                            )}
                           </div>
-                        </section>
+                        </div>
                       );
                     })}
                   </div>

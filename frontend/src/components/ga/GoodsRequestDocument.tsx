@@ -78,9 +78,13 @@ export function GoodsDocumentSignatures({
                 {col.name ? (
                   <span className="truncate px-0.5 font-semibold">( {col.name} )</span>
                 ) : (
-                  <span className="w-full block text-center tracking-tight text-[11px] overflow-hidden whitespace-nowrap">
-                    (............................................................)
-                  </span>
+                  <div className="w-[75%] mx-auto flex items-center justify-between text-[11px] text-black font-medium leading-none">
+                    <span>(</span>
+                    <span className="flex-1 overflow-hidden text-center tracking-tight mx-0.5">
+                      ..............................
+                    </span>
+                    <span>)</span>
+                  </div>
                 )}
               </div>
             </td>

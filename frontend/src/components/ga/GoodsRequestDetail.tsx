@@ -232,9 +232,8 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                 ].map(([label, value], idx, arr) => (
                   <div
                     key={label}
-                    className={`grid grid-cols-[85px_16px_minmax(0,1fr)] sm:grid-cols-[110px_20px_minmax(0,1fr)] items-center px-3 sm:px-4 py-0.5 print:py-[1px] leading-tight ${
-                      idx < arr.length - 1 ? 'border-b border-black/30' : ''
-                    }`}
+                    className={`grid grid-cols-[85px_16px_minmax(0,1fr)] sm:grid-cols-[110px_20px_minmax(0,1fr)] items-center px-3 sm:px-4 py-0.5 print:py-[1px] leading-tight ${idx < arr.length - 1 ? 'border-b border-black/30' : ''
+                      }`}
                   >
                     <span className="font-semibold">{label}</span>
                     <span aria-hidden="true">:</span>
@@ -308,28 +307,24 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
 
                 return (
                   <div
-                    className={`ga-evidence-items-grid grid gap-6 print:gap-2 ${
-                      itemsWithAttachments.length > 1
+                    className={`ga-evidence-items-grid grid gap-6 print:gap-2 ${itemsWithAttachments.length > 1
                         ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
                         : 'grid-cols-1'
-                    }`}
+                      }`}
                   >
                     {itemsWithAttachments.map((item) => {
                       const itemAttachments = item.attachments || [];
                       return (
                         <div key={item.id} className="ga-evidence-section">
-                          <h4 className="ga-evidence-title text-xs font-semibold text-slate-900 mb-2 print:text-[10px] print:font-bold print:text-black print:mb-1">
-                            Item {item.position}: {item.name}
-                          </h4>
+
 
                           <div
-                            className={`ga-evidence-grid grid gap-3 print:gap-2 ${
-                              itemsWithAttachments.length === 1
+                            className={`ga-evidence-grid grid gap-3 print:gap-2 ${itemsWithAttachments.length === 1
                                 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
                                 : itemAttachments.length > 1
-                                ? 'grid-cols-2'
-                                : 'grid-cols-1'
-                            }`}
+                                  ? 'grid-cols-2'
+                                  : 'grid-cols-1'
+                              }`}
                           >
                             {itemAttachments.map((file, idx) =>
                               images[file.id] ? (

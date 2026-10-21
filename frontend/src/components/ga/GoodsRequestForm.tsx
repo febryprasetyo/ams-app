@@ -9,6 +9,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import {
+  capitalizeWords,
   compressEvidence,
   localEvidenceKey,
   GA_API_PATH,
@@ -57,9 +58,9 @@ export default function GoodsRequestForm() {
       month: '2-digit',
       day: '2-digit',
     }).format(new Date()),
-    requesterName: user?.fullName || '',
-    jobTitle: '',
-    division: '',
+    requesterName: capitalizeWords(user?.fullName || ''),
+    jobTitle: 'GA',
+    division: 'HRGA',
   });
 
   const [rows, setRows] = useState<Row[]>(() => [newRow('initial-item')]);
@@ -75,7 +76,7 @@ export default function GoodsRequestForm() {
 
   useEffect(() => {
     if (user?.fullName && !identity.requesterName) {
-      setIdentity((c) => ({ ...c, requesterName: user.fullName }));
+      setIdentity((c) => ({ ...c, requesterName: capitalizeWords(user.fullName) }));
     }
   }, [user?.fullName]);
 
@@ -170,9 +171,9 @@ export default function GoodsRequestForm() {
         isDraft,
         status: 'draft',
         requestDate: identity.requestDate,
-        requesterName: identity.requesterName.trim(),
-        jobTitle: identity.jobTitle.trim(),
-        division: identity.division.trim(),
+        requesterName: capitalizeWords(identity.requesterName.trim()),
+        jobTitle: identity.jobTitle.trim() || 'GA',
+        division: identity.division.trim() || 'HRGA',
         items: rows.map((row) => ({
           name: row.name.trim(),
           quantity: Number(row.quantity),

@@ -78,6 +78,8 @@
 
   .ga-request-document .overflow-x-auto {
     overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .ga-request-document table {

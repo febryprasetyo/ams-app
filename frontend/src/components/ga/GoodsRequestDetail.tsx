@@ -16,6 +16,7 @@ import {
   GA_BASE_PATH,
   GoodsRequest,
   formatFormDate,
+  capitalizeWords,
   formatRupiahNumber,
   requestNumber,
   rupiah,
@@ -170,7 +171,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                     Versi {request.version || 1}
                   </span>
                   <span>•</span>
-                  <span>Pemohon: <strong className="font-semibold text-slate-800">{request.requesterName}</strong></span>
+                  <span>Pemohon: <strong className="font-semibold text-slate-800">{capitalizeWords(request.requesterName)}</strong></span>
                   <span>•</span>
                   <span>Tanggal: <strong className="font-semibold text-slate-800">{formatFormDate(request.requestDate)}</strong></span>
                 </div>
@@ -227,22 +228,20 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
           </div>
         ) : request && (
           <div className="ga-request-document-area space-y-6">
-            {/* Document Paper Preview Canvas with Padding */}
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-100/70 p-4 sm:p-6 md:p-8 shadow-xs print:p-0 print:border-none print:bg-transparent print:shadow-none print:rounded-none">
-              <article
-                role="group"
-                aria-label="Lembar permintaan barang"
-                className="ga-request-document mx-auto max-w-4xl min-w-0 border border-black bg-white shadow-md print:shadow-none print:border-black print:max-w-none print:m-0"
-              >
+            <article
+              role="group"
+              aria-label="Lembar permintaan barang"
+              className="ga-request-document mx-auto max-w-4xl min-w-0 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden print:rounded-none print:border print:border-black print:shadow-none print:m-0 print:max-w-none"
+            >
               <GoodsDocumentHeading headingColorClass="text-black" />
 
               {/* Form Info Identity */}
-              <div className="border-b border-black text-[11px] text-black pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 print:pt-2 print:pb-2">
+              <div className="border-b border-black text-[11px] text-black pt-2.5 pb-2.5 sm:pt-3 sm:pb-3 px-4 sm:px-6 print:px-0 print:pt-2 print:pb-2">
                 {[
                   ['Tanggal', formatFormDate(request.requestDate)],
-                  ['Nama', request.requesterName],
-                  ['Jabatan', request.jobTitle],
-                  ['Divisi', request.division],
+                  ['Nama', capitalizeWords(request.requesterName)],
+                  ['Jabatan', request.jobTitle?.trim() || 'GA'],
+                  ['Divisi', request.division?.trim() || 'HRGA'],
                 ].map(([label, value], idx, arr) => (
                   <div
                     key={label}
@@ -257,7 +256,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
               </div>
 
               {/* Items Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto px-4 sm:px-6 py-2 print:p-0">
                 <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-[11px] text-black">
                   <thead>
                     <tr className="border-b border-black text-center font-bold">
@@ -296,11 +295,10 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
               </div>
 
               {/* Signatures Table */}
-              <div className="overflow-x-auto">
-                <GoodsDocumentSignatures requesterName={request.requesterName} />
+              <div className="overflow-x-auto px-4 sm:px-6 pb-6 pt-2 print:p-0">
+                <GoodsDocumentSignatures requesterName={capitalizeWords(request.requesterName)} />
               </div>
             </article>
-            </div>
 
             {/* Price Evidence Gallery */}
             <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-6 space-y-4 print:mt-2 print:space-y-2">

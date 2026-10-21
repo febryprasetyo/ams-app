@@ -1,3 +1,4 @@
+import { capitalizeWords } from '@/lib/goodsRequests';
 export const CMC_LOGO_SRC = '/images/logo-cmc.png';
 export const goodsIdentityRowClass =
   'grid min-h-11 grid-cols-[88px_12px_minmax(0,1fr)] items-center border-b border-slate-200 text-[11px] dark:border-slate-800';
@@ -38,7 +39,7 @@ export function GoodsDocumentSignatures({
   approverName?: string;
 }) {
   const columns = [
-    { label: 'Diajukan', name: requesterName },
+    { label: 'Diajukan', name: capitalizeWords(requesterName) },
     { label: 'Diketahui Oleh', name: '' },
     { label: 'Diperiksa', name: '' },
     { label: 'Disetujui', name: approverName },

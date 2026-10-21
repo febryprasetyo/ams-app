@@ -24,6 +24,16 @@ export function formatFirstItemTitle(request: { firstItemName?: string | null; t
   return name.trim() || 'Belum ada barang';
 }
 
+export function capitalizeWords(input?: string | null): string {
+  if (!input) return '';
+  return input
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+    .join(' ');
+}
+
 export function formatFormDate(dateStr?: string | null): string {
   if (!dateStr) return '';
   const parts = dateStr.split('-');

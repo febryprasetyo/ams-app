@@ -36,7 +36,7 @@ test('formatFirstItemTitle handles empty or undefined values gracefully', () => 
   assert.equal(formatFirstItemTitle({ firstItemName: '', title: '' }), 'Belum ada barang');
 });
 
-import { formatFormDate, formatRupiahNumber } from '../goodsRequests.ts';
+import { formatFormDate, formatRupiahNumber, capitalizeWords } from '../goodsRequests.ts';
 
 test('formatFormDate formats YYYY-MM-DD into DD-Mmm-YY standard', () => {
   assert.equal(formatFormDate('2026-01-29'), '29-Jan-26');
@@ -49,4 +49,12 @@ test('formatRupiahNumber formats whole amounts with comma separator matching pri
   assert.equal(formatRupiahNumber(12398000), '12,398,000');
   assert.equal(formatRupiahNumber('6199000'), '6,199,000');
   assert.equal(formatRupiahNumber(0), '0');
+});
+
+test('capitalizeWords converts names to Title Case properly', () => {
+  assert.equal(capitalizeWords('john doe'), 'John Doe');
+  assert.equal(capitalizeWords('FEBRY PRASETYO'), 'Febry Prasetyo');
+  assert.equal(capitalizeWords('  budi   santoso  '), 'Budi Santoso');
+  assert.equal(capitalizeWords(''), '');
+  assert.equal(capitalizeWords(null), '');
 });

@@ -16,13 +16,6 @@ test('catalog defines Pembelian Barang as only active category in phase 1', () =
   }
 });
 
-test('filterTabs provides all administrative workflow statuses', () => {
-  const keys = filterTabs.map(t => t.key);
-  assert.ok(keys.includes('all'));
-  assert.ok(keys.includes('draft'));
-  assert.ok(keys.includes('ready_to_print'));
-  assert.ok(keys.includes('pending_signature'));
-  assert.ok(keys.includes('approved_manually'));
-  assert.ok(keys.includes('processing'));
-  assert.ok(keys.includes('completed'));
+test('filterTabs offers approval and cancellation', () => {
+  assert.deepEqual(filterTabs.map(t => t.key), ['all', 'draft', 'rejected', 'approved_manually', 'cancelled']);
 });

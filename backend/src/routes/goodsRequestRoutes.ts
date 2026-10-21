@@ -65,12 +65,25 @@ router.get('/', view, asyncRoute(async (req, res) => {
     ? req.query.status.trim()
     : undefined;
 
-  const whereClause = statusFilter ? eq(goodsRequests.status, statusFilter) : undefined;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 1000) : '';
+  const searchClause = search ? sql`(
+    strpos(lower(${goodsRequests.title}), lower(${search})) > 0
+    or strpos(lower(${goodsRequests.requesterName}), lower(${search})) > 0
+    or strpos(lower(${goodsRequests.division}), lower(${search})) > 0
+    or strpos(lower('GA-' || replace(${goodsRequests.requestDate}::text, '-', '') || '-' || left(${goodsRequests.id}::text, 8)), lower(${search})) > 0
+    or exists (
+      select 1 from ga_goods_request_items i
+      where i.request_id = ${goodsRequests.id} and strpos(lower(i.name), lower(${search})) > 0
+    )
+  )` : undefined;
+  const whereClause = and(statusFilter ? eq(goodsRequests.status, statusFilter) : undefined, searchClause);
 
   const [items, [total]] = await Promise.all([
     db.select({
       ...getTableColumns(goodsRequests),
       creatorName: users.username,
+      matchedItemNames: search ? sql<string[]>`array(select i.name from ga_goods_request_items i where i.request_id = ${goodsRequests.id} and strpos(lower(i.name), lower(${search})) > 0 order by i.position)` : sql<string[]>`array[]::text[]`,
+      firstItemName: sql<string | null>`(select i.name from ga_goods_request_items i where i.request_id = ${goodsRequests.id} order by i.position, i.id limit 1)`,
       itemCount: sql<number>`(select count(*)::int from ga_goods_request_items i where i.request_id = ga_goods_requests.id)`,
       totalEstimated: sql<string>`coalesce((select sum(subtotal)::text from ga_goods_request_items i where i.request_id = ga_goods_requests.id), '0')`,
     })
@@ -250,8 +263,19 @@ router.post('/:id/status', create, asyncRoute(async (req, res) => {
     });
   }
 
-  if (toStatus === 'cancelled' && !notes) {
-    return res.status(400).json({ error: 'Catatan alasan pembatalan wajib diisi.' });
+  if ((toStatus === 'cancelled' || toStatus === 'rejected') && !notes) {
+    return res.status(400).json({ error: toStatus === 'rejected' ? 'Alasan penolakan wajib diisi.' : 'Catatan alasan pembatalan wajib diisi.' });
+  }
+
+  if (toStatus === 'approved_manually') {
+    const items = await db.select().from(goodsRequestItems).where(eq(goodsRequestItems.requestId, request.id));
+    const attachments = items.length ? await db.select().from(goodsRequestAttachments)
+      .where(inArray(goodsRequestAttachments.itemId, items.map(item => item.id))) : [];
+    validateGoodsRequest({ ...request, items: items.map(item => ({
+      ...item,
+      estimatedPrice: Number(item.estimatedPrice),
+      attachmentKeys: attachments.filter(file => file.itemId === item.id).map(file => file.id),
+    })) }, attachments.map(file => file.id));
   }
 
   await db.transaction(async tx => {
@@ -280,7 +304,7 @@ router.post('/', create, upload, asyncRoute(async (req, res) => {
     throw new GoodsInputError('Data pengajuan tidak valid.');
   }
 
-  const isDraft = raw.isDraft === true || raw.isDraft === 'true' || raw.status === 'draft';
+  const isDraft = raw.isDraft === true || raw.isDraft === 'true';
   const input = validateGoodsRequest(raw, files.map(file => file.originalname), isDraft);
   const requestId = randomUUID();
   const directory = path.join(GOODS_STORAGE_ROOT, requestId);
@@ -310,7 +334,7 @@ router.post('/', create, upload, asyncRoute(async (req, res) => {
         requestId,
         fromStatus: '',
         toStatus: input.status,
-        notes: isDraft ? 'Draft pengajuan dibuat' : 'Pengajuan dibuat (Siap Cetak)',
+        notes: 'Draft pengajuan dibuat',
         changedBy: req.user!.userId,
       });
 

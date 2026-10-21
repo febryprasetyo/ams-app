@@ -59,10 +59,7 @@ export interface FilterTab {
 export const filterTabs: FilterTab[] = [
   { key: 'all', label: 'Semua' },
   { key: 'draft', label: 'Draft' },
-  { key: 'ready_to_print', label: 'Siap Cetak' },
-  { key: 'pending_signature', label: 'Menunggu Tanda Tangan' },
-  { key: 'approved_manually', label: 'Persetujuan Lengkap' },
-  { key: 'processing', label: 'Diproses' },
-  { key: 'completed', label: 'Selesai' },
+  { key: 'rejected', label: 'Ditolak' },
+  { key: 'approved_manually', label: 'Disetujui' },
   { key: 'cancelled', label: 'Dibatalkan' },
 ];

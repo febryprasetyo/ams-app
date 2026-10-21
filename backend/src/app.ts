@@ -16,6 +16,7 @@ import leaveRoutes from './routes/leaveRoutes';
 import systemSettingRoutes from './routes/systemSettingRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
 import hrActivityRoutes from './routes/hrActivityRoutes';
+import goodsRequestRoutes from './routes/goodsRequestRoutes';
 import { checkDatabase } from './db';
 
 import { loadEnv } from './config/env';
@@ -99,6 +100,7 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use('/api/v1/attendance', attendanceRoutes);
   app.use('/api/attendance', attendanceRoutes);
   app.use('/api/v1/hr/activities', hrActivityRoutes);
+  app.use('/api/v1/ga/requests', goodsRequestRoutes);
   app.use('/api/hr/activities', hrActivityRoutes);
 
   return app;

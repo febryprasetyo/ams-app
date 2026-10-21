@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Route } from '@playwright/test';
 import dotenv from '../backend/node_modules/dotenv';
 import sharp from '../backend/node_modules/sharp';
 import { once } from 'node:events';
@@ -44,7 +44,7 @@ test.beforeEach(async ({ page, context }) => {
   await page.addInitScript(({ token, user }) => { Object.defineProperty(Crypto.prototype, 'randomUUID', { value: undefined, configurable: true }); localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(user)); }, { token, user });
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url());
-    const response = await route.fetch({ url: apiBase + url.pathname + url.search });
+    const response = await route.fetch({ url: apiBase + url.pathname + url.search, postData: route.request().postDataBuffer() || undefined });
     await route.fulfill({ response });
   });
 });
@@ -67,6 +67,11 @@ test('requires proof for every item, pastes screenshots, saves and reopens the f
   })).toBeTruthy();
   for (const [label, value] of [['Nama','Fathiya'], ['Jabatan','GA'], ['Divisi','HR-GA'], ['Nama barang item 1','Laptop'], ['Qty item 1','2'], ['Estimasi harga item 1','6199000']]) await (['Nama', 'Jabatan', 'Divisi'].includes(label) ? page.getByRole('textbox', { name: label, exact: true }) : page.getByLabel(label, { exact: true })).fill(value);
   await expect(page.getByLabel('Subtotal item 1', { exact: true })).toContainText('12.398.000');
+  await expect(page.getByLabel('Total estimasi', { exact: true })).toHaveCount(0);
+  await page.getByLabel('Nama barang item 1', { exact: true }).focus();
+  const focus = await page.getByLabel('Nama barang item 1', { exact: true }).evaluate(node => ({ width: getComputedStyle(node).outlineWidth, style: getComputedStyle(node).outlineStyle }));
+  expect(focus.style).not.toBe('none');
+  expect(parseFloat(focus.width)).toBeGreaterThanOrEqual(2);
   const logo = sheet.getByRole('img', { name: 'Logo Cahaya Mas Cemerlang (CMC)', exact: true });
   await expect(logo).toBeVisible();
   await expect.poll(() => logo.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
@@ -89,6 +94,7 @@ test('requires proof for every item, pastes screenshots, saves and reopens the f
   await page.getByRole('button', { name: 'Tambah barang' }).click();
   await page.getByLabel('Nama barang item 2', { exact: true }).fill('Mouse');
   await page.getByLabel('Estimasi harga item 2', { exact: true }).fill('150000');
+  await expect(page.getByLabel('Subtotal item 2', { exact: true })).toContainText('150.000');
   await page.getByRole('button', { name: 'Simpan Pengajuan', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Item 2' })).toContainText('Item 2');
   await page.getByLabel('Pilih gambar item 1', { exact: true }).setInputFiles({ name: 'harga.png', mimeType: 'image/png', buffer: image });
@@ -96,9 +102,11 @@ test('requires proof for every item, pastes screenshots, saves and reopens the f
   await page.getByRole('button', { name: 'Simpan Pengajuan', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Item 2' })).toContainText('Item 2');
   await page.getByLabel('Lampiran item 2', { exact: true }).evaluate((element, base64) => {
-    const bytes = Uint8Array.from(atob(base64), value => value.charCodeAt(0));
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const clipboard = new DataTransfer(); clipboard.items.add(new File([bytes], 'paste.png', { type: 'image/png' }));
-    element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: clipboard }));
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true }); Object.defineProperty(pasteEvent, 'clipboardData', { value: clipboard }); element.dispatchEvent(pasteEvent);
   }, image.toString('base64'));
   await expect(page.getByText('(1/3 gambar)', { exact: false })).toHaveCount(2);
   for (const width of [360, 390, 768, 1280]) {
@@ -109,6 +117,25 @@ test('requires proof for every item, pastes screenshots, saves and reopens the f
     await page.screenshot({ path: info.outputPath('ga-form-' + width + '.png'), fullPage: true });
     expect(bounds.scroll, JSON.stringify(bounds)).toBeLessThanOrEqual(bounds.width);
   }
+  let releaseFailure!: () => void;
+  const failureBarrier = new Promise<void>(resolve => { releaseFailure = resolve; });
+  const failFirstSave = async (route: Route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    await failureBarrier;
+    await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Layanan sementara tidak tersedia. Coba kembali.' }) });
+  };
+  await page.route('**/api/v1/ga/requests', failFirstSave);
+  await page.getByRole('button', { name: 'Simpan Pengajuan', exact: true }).click();
+  try {
+    await expect(page.getByRole('button', { name: 'Menyimpan...', exact: true })).toBeDisabled();
+    await expect(page.getByLabel('Nama barang item 1', { exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Tambah barang', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Batal', exact: true })).toBeDisabled();
+  } finally { releaseFailure(); }
+  await expect(page.getByRole('alert').filter({ hasText: 'Layanan sementara tidak tersedia' })).toBeVisible();
+  await expect(page.getByLabel('Nama barang item 1', { exact: true })).toHaveValue('Laptop');
+  await expect(page.getByText('(1/3 gambar)', { exact: false })).toHaveCount(2);
+  await page.unroute('**/api/v1/ga/requests', failFirstSave);
   await page.getByRole('button', { name: 'Simpan Pengajuan', exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/ga\/requests\/[0-9a-f-]+\?saved=1/);
   await expect(page.getByText('Pengajuan dan seluruh lampiran berhasil disimpan.')).toBeVisible();
@@ -118,14 +145,16 @@ test('requires proof for every item, pastes screenshots, saves and reopens the f
   await expect(page.getByRole('link', { name: 'Buka bukti harga item 1, gambar 1', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cetak Formulir' })).toBeEnabled();
   await page.screenshot({ path: info.outputPath('ga-detail.png'), fullPage: true });
-  const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: 'Cetak Formulir' }).click()]);
-  await expect(popup.getByRole('heading', { name: 'FORM PERMINTAAN BARANG', exact: true })).toBeVisible();
-  await expect(popup.getByRole('columnheader', { name: 'Diketahui Oleh' })).toBeVisible();
-  const printLogo = popup.getByRole('img', { name: 'Logo Cahaya Mas Cemerlang (CMC)', exact: true });
-  await expect(printLogo).toBeVisible();
-  await expect.poll(() => printLogo.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-  await popup.screenshot({ path: info.outputPath('ga-print.png'), fullPage: true });
-  await popup.close();
+  await page.evaluate(() => { (window as Window & { printCalls?: number }).printCalls = 0; window.print = () => { (window as Window & { printCalls?: number }).printCalls!++; }; });
+  const pageCount = page.context().pages().length;
+  await page.getByRole('button', { name: 'Cetak Formulir' }).click();
+  await expect.poll(() => page.evaluate(() => (window as Window & { printCalls?: number }).printCalls)).toBe(1);
+  expect(page.context().pages()).toHaveLength(pageCount);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByRole('heading', { name: 'Form Permintaan Barang', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cetak Formulir' })).toBeHidden();
+  await page.screenshot({ path: info.outputPath('ga-print.png'), fullPage: true });
+  await page.emulateMedia({ media: 'screen' });
   await page.getByRole('link', { name: 'Daftar permintaan barang', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'Fathiya', exact: true })).toBeVisible(); expect(errors).toEqual([]);
   await page.unrouteAll({ behavior: 'wait' });

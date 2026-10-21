@@ -64,3 +64,5 @@ docs/WhatsApp Image*
 # Shared design instructions (explicit exceptions)
 !/AGENTS.md
 !/frontend/AGENTS.md
+
+/backend/data/

@@ -5,6 +5,7 @@ export type GoodsRequestStatus =
   | 'approved_manually'
   | 'processing'
   | 'completed'
+  | 'rejected'
   | 'cancelled';
 
 export interface GoodsRequestAttachment {
@@ -59,6 +60,8 @@ export interface GoodsRequest {
   createdAt: string;
   creatorName?: string;
   itemCount?: number;
+  firstItemName?: string | null;
+  matchedItemNames?: string[];
   totalEstimated?: string;
   items?: GoodsRequestItem[];
   signedDocuments?: SignedDocument[];

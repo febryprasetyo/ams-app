@@ -41,7 +41,7 @@ export default function SignedDocumentArchive({
       const form = new FormData();
       form.append('document', file);
 
-      await api.post(`${GA_API_PATH}/${requestId}/signed-document`, form);
+      await api.upload(`${GA_API_PATH}/${requestId}/signed-document`, form);
       setSuccess('Dokumen fisik bertanda tangan berhasil diunggah.');
       onUploaded();
     } catch (cause) {

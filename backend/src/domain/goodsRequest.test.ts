@@ -10,6 +10,7 @@ const payload = () => ({
 });
 
 test('status transition follows physical wet signature workflow', () => {
+  assert.equal(isValidStatusTransition('ready_to_print', 'approved_manually'), true);
   assert.equal(isValidStatusTransition('draft', 'ready_to_print'), true);
   assert.equal(isValidStatusTransition('ready_to_print', 'pending_signature'), true);
   assert.equal(isValidStatusTransition('pending_signature', 'approved_manually'), true);
@@ -24,7 +25,7 @@ test('status transition follows physical wet signature workflow', () => {
   assert.equal(isValidStatusTransition('processing', 'cancelled'), true);
 
   // Disallowed
-  assert.equal(isValidStatusTransition('draft', 'approved_manually'), false);
+  assert.equal(isValidStatusTransition('draft', 'approved_manually'), true);
   assert.equal(isValidStatusTransition('draft', 'completed'), false);
   assert.equal(isValidStatusTransition('completed', 'draft'), false);
   assert.equal(isValidStatusTransition('cancelled', 'draft'), false);
@@ -70,4 +71,13 @@ test('rejects unused, duplicated and forged upload references', () => {
   assert.throws(() => validateGoodsRequest(payload(), ['other']), /lampiran/);
   assert.throws(() => validateGoodsRequest(payload(), ['proof-1', 'unused']), /tidak digunakan/);
   assert.throws(() => validateGoodsRequest(payload(), ['proof-1', 'proof-1']), /duplikat/);
+});
+
+test('new complete requests stay draft until staff approval', () => {
+  assert.equal(validateGoodsRequest(payload(), ['proof-1']).status, 'draft');
+});
+
+test('staff can reject drafts but cannot reopen rejected requests', () => {
+ assert.equal(isValidStatusTransition('draft', 'rejected'), true);
+ assert.equal(isValidStatusTransition('rejected', 'approved_manually'), false);
 });

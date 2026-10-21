@@ -326,6 +326,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const currentNavigableItem = allNavigableItems
+    .filter((item) => item.groupTitle !== "Utama" || pathname === item.href)
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isRouteMatchingHref(item.href, pathname)) ||
     allNavigableItems[0];
@@ -578,7 +579,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Main Page Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Navbar */}
-          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs print:hidden">
+          <header className="h-16 bg-white/90 border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl shadow-2xs print:hidden">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -609,7 +610,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="flex items-center gap-3 pl-1">
                 <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-xs">
                   <div className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  <span className="text-slate-700 font-medium hidden sm:inline">{user.email}</span>
+                  <span className="text-slate-700 font-medium hidden lg:inline truncate max-w-[160px]">{user.email}</span>
                   <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-mono font-bold text-[10px] uppercase border border-emerald-200">
                     {user.roleName || 'ADMIN'}
                   </span>
@@ -618,7 +619,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Topbar Logout Button */}
                 <button
                   onClick={logout}
-                  className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-emerald-600 px-3 py-1.5 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
+                  className="hidden lg:flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-emerald-600 px-3 py-1.5 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Exit</span>

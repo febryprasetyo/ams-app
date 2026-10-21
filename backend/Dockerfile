@@ -22,6 +22,7 @@ COPY --chown=nodejs:nodejs package*.json ./
 RUN npm ci --omit=dev
 COPY --chown=nodejs:nodejs --from=builder /app/dist ./dist
 COPY --chown=nodejs:nodejs drizzle ./drizzle
+RUN mkdir -p /app/data/ga-evidence && chown -R nodejs:nodejs /app/data
 USER nodejs
 EXPOSE 5000
 CMD ["node", "dist/server.js"]

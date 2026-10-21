@@ -4,50 +4,93 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
-import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
 import { api } from '@/lib/api';
-import { compressEvidence, localEvidenceKey, GA_API_PATH, GA_BASE_PATH, rupiah } from '@/lib/goodsRequests';
+import {
+  compressEvidence,
+  localEvidenceKey,
+  GA_API_PATH,
+  GA_BASE_PATH,
+  rupiah,
+} from '@/lib/goodsRequests';
 import { validateFormSubmission } from '@/lib/ga/goodsFormValidation';
+import { normalizePastedPrice } from '@/lib/ga/pricePaste';
 
-interface Evidence { key: string; file: File; url: string }
-interface Row { key: string; name: string; quantity: string; estimatedPrice: string; notes: string; evidence: Evidence[] }
-const newRow = (key = localEvidenceKey()): Row => ({ key, name: '', quantity: '1', estimatedPrice: '', notes: '', evidence: [] });
-const inputClass = 'w-full min-h-11 rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const secondary = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
+interface Evidence {
+  key: string;
+  file: File;
+  url: string;
+}
+
+interface Row {
+  key: string;
+  name: string;
+  quantity: string;
+  estimatedPrice: string;
+  notes: string;
+  evidence: Evidence[];
+}
+
+const newRow = (key = localEvidenceKey()): Row => ({
+  key,
+  name: '',
+  quantity: '1',
+  estimatedPrice: '',
+  notes: '',
+  evidence: [],
+});
+
+const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const secondary =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
 
 export default function GoodsRequestForm() {
   const { user } = useAuth();
   const router = useRouter();
+
   const [identity, setIdentity] = useState({
-    requestDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
+    requestDate: new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date()),
     requesterName: user?.fullName || '',
     jobTitle: '',
     division: '',
   });
+
   const [rows, setRows] = useState<Row[]>(() => [newRow('initial-item')]);
   const [busy, setBusy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [invalidRows, setInvalidRows] = useState<string[]>([]);
+
   const urls = useRef(new Set<string>());
   const locked = useRef(false);
   const evidenceLock = useRef(false);
   const mounted = useRef(true);
 
   useEffect(() => {
+    if (user?.fullName && !identity.requesterName) {
+      setIdentity((c) => ({ ...c, requesterName: user.fullName }));
+    }
+  }, [user?.fullName]);
+
+  useEffect(() => {
     mounted.current = true;
     const ownedUrls = urls.current;
     return () => {
       mounted.current = false;
-      ownedUrls.forEach(url => URL.revokeObjectURL(url));
+      ownedUrls.forEach((url) => URL.revokeObjectURL(url));
       ownedUrls.clear();
     };
   }, []);
 
   function update(key: string, field: 'name' | 'quantity' | 'estimatedPrice' | 'notes', value: string) {
-    setRows(current => current.map(row => row.key === key ? { ...row, [field]: value } : row));
+    setRows((current) => current.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
   }
 
   function revoke(evidence: Evidence) {
@@ -62,8 +105,10 @@ export default function GoodsRequestForm() {
     setError('');
     const added: Evidence[] = [];
     try {
-      const row = rows.find(row => row.key === rowKey);
-      if (!row || row.evidence.length + files.length > 3) throw new Error('Maksimal 3 gambar bukti harga per item.');
+      const row = rows.find((r) => r.key === rowKey);
+      if (!row || row.evidence.length + files.length > 3) {
+        throw new Error('Maksimal 3 gambar bukti harga per item barang.');
+      }
       for (const source of files) {
         const file = await compressEvidence(source);
         if (!mounted.current) return;
@@ -71,8 +116,10 @@ export default function GoodsRequestForm() {
         urls.current.add(url);
         added.push({ key: localEvidenceKey(), file, url });
       }
-      setRows(current => current.map(row => row.key === rowKey ? { ...row, evidence: [...row.evidence, ...added] } : row));
-      setInvalidRows(current => current.filter(key => key !== rowKey));
+      setRows((current) =>
+        current.map((r) => (r.key === rowKey ? { ...r, evidence: [...r.evidence, ...added] } : r))
+      );
+      setInvalidRows((current) => current.filter((key) => key !== rowKey));
     } catch (cause) {
       added.forEach(revoke);
       setError((cause as Error).message || 'Gambar gagal diproses. Silakan coba kembali.');
@@ -82,28 +129,33 @@ export default function GoodsRequestForm() {
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (busy || processing) return;
+  async function handleSubmit(isDraft: boolean) {
+    if (locked.current || evidenceLock.current || busy || processing) return;
 
     setError('');
-    const validation = validateFormSubmission({
-      title: rows[0]?.name ? `Pengadaan ${rows[0].name.trim()}` : 'Permintaan Barang',
-      purpose: 'Operasional kantor',
-      identity,
-      rows: rows.map(r => ({
-        name: r.name,
-        quantity: r.quantity,
-        estimatedPrice: r.estimatedPrice,
-        notes: r.notes,
-        evidenceCount: r.evidence.length,
-      })),
-    }, false);
+    const finalTitle = rows[0]?.name ? `Pengadaan ${rows[0].name.trim()}` : 'Permintaan Barang';
+    const finalPurpose = 'Operasional kantor';
+
+    const validation = validateFormSubmission(
+      {
+        title: finalTitle,
+        purpose: finalPurpose,
+        identity,
+        rows: rows.map((r) => ({
+          name: r.name,
+          quantity: r.quantity,
+          estimatedPrice: r.estimatedPrice,
+          notes: r.notes,
+          evidenceCount: r.evidence.length,
+        })),
+      },
+      isDraft
+    );
 
     if (!validation.isValid) {
-      const missingEvidence = rows.filter(r => r.evidence.length === 0).map(r => r.key);
+      const missingEvidence = rows.filter((r) => r.evidence.length === 0).map((r) => r.key);
       setInvalidRows(missingEvidence);
-      setError(validation.errors[0] || 'Periksa kembali kelengkapan formulir.');
+      setError(validation.errors.join('\n') || 'Periksa kembali kelengkapan formulir.');
       return;
     }
 
@@ -113,20 +165,20 @@ export default function GoodsRequestForm() {
     try {
       const form = new FormData();
       const payload = {
-        title: rows[0]?.name ? `Pengadaan ${rows[0].name.trim()}` : 'Permintaan Barang',
-        purpose: 'Operasional kantor',
-        isDraft: false,
-        status: 'ready_to_print',
+        title: finalTitle,
+        purpose: finalPurpose,
+        isDraft,
+        status: 'draft',
         requestDate: identity.requestDate,
         requesterName: identity.requesterName.trim(),
         jobTitle: identity.jobTitle.trim(),
         division: identity.division.trim(),
-        items: rows.map(row => ({
+        items: rows.map((row) => ({
           name: row.name.trim(),
-          quantity: Math.floor(Number(row.quantity)) || 1,
-          estimatedPrice: Math.floor(Number(row.estimatedPrice)) || 0,
+          quantity: Number(row.quantity),
+          estimatedPrice: Number(row.estimatedPrice),
           notes: row.notes.trim(),
-          attachmentKeys: row.evidence.map(e => e.key),
+          attachmentKeys: row.evidence.map((e) => e.key),
         })),
       };
 
@@ -137,7 +189,7 @@ export default function GoodsRequestForm() {
         }
       }
 
-      const result = await api.post<{ id: string }>(GA_API_PATH, form);
+      const result = await api.upload<{ id: string }>(GA_API_PATH, form);
       router.push(`${GA_BASE_PATH}/${result.id}?saved=1`);
     } catch (cause) {
       locked.current = false;
@@ -148,8 +200,7 @@ export default function GoodsRequestForm() {
 
   return (
     <DashboardLayout>
-      <main className="mx-auto min-w-0 max-w-5xl space-y-6 pb-12">
-        {/* Navigation & Header */}
+      <main className="mx-auto min-w-0 max-w-5xl space-y-4 pb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={GA_BASE_PATH}
@@ -157,28 +208,24 @@ export default function GoodsRequestForm() {
           >
             <ArrowLeft size={16} /> Kembali ke daftar permintaan barang
           </Link>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            Persetujuan Tanda Tangan Basah
-          </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Card Form Lembar Permintaan Barang */}
+        <form onSubmit={(event: FormEvent) => { event.preventDefault(); void handleSubmit(false); }} noValidate aria-busy={busy || processing}>
+          <fieldset disabled={busy || processing} className="min-w-0 space-y-6 border-0 p-0">
+            <legend className="sr-only">Isi permintaan barang oleh GA</legend>
           <section
-            aria-label="Lembar permintaan barang"
-            className="rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden"
+            role="group" aria-label="Lembar permintaan barang"
+            className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
           >
-            <GoodsDocumentHeading />
-
-            {/* Document Business Identity */}
-            <div className="divide-y divide-slate-200 border-b border-slate-300 text-xs">
+            <GoodsDocumentHeading headingColorClass="text-black" />
+            <div className="space-y-3 border-b border-slate-200 p-4 text-xs sm:p-6">
               {([
                 ['requestDate', 'Tanggal', 'date'],
                 ['requesterName', 'Nama', 'text'],
                 ['jobTitle', 'Jabatan', 'text'],
                 ['division', 'Divisi', 'text'],
               ] as const).map(([key, label, type]) => (
-                <div key={key} className="grid min-h-11 grid-cols-[100px_16px_minmax(0,1fr)] items-center px-4 py-1">
+                <div key={key} className="grid min-h-11 grid-cols-[64px_12px_minmax(0,1fr)] items-center sm:grid-cols-[100px_16px_minmax(0,1fr)]">
                   <label htmlFor={key} className="font-medium text-slate-800">
                     {label}
                   </label>
@@ -190,14 +237,19 @@ export default function GoodsRequestForm() {
                     aria-label={label}
                     value={identity[key]}
                     onChange={(e) => setIdentity(c => ({ ...c, [key]: e.target.value }))}
-                    className="min-h-11 min-w-0 w-full rounded-none border-0 bg-transparent px-2 py-2 text-xs text-slate-900 focus:outline-none"
+                    required
+                    onClick={type === 'date' ? event => event.currentTarget.showPicker?.() : undefined}
+                    className={`${inputClass} min-w-0${type === 'date' ? ' cursor-pointer' : ''}`}
                   />
                 </div>
               ))}
             </div>
-
-            {/* Items Table */}
-            <div className="overflow-x-auto">
+            <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-6">
+              <h2 className="text-sm font-bold text-slate-900">Rincian barang</h2>
+              <p className="text-xs text-slate-600">{rows.length} dari 20 item</p>
+              <p className="w-full text-xs text-slate-600 sm:hidden">Geser tabel ke samping untuk melihat harga dan kolom pengesahan.</p>
+            </div>
+            <div className="mx-4 overflow-x-auto sm:mx-6">
               <table aria-label="Daftar barang" className="w-full min-w-[850px] border-collapse text-left text-xs">
                 <thead>
                   <tr>
@@ -267,6 +319,16 @@ export default function GoodsRequestForm() {
                             placeholder="0"
                             value={row.estimatedPrice}
                             onChange={(e) => update(row.key, 'estimatedPrice', e.target.value)}
+                            onPaste={(event) => {
+                              event.preventDefault();
+                              const price = normalizePastedPrice(event.clipboardData.getData('text'));
+                              if (price === null) {
+                                setError('Harga yang ditempel harus berupa nominal Rupiah bulat, misalnya 6.199.000 atau 6,199,000.');
+                                return;
+                              }
+                              update(row.key, 'estimatedPrice', price);
+                              setError('');
+                            }}
                             className={inputClass}
                           />
                         </td>
@@ -278,6 +340,7 @@ export default function GoodsRequestForm() {
                         <td className="w-56 border border-slate-300 p-1">
                           <textarea
                             id={`notes-${row.key}`}
+                            aria-label={`Keterangan item ${index + 1}`}
                             rows={2}
                             maxLength={2000}
                             placeholder="Catatan..."
@@ -288,7 +351,8 @@ export default function GoodsRequestForm() {
                           <button
                             type="button"
                             disabled={rows.length === 1}
-                            className="inline-flex min-h-8 items-center gap-1.5 px-2 text-rose-600 hover:bg-rose-50 disabled:opacity-30"
+                            aria-label={`Hapus barang item ${index + 1}`}
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-rose-700 hover:bg-rose-50 disabled:opacity-30"
                             onClick={() => {
                               row.evidence.forEach(revoke);
                               setRows(c => c.filter(item => item.key !== row.key));
@@ -300,20 +364,12 @@ export default function GoodsRequestForm() {
                       </tr>
                     );
                   })}
-                  {Array.from({ length: Math.max(0, 5 - rows.length) }, (_, i) => (
-                    <tr key={`blank-${i}`} aria-hidden="true">
-                      {Array.from({ length: 6 }, (_, col) => (
-                        <td key={col} className="h-9 border border-slate-300" />
-                      ))}
-                    </tr>
-                  ))}
                 </tbody>
               </table>
 
-              <GoodsDocumentSignatures requesterName={identity.requesterName} />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300 p-3 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6">
               <button
                 type="button"
                 disabled={rows.length >= 20}
@@ -322,12 +378,11 @@ export default function GoodsRequestForm() {
               >
                 <Plus size={16} /> Tambah barang
               </button>
-              <p className="text-xs text-slate-500">
-                Harga satuan dalam Rupiah · Maksimal 20 item
-              </p>
-            </div>
 
-            {/* Price Evidence Upload Section */}
+            </div>
+            <div className="mx-4 overflow-x-auto sm:mx-6">
+              <GoodsDocumentSignatures requesterName={identity.requesterName} />
+            </div>
             <div className="p-4 sm:p-6 space-y-4" aria-label="Lampiran bukti harga">
               <h3 className="text-sm font-bold text-slate-800">
                 Lampiran Bukti Harga per Barang
@@ -339,10 +394,13 @@ export default function GoodsRequestForm() {
                   tabIndex={0}
                   aria-label={`Lampiran item ${index + 1}`}
                   onPaste={(event) => {
-                    const files = Array.from(event.clipboardData.items)
+                    const clipboard = event.clipboardData;
+                    const fromFiles = Array.from(clipboard.files || []).filter(file => file.type.startsWith('image/'));
+                    const fromItems = Array.from(clipboard.items || [])
                       .filter(item => item.type.startsWith('image/'))
                       .map(item => item.getAsFile())
-                      .filter((f): f is File => !!f);
+                      .filter((file): file is File => !!file);
+                    const files = fromFiles.length ? fromFiles : fromItems;
                     if (files.length) {
                       event.preventDefault();
                       void addEvidence(row.key, files);
@@ -357,11 +415,11 @@ export default function GoodsRequestForm() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs font-semibold text-slate-800">
                       Item {index + 1}: {row.name || 'Barang baru'}{' '}
-                      <span className="font-normal text-slate-500">({row.evidence.length}/3 gambar)</span>
+                      <span className="font-normal text-slate-600">({row.evidence.length}/3 gambar)</span>
                     </p>
                     <label
                       aria-label={`Pilih gambar item ${index + 1}`}
-                      className={`${secondary} relative cursor-pointer`}
+                      className={`${secondary} relative cursor-pointer focus-within:ring-2 focus-within:ring-emerald-700 focus-within:ring-offset-2`}
                     >
                       Pilih gambar
                       <input
@@ -376,11 +434,11 @@ export default function GoodsRequestForm() {
                       />
                     </label>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Klik area ini lalu Ctrl+V untuk paste screenshot, atau pilih gambar perbandingan harga.
+                  <p className="mt-1 text-xs text-slate-600">
+                    Fokuskan area ini lalu Ctrl+V untuk menempel screenshot, atau pilih gambar PNG, JPEG, atau WebP. Maksimal 3 gambar per barang; gambar dikompresi hingga 500 KB.
                   </p>
                   {invalidRows.includes(row.key) && (
-                    <p className="mt-2 text-xs font-semibold text-rose-600">
+                    <p className="mt-2 text-xs font-semibold text-rose-700">
                       Item {index + 1} belum memiliki bukti harga.
                     </p>
                   )}
@@ -389,11 +447,11 @@ export default function GoodsRequestForm() {
                       <a href={file.url} target="_blank" rel="noreferrer">
                         <img
                           src={file.url}
-                          alt={`Bukti ${imgIdx + 1}`}
+                          alt={`Bukti harga item ${index + 1}, gambar ${imgIdx + 1}`}
                           className="h-16 w-24 rounded-lg object-cover border border-slate-200 shadow-sm"
                         />
                       </a>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-slate-600">
                         <p>{Math.ceil(file.file.size / 1024)} KB</p>
                         <button
                           type="button"
@@ -401,7 +459,7 @@ export default function GoodsRequestForm() {
                             revoke(file);
                             setRows(c => c.map(r => r.key === row.key ? { ...r, evidence: r.evidence.filter(e => e.key !== file.key) } : r));
                           }}
-                          className="mt-1 text-rose-600 hover:underline"
+                          className="mt-1 inline-flex min-h-11 items-center rounded-lg px-2 text-rose-700 hover:bg-rose-50"
                         >
                           Hapus gambar
                         </button>
@@ -420,26 +478,23 @@ export default function GoodsRequestForm() {
           )}
 
           {error && (
-            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700">
+            <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700 whitespace-pre-line">
               {error}
             </div>
           )}
-
-          {/* Action Bar with Simpan Pengajuan */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <Link href={GA_BASE_PATH} className={secondary}>
-              Batal
-            </Link>
+            <button type="button" onClick={() => router.push(GA_BASE_PATH)} className={secondary}>Batal</button>
 
             <button
               type="submit"
               disabled={busy || processing}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50 cursor-pointer"
             >
               {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {busy ? 'Menyimpan...' : 'Simpan Pengajuan'}
             </button>
           </div>
+        </fieldset>
         </form>
       </main>
     </DashboardLayout>

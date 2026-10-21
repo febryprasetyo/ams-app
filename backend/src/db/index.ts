@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { loadEnv } from '../config/env';
 
+import * as goodsRequestsSchema from './schema/goodsRequests';
 import * as usersSchema from './schema/users';
 import * as masterSchema from './schema/master';
 import * as vendorsSchema from './schema/vendors';
@@ -39,6 +40,7 @@ export const pool = {
 export const db = drizzle(getPool(), {
   schema: {
     ...usersSchema,
+    ...goodsRequestsSchema,
     ...masterSchema,
     ...vendorsSchema,
     ...employeesSchema,

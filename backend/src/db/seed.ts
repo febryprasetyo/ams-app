@@ -103,6 +103,7 @@ async function seed() {
 
   // 1. Seed Roles
   const defaultRoles = [
+    { code: 'ga_staff', name: 'GA Staff', description: 'Permintaan barang General Affairs', isSystem: true },
     { code: 'super_admin', name: 'SuperAdmin', description: 'Full system access and security administration', isSystem: true },
     { code: 'it_admin', name: 'ITAdmin', description: 'IT asset, ticket, and infrastructure management', isSystem: true },
     { code: 'it_staff', name: 'ITStaff', description: 'IT service desk technician and maintenance staff', isSystem: true },

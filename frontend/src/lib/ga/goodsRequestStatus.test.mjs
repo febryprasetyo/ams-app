@@ -4,9 +4,9 @@ import { getStatusBadgeConfig, getStatusLabel, getAllowedTransitions } from './g
 
 test('getStatusLabel returns human friendly Indonesian label', () => {
   assert.equal(getStatusLabel('draft'), 'Draft');
-  assert.equal(getStatusLabel('ready_to_print'), 'Siap Cetak');
+  assert.equal(getStatusLabel('ready_to_print'), 'Menunggu Persetujuan');
   assert.equal(getStatusLabel('pending_signature'), 'Menunggu Tanda Tangan');
-  assert.equal(getStatusLabel('approved_manually'), 'Persetujuan Manual Lengkap');
+  assert.equal(getStatusLabel('approved_manually'), 'Disetujui');
   assert.equal(getStatusLabel('processing'), 'Diproses');
   assert.equal(getStatusLabel('completed'), 'Selesai');
   assert.equal(getStatusLabel('cancelled'), 'Dibatalkan');
@@ -27,11 +27,11 @@ test('getStatusBadgeConfig returns valid Emerald Enterprise token styles', () =>
 });
 
 test('getAllowedTransitions returns valid next steps in physical workflow', () => {
-  assert.deepEqual(getAllowedTransitions('draft'), ['ready_to_print', 'cancelled']);
-  assert.deepEqual(getAllowedTransitions('ready_to_print'), ['pending_signature', 'draft', 'cancelled']);
-  assert.deepEqual(getAllowedTransitions('pending_signature'), ['approved_manually', 'draft', 'cancelled']);
-  assert.deepEqual(getAllowedTransitions('approved_manually'), ['processing', 'cancelled']);
-  assert.deepEqual(getAllowedTransitions('processing'), ['completed', 'cancelled']);
+  assert.deepEqual(getAllowedTransitions('draft'), ['approved_manually', 'rejected']);
+  assert.deepEqual(getAllowedTransitions('ready_to_print'), ['approved_manually', 'rejected']);
+  assert.deepEqual(getAllowedTransitions('pending_signature'), ['approved_manually', 'rejected']);
+  assert.deepEqual(getAllowedTransitions('approved_manually'), ['cancelled']);
+  assert.deepEqual(getAllowedTransitions('processing'), ['approved_manually', 'rejected']);
   assert.deepEqual(getAllowedTransitions('completed'), []);
   assert.deepEqual(getAllowedTransitions('cancelled'), []);
 });

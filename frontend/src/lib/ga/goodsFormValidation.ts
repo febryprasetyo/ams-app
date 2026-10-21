@@ -39,6 +39,12 @@ export function validateFormSubmission(
 
   if (!data.identity.requestDate || !data.identity.requestDate.trim()) {
     errors.push('Tanggal pengajuan wajib diisi.');
+  } else {
+    const value = data.identity.requestDate;
+    const parsed = new Date(value + 'T00:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+      errors.push('Tanggal pengajuan tidak valid.');
+    }
   }
 
   if (!data.identity.requesterName || !data.identity.requesterName.trim()) {
@@ -56,17 +62,25 @@ export function validateFormSubmission(
   if (!data.rows || data.rows.length === 0) {
     errors.push('Pengajuan wajib memiliki minimal satu barang.');
   } else {
+    if (data.rows.length > 20) errors.push('Maksimal 20 item per pengajuan.');
     data.rows.forEach((row, index) => {
       if (!row.name || !row.name.trim()) {
         errors.push(`Item ${index + 1}: Nama barang wajib diisi.`);
       }
       const qty = Number(row.quantity);
-      if (!qty || qty <= 0) {
-        errors.push(`Item ${index + 1}: Qty harus lebih dari 0.`);
+      if (!Number.isInteger(qty) || qty < 1 || qty > 1000000) {
+        errors.push(`Item ${index + 1}: Qty harus bilangan bulat antara 1 dan 1.000.000.`);
       }
       const price = Number(row.estimatedPrice);
-      if (!price || price <= 0) {
-        errors.push(`Item ${index + 1}: Estimasi harga harus lebih dari 0.`);
+      if (!Number.isInteger(price) || price < 1 || price > 100000000000) {
+        errors.push(`Item ${index + 1}: Estimasi harga harus bilangan bulat antara Rp1 dan Rp100.000.000.000.`);
+      }
+      const subtotal = qty * price;
+      if (!Number.isSafeInteger(subtotal) || subtotal > 99999999999999) {
+        errors.push(`Item ${index + 1}: Subtotal melebihi batas yang dapat disimpan.`);
+      }
+      if ((row.evidenceCount ?? 0) > 3) {
+        errors.push(`Item ${index + 1}: Maksimal 3 gambar bukti harga.`);
       }
       if (!row.evidenceCount || row.evidenceCount <= 0) {
         errors.push(`Item ${index + 1}: Lampiran bukti harga wajib ditambahkan.`);

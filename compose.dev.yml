@@ -38,6 +38,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ams_dev_ga_evidence:/app/data/ga-evidence
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,4 +71,5 @@ services:
         condition: service_healthy
 
 volumes:
+  ams_dev_ga_evidence:
   ams_dev_pgdata:

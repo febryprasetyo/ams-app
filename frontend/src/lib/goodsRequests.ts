@@ -37,15 +37,29 @@ export async function compressEvidence(file: File): Promise<File> {
     canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
     canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
     const context = canvas.getContext('2d');
-    if (!context) throw new Error('Browser tidak mendukung pemrosesan gambar.');
+    if (!context) {
+      if (file.size <= MAX_EVIDENCE_SIZE) return file;
+      throw new Error('Browser tidak mendukung pemrosesan gambar.');
+    }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    for (const quality of [0.86, 0.76, 0.65]) {
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', quality));
-      if (blob && blob.size <= MAX_EVIDENCE_SIZE) {
-        return new File([blob], 'bukti-harga.webp', { type: blob.type });
+    for (const type of ['image/webp', 'image/jpeg']) {
+      for (const quality of [0.86, 0.76, 0.65]) {
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality));
+        if (blob && blob.size > 0 && blob.size <= MAX_EVIDENCE_SIZE) {
+          const ext = type === 'image/webp' ? 'webp' : 'jpg';
+          return new File([blob], `bukti-harga.${ext}`, { type: blob.type || type });
+        }
       }
     }
+    if (file.size <= MAX_EVIDENCE_SIZE) {
+      return file;
+    }
     throw new Error('Gambar masih melebihi 500 KB. Potong bagian barang dan harga lalu coba kembali.');
+  } catch (err) {
+    if (file.size <= MAX_EVIDENCE_SIZE) {
+      return file;
+    }
+    throw err;
   } finally {
     URL.revokeObjectURL(url);
   }

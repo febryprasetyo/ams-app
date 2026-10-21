@@ -6,6 +6,9 @@ export interface PermissionSeed {
 }
 
 export const DEFAULT_PERMISSIONS: PermissionSeed[] = [
+  { code: 'ga.requests.view', name: 'View Goods Requests', module: 'ga', description: 'Melihat permintaan barang GA dan bukti harga' },
+  { code: 'ga.requests.create', name: 'Create Goods Request', module: 'ga', description: 'Membuat permintaan barang beserta lampiran' },
+
   // Assets
   { code: 'assets.view', name: 'View Assets', module: 'assets', description: 'Melihat inventaris aset dan detail' },
   { code: 'assets.create', name: 'Create Asset', module: 'assets', description: 'Menambahkan aset baru & impor' },
@@ -48,6 +51,7 @@ export const DEFAULT_PERMISSIONS: PermissionSeed[] = [
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
   super_admin: ['*'],
+  ga_staff: ['ga.requests.view', 'ga.requests.create'],
   it_admin: [
     'assets.view', 'assets.create', 'assets.edit', 'assets.delete', 'assets.assign',
     'tickets.view', 'tickets.create', 'tickets.manage',

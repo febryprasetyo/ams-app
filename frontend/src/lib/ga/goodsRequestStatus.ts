@@ -5,26 +5,29 @@ export type GoodsRequestStatus =
   | 'approved_manually'
   | 'processing'
   | 'completed'
+  | 'rejected'
   | 'cancelled';
 
 export const STATUS_LABELS: Record<GoodsRequestStatus, string> = {
   draft: 'Draft',
-  ready_to_print: 'Siap Cetak',
+  ready_to_print: 'Menunggu Persetujuan',
   pending_signature: 'Menunggu Tanda Tangan',
-  approved_manually: 'Persetujuan Manual Lengkap',
+  approved_manually: 'Disetujui',
   processing: 'Diproses',
   completed: 'Selesai',
   cancelled: 'Dibatalkan',
+  rejected: 'Ditolak',
 };
 
 export const ALLOWED_STATUS_TRANSITIONS: Record<GoodsRequestStatus, GoodsRequestStatus[]> = {
-  draft: ['ready_to_print', 'cancelled'],
-  ready_to_print: ['pending_signature', 'draft', 'cancelled'],
-  pending_signature: ['approved_manually', 'draft', 'cancelled'],
-  approved_manually: ['processing', 'cancelled'],
-  processing: ['completed', 'cancelled'],
+  draft: ['approved_manually', 'rejected'],
+  ready_to_print: ['approved_manually', 'rejected'],
+  pending_signature: ['approved_manually', 'rejected'],
+  approved_manually: ['cancelled'],
+  processing: ['approved_manually', 'rejected'],
   completed: [],
   cancelled: [],
+  rejected: [],
 };
 
 export function getStatusLabel(status: GoodsRequestStatus): string {
@@ -47,46 +50,53 @@ export function getStatusBadgeConfig(status: GoodsRequestStatus): StatusBadgeCon
     case 'approved_manually':
     case 'completed':
       return {
-        bgClass: 'bg-emerald-50 dark:bg-emerald-950/40',
-        textClass: 'text-emerald-700 dark:text-emerald-300',
-        borderClass: 'border-emerald-200 dark:border-emerald-800/60',
-        dotClass: 'bg-emerald-500',
+        bgClass: 'bg-emerald-100',
+        textClass: 'text-emerald-800',
+        borderClass: 'border-emerald-300',
+        dotClass: 'bg-emerald-1000',
       };
+    case 'ready_to_print':
     case 'pending_signature':
       return {
-        bgClass: 'bg-amber-50 dark:bg-amber-950/40',
-        textClass: 'text-amber-700 dark:text-amber-300',
-        borderClass: 'border-amber-200 dark:border-amber-800/60',
-        dotClass: 'bg-amber-500',
+        bgClass: 'bg-amber-100',
+        textClass: 'text-amber-800',
+        borderClass: 'border-amber-300',
+        dotClass: 'bg-amber-1000',
       };
     case 'processing':
       return {
-        bgClass: 'bg-blue-50 dark:bg-blue-950/40',
-        textClass: 'text-blue-700 dark:text-blue-300',
-        borderClass: 'border-blue-200 dark:border-blue-800/60',
-        dotClass: 'bg-blue-500',
+        bgClass: 'bg-blue-100',
+        textClass: 'text-blue-800',
+        borderClass: 'border-blue-300',
+        dotClass: 'bg-blue-1000',
       };
-    case 'ready_to_print':
+    case 'rejected':
       return {
-        bgClass: 'bg-teal-50 dark:bg-teal-950/40',
-        textClass: 'text-teal-700 dark:text-teal-300',
-        borderClass: 'border-teal-200 dark:border-teal-800/60',
-        dotClass: 'bg-teal-500',
+        bgClass: 'bg-rose-100',
+        textClass: 'text-rose-800',
+        borderClass: 'border-rose-300',
+        dotClass: 'bg-rose-1000',
       };
     case 'cancelled':
-      return {
-        bgClass: 'bg-rose-50 dark:bg-rose-950/40',
-        textClass: 'text-rose-700 dark:text-rose-300',
-        borderClass: 'border-rose-200 dark:border-rose-800/60',
-        dotClass: 'bg-rose-500',
-      };
     case 'draft':
     default:
       return {
-        bgClass: 'bg-slate-100 dark:bg-slate-800',
-        textClass: 'text-slate-700 dark:text-slate-300',
-        borderClass: 'border-slate-200 dark:border-slate-700',
-        dotClass: 'bg-slate-400',
+        bgClass: 'bg-slate-100',
+        textClass: 'text-slate-800',
+        borderClass: 'border-slate-300',
+        dotClass: 'bg-slate-600',
       };
+  }
+}
+
+export function getStatusSelectionClass(status: GoodsRequestStatus | 'all'): string {
+  switch (status) {
+    case 'rejected':
+      return 'border-rose-700 bg-rose-50 ring-1 ring-inset ring-rose-700';
+    case 'draft':
+    case 'cancelled':
+      return 'border-slate-600 bg-slate-100 ring-1 ring-inset ring-slate-600';
+    default:
+      return 'border-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-700';
   }
 }

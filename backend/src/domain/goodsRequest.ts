@@ -7,16 +7,18 @@ export type GoodsRequestStatus =
   | 'approved_manually'
   | 'processing'
   | 'completed'
+  | 'rejected'
   | 'cancelled';
 
 export const ALLOWED_STATUS_TRANSITIONS: Record<GoodsRequestStatus, GoodsRequestStatus[]> = {
-  draft: ['ready_to_print', 'cancelled'],
-  ready_to_print: ['pending_signature', 'draft', 'cancelled'],
-  pending_signature: ['approved_manually', 'draft', 'cancelled'],
+  draft: ['approved_manually', 'rejected', 'ready_to_print', 'cancelled'],
+  ready_to_print: ['approved_manually', 'rejected', 'pending_signature', 'draft', 'cancelled'],
+  pending_signature: ['approved_manually', 'rejected', 'draft', 'cancelled'],
   approved_manually: ['processing', 'cancelled'],
-  processing: ['completed', 'cancelled'],
+  processing: ['approved_manually', 'rejected', 'completed', 'cancelled'],
   completed: [],
   cancelled: [],
+  rejected: [],
 };
 
 export function isValidStatusTransition(from: GoodsRequestStatus, to: GoodsRequestStatus): boolean {
@@ -111,5 +113,5 @@ export function validateGoodsRequest(input: unknown, uploadKeys: string[] = [], 
   });
   if (used.size !== uploadKeys.length) throw new GoodsInputError('Ada lampiran yang tidak digunakan.');
   const title = parsed.data.title || (items[0]?.name ? ((`Pengadaan ` + items[0].name)) : 'Permintaan Barang');
-  return { ...parsed.data, title, status: 'ready_to_print' as GoodsRequestStatus, items };
+  return { ...parsed.data, title, status: 'draft' as GoodsRequestStatus, items };
 }

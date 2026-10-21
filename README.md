@@ -83,3 +83,34 @@ Before adding menus, pages, features, or styles, read [DESIGN.md](DESIGN.md) and
 [GAJIANICH / AMS UI design master](UI_DESIGN_SYSTEM_GUIDE.md). New modules follow the
 existing Emerald Enterprise theme and shared components. Page-specific notes cannot
 replace the application's visual identity.
+
+
+### Permintaan barang GA
+
+Menu **GA → Permintaan Barang** menggunakan izin `ga.requests.view` dan
+`ga.requests.create`. Migrasi `0018` menambahkan tabel dan role **GA Staff**;
+admin dapat memberikan role tersebut melalui Access Control. Jalankan migrasi
+backend sebelum menjalankan versi aplikasi ini (`npm run db:migrate` di `backend/`).
+
+Setiap item wajib memiliki 1–3 gambar PNG/JPEG/WebP, maksimal 20 item per
+pengajuan. Pengguna dapat memilih file atau paste screenshot ke area bukti harga.
+Gambar dikompres di browser (maksimal 500 KB) dan divalidasi serta dikodekan ulang
+ke WebP di server. Estimasi harga adalah rupiah per unit; subtotal dihitung ulang
+di backend. Pengajuan, barang, dan metadata lampiran disimpan dalam satu transaksi.
+
+File disimpan di `GA_STORAGE_DIR` (default `backend/data/ga-evidence` jika server
+dijalankan dari `backend/`), terpisah dari database. Compose memakai volume
+persisten `ga_evidence` (development: `ams_dev_ga_evidence`). Docker image membuat
+direktori dengan kepemilikan user aplikasi. Jangan menghapus volume saat mengganti
+container. Akses file melalui API memerlukan autentikasi dan izin melihat GA;
+folder tidak disajikan sebagai static/public. File identik dalam satu pengajuan
+menggunakan satu salinan, dan kegagalan transaksi membersihkan file pengajuan itu.
+Tidak ada file server untuk screenshot formulir yang dibatalkan sebelum simpan.
+
+**Backup harus mencakup database dan volume lampiran**. `pg_dump` saja tidak
+menyertakan gambar. Contoh backup file menggunakan compose deployment aktif:
+`docker compose exec -T backend tar -C /app/data -czf - ga-evidence > ga-evidence.tar.gz`.
+Pulihkan arsip ke `/app/data` di volume backend bersama backup database yang cocok.
+File yang tersimpan dipertahankan sebagai bukti; belum ada penghapusan arsip otomatis.
+Cetak formulir menyediakan bagian tanda tangan sesuai PDF. Persetujuan elektronik
+dan negosiasi purchasing belum menjadi bagian implementasi ini.

@@ -4,7 +4,7 @@ export const CMC_LOGO_SRC = '/images/logo-cmc.png';
 export const goodsIdentityRowClass =
   'grid min-h-11 grid-cols-[88px_12px_minmax(0,1fr)] items-center border-b border-slate-200 text-xs dark:border-slate-800';
 
-export function GoodsDocumentHeading({ detail = false, title }: { detail?: boolean; title?: string }) {
+export function GoodsDocumentHeading({ detail = false, title, headingColorClass = 'text-slate-900 dark:text-white' }: { detail?: boolean; title?: string; headingColorClass?: string }) {
   const Heading = detail ? 'h2' : 'h1';
   return (
     <div className="grid grid-cols-[70px_minmax(0,1fr)_40px] border-b border-slate-300 sm:grid-cols-[120px_minmax(0,1fr)_120px] dark:border-slate-800">
@@ -18,7 +18,7 @@ export function GoodsDocumentHeading({ detail = false, title }: { detail?: boole
         />
       </div>
       <div className="flex flex-col items-center justify-center px-2 py-4 text-center">
-        <Heading className="text-sm font-extrabold uppercase text-slate-900 underline sm:text-xl dark:text-white">
+        <Heading className={`text-sm font-extrabold uppercase underline sm:text-xl ${headingColorClass}`}>
           Form Permintaan Barang
         </Heading>
         {title && (

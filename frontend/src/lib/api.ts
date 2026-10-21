@@ -76,7 +76,7 @@ export const api = {
     apiFetch<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body)) : undefined,
     }),
 
   put: <T = unknown>(endpoint: string, body?: unknown, options?: ApiOptions) =>

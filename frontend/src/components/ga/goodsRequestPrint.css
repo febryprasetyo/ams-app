@@ -1,14 +1,21 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 5mm 8mm;
+    margin: 4mm 6mm;
   }
 
-  body {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body, html {
     background: #ffffff !important;
     color: #000000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   /* Sembunyikan elemen non-cetak dan wrapper dashboard */
@@ -23,6 +30,7 @@
 
   .ga-request-detail {
     max-width: 100% !important;
+    width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -31,6 +39,8 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
     page-break-inside: auto !important;
     break-inside: auto !important;
   }
@@ -78,7 +88,7 @@
 
   /* Bagian Bukti / Lampiran Gambar Harga di Hasil Cetak */
   .ga-request-evidence-area {
-    margin-top: 2mm !important;
+    margin: 2mm 0 0 0 !important;
     padding: 0 !important;
     border: 0 !important;
     background: transparent !important;
@@ -101,18 +111,12 @@
     margin: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .ga-evidence-section:first-child {
     page-break-before: avoid !important;
     break-before: avoid !important;
-  }
-
-  .ga-evidence-section:not(:first-child) {
-    page-break-before: always !important;
-    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   .ga-evidence-card {
@@ -121,6 +125,8 @@
     align-items: center !important;
     width: 100% !important;
     margin: 0 auto !important;
+    padding: 0 !important;
+    border: 0 !important;
     page-break-before: avoid !important;
     break-before: avoid !important;
   }
@@ -129,6 +135,7 @@
     border: 0 !important;
     background: transparent !important;
     padding: 0 !important;
+    margin: 0 !important;
     box-shadow: none !important;
     display: flex !important;
     justify-content: center !important;
@@ -147,5 +154,7 @@
     border-radius: 0 !important;
     page-break-before: avoid !important;
     break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

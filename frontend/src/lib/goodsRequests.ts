@@ -24,6 +24,24 @@ export function formatFirstItemTitle(request: { firstItemName?: string | null; t
   return name.trim() || 'Belum ada barang';
 }
 
+export function formatFormDate(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const monthIdx = parseInt(month, 10) - 1;
+  const shortMonth = monthNames[monthIdx] || month;
+  const shortYear = year.slice(-2);
+  const formattedDay = String(parseInt(day, 10)).padStart(2, '0');
+  return `${formattedDay}-${shortMonth}-${shortYear}`;
+}
+
+export function formatRupiahNumber(value: number | string): string {
+  const num = typeof value === 'number' ? value : Number(value) || 0;
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
 export async function compressEvidence(file: File): Promise<File> {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
     throw new Error('Gunakan gambar PNG, JPEG, atau WebP.');

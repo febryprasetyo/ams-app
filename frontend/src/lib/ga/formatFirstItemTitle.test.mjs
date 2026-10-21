@@ -35,3 +35,18 @@ test('formatFirstItemTitle handles empty or undefined values gracefully', () => 
   assert.equal(formatFirstItemTitle({}), 'Belum ada barang');
   assert.equal(formatFirstItemTitle({ firstItemName: '', title: '' }), 'Belum ada barang');
 });
+
+import { formatFormDate, formatRupiahNumber } from '../goodsRequests.ts';
+
+test('formatFormDate formats YYYY-MM-DD into DD-Mmm-YY standard', () => {
+  assert.equal(formatFormDate('2026-01-29'), '29-Jan-26');
+  assert.equal(formatFormDate('2026-10-20'), '20-Okt-26');
+  assert.equal(formatFormDate(''), '');
+  assert.equal(formatFormDate(null), '');
+});
+
+test('formatRupiahNumber formats whole amounts with comma separator matching print layout', () => {
+  assert.equal(formatRupiahNumber(12398000), '12,398,000');
+  assert.equal(formatRupiahNumber('6199000'), '6,199,000');
+  assert.equal(formatRupiahNumber(0), '0');
+});

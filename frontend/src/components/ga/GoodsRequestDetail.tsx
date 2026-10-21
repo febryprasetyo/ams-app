@@ -2,73 +2,92 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Printer, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Printer,
+  CheckCircle2,
+  Loader2,
+} from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
-import './goodsRequestPrint.css';
-import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
 import { api } from '@/lib/api';
 import {
   GA_API_PATH,
   GA_BASE_PATH,
   GoodsRequest,
+  formatFormDate,
+  formatRupiahNumber,
   requestNumber,
   rupiah,
 } from '@/lib/goodsRequests';
-import { getStatusBadgeConfig, getStatusLabel } from '@/lib/ga/goodsRequestStatus';
 import StatusTransitionModal from './StatusTransitionModal';
+import { getStatusBadgeConfig, getStatusLabel } from '@/lib/ga/goodsRequestStatus';
+import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
+import './goodsRequestPrint.css';
 
-export default function GoodsRequestDetail({ id, saved = false }: { id: string; saved?: boolean }) {
+interface GoodsRequestDetailProps {
+  id: string;
+  saved?: boolean;
+}
+
+export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDetailProps) {
   const { hasPermission } = useAuth();
-  const canManageStatus = hasPermission('ga.requests.create');
-
-  const [request, setRequest] = useState<GoodsRequest>();
-  const [images, setImages] = useState<Record<string, string>>({});
+  const [request, setRequest] = useState<GoodsRequest | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageLoading, setImageLoading] = useState(true);
   const [error, setError] = useState('');
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState('');
-  const [retry, setRetry] = useState(0);
   const [printError, setPrintError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [retry, setRetry] = useState(0);
+
+  const canManageStatus = hasPermission('ga:requests:update_status') || hasPermission('ga:requests:manage');
 
   useEffect(() => {
     let active = true;
     const ownedUrls: string[] = [];
 
-    setLoading(true);
     api.get<GoodsRequest>(`${GA_API_PATH}/${id}`)
-      .then(async (reqResult) => {
+      .then(async res => {
         if (!active) return;
-        setRequest(reqResult);
+        setRequest(res);
         setLoading(false);
 
-        const entries: [string, string][] = [];
-        const items = reqResult.items || [];
-        const results = await Promise.allSettled(
-          items.flatMap(item => item.attachments || []).map(async file => {
-            const blob = await api.download(`${GA_API_PATH}/${id}/evidence/${file.id}`);
-            if (!active) return;
-            const url = URL.createObjectURL(blob);
-            ownedUrls.push(url);
-            entries.push([file.id, url]);
-          })
-        );
+        // Fetch attachments
+        const files: { id: string; itemId: number }[] = [];
+        (res.items || []).forEach(item => {
+          (item.attachments || []).forEach(att => {
+            files.push({ id: att.id, itemId: item.position });
+          });
+        });
 
-        if (active) {
-          setImages(Object.fromEntries(entries));
+        if (files.length === 0) {
           setImageLoading(false);
-          if (results.some(result => result.status === 'rejected')) {
-            setImageError('Sebagian bukti harga gagal dimuat. Coba muat kembali.');
+          return;
+        }
+
+        const urlMap: Record<string, string> = {};
+        for (const file of files) {
+          try {
+            const blob = await api.download(`${GA_API_PATH}/${id}/attachments/${file.id}`);
+            if (!active) return;
+            const objectUrl = URL.createObjectURL(blob);
+            ownedUrls.push(objectUrl);
+            urlMap[file.id] = objectUrl;
+          } catch (err) {
+            console.error('Gagal mengambil gambar bukti:', err);
           }
         }
-      })
-      .catch(cause => {
         if (active) {
-          setError(cause.message || 'Gagal memuat pengajuan.');
-          setLoading(false);
+          setImages(urlMap);
           setImageLoading(false);
         }
+      })
+      .catch(err => {
+        if (!active) return;
+        setError(err.message || 'Gagal memuat rincian pengajuan.');
+        setLoading(false);
       });
 
     return () => {
@@ -90,7 +109,7 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
     if (!request || imageLoading || imageError) return;
     setPrintError('');
     try {
-      await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.ga-request-document img')).map(image => image.decode()));
+      await Promise.all(Array.from(document.querySelectorAll<HTMLImageElement>('.ga-request-document-area img')).map(image => image.decode()));
       window.print();
     } catch {
       setPrintError('Gambar dokumen gagal dimuat. Coba cetak kembali.');
@@ -98,6 +117,20 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
   }
 
   const badge = request ? getStatusBadgeConfig(request.status) : null;
+
+  const allAttachments = (request?.items || []).flatMap((item) =>
+    (item.attachments || []).map((att) => ({
+      ...att,
+      itemId: item.id,
+      itemPosition: item.position,
+      itemName: item.name,
+    }))
+  );
+
+  const paddedRows = Array.from(
+    { length: Math.max(3, request?.items?.length || 0) },
+    (_, i) => request?.items?.[i] || null
+  );
 
   return (
     <DashboardLayout>
@@ -111,8 +144,7 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
           >
             <ArrowLeft size={16} /> Kembali ke daftar permintaan barang
           </Link>
-
-          </div>
+        </div>
 
         {/* Title & Actions Bar */}
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -181,117 +213,112 @@ export default function GoodsRequestDetail({ id, saved = false }: { id: string; 
             </button>
           </div>
         ) : request && (
-          <div className="ga-request-document-area space-y-6">
+          <div className="ga-request-document-area space-y-4">
             {/* Document Article */}
-            <article role="group" aria-label="Lembar permintaan barang" className="ga-request-document min-w-0 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            <article
+              role="group"
+              aria-label="Lembar permintaan barang"
+              className="ga-request-document min-w-0 border border-black bg-white shadow-sm print:shadow-none"
+            >
               <GoodsDocumentHeading headingColorClass="text-black" />
 
-              <dl className="space-y-3 border-b border-slate-200 p-4 text-xs sm:p-6">
+              {/* Form Info Identity */}
+              <div className="border-b border-black text-xs text-black">
                 {[
-                  ['Tanggal', request.requestDate.split('-').reverse().join('/')],
+                  ['Tanggal', formatFormDate(request.requestDate)],
                   ['Nama', request.requesterName],
                   ['Jabatan', request.jobTitle],
                   ['Divisi', request.division],
-                ].map(([label, value]) => (
-                  <div key={label} className="grid min-h-11 grid-cols-[64px_12px_minmax(0,1fr)] items-center sm:grid-cols-[100px_16px_minmax(0,1fr)]">
-                    <dt className="font-medium text-slate-800">{label}</dt>
+                ].map(([label, value], idx, arr) => (
+                  <div
+                    key={label}
+                    className={`grid grid-cols-[85px_16px_minmax(0,1fr)] sm:grid-cols-[110px_20px_minmax(0,1fr)] items-center px-3 sm:px-4 py-1.5 ${
+                      idx < arr.length - 1 ? 'border-b border-black' : ''
+                    }`}
+                  >
+                    <span className="font-semibold">{label}</span>
                     <span aria-hidden="true">:</span>
-                    <dd className="flex min-h-11 min-w-0 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 [overflow-wrap:anywhere]">{value}</dd>
+                    <span className="font-medium">{value}</span>
                   </div>
                 ))}
-              </dl>
-
-              <div className="flex flex-wrap items-start justify-between gap-3 p-4 sm:px-6">
-                <h2 className="text-sm font-bold text-slate-900">Rincian barang</h2>
-                <p className="text-xs text-slate-600">{request.items?.length || 0} item</p>
-                <p className="w-full text-xs text-slate-600 sm:hidden">Geser tabel ke samping untuk melihat harga dan kolom pengesahan.</p>
               </div>
-              <div className="mx-4 overflow-x-auto sm:mx-6">
-                <table aria-label="Barang yang diajukan" className="w-full min-w-[850px] border-collapse text-left text-xs">
+
+              {/* Items Table */}
+              <div className="overflow-x-auto">
+                <table aria-label="Barang yang diajukan" className="w-full min-w-[700px] border-collapse text-left text-xs text-black">
                   <thead>
-                    <tr>
-                      {['No', 'Qty', 'Nama Barang', 'Estimasi Harga', 'Subtotal Harga', 'Keterangan'].map(label => (
-                        <th
-                          key={label}
-                          scope="col"
-                          className="border border-slate-300 bg-slate-50 px-3 py-2 text-center font-semibold text-slate-800"
-                        >
-                          {label}
-                        </th>
-                      ))}
+                    <tr className="border-b border-black text-center font-bold">
+                      <th scope="col" className="w-10 border-r border-black py-2 px-1 text-center font-bold">No</th>
+                      <th scope="col" className="w-14 border-r border-black py-2 px-1 text-center font-bold">Qty</th>
+                      <th scope="col" className="border-r border-black py-2 px-2 text-left font-bold">Nama Barang</th>
+                      <th scope="col" className="w-36 border-r border-black py-2 px-2 text-center font-bold">Estimasi Harga</th>
+                      <th scope="col" className="w-28 border-r border-black py-2 px-2 text-center font-bold">Harga</th>
+                      <th scope="col" className="w-44 py-2 px-2 text-left font-bold">Keterangan</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(request.items || []).map(item => (
-                      <tr key={item.id} className="text-slate-700">
-                        <td className="border border-slate-300 p-3 text-center">{item.position}</td>
-                        <td className="border border-slate-300 p-3 text-center">{item.quantity}</td>
-                        <td className="max-w-72 break-words border border-slate-300 p-3 font-medium text-slate-900">
-                          {item.name}
+                    {paddedRows.map((item, idx) => (
+                      <tr key={idx} className="border-b border-black">
+                        <td className="border-r border-black py-2 px-1 text-center font-medium">{idx + 1}</td>
+                        <td className="border-r border-black py-2 px-1 text-center font-medium">{item?.quantity ?? ''}</td>
+                        <td className="border-r border-black py-2 px-2 text-left font-medium break-words leading-tight">
+                          {item?.name ?? ''}
                         </td>
-                        <td className="whitespace-nowrap border border-slate-300 p-3 text-right">
-                          {rupiah(item.estimatedPrice)}
+                        <td className="border-r border-black py-2 px-2 whitespace-nowrap">
+                          {item ? (
+                            <div className="flex justify-between items-center w-full">
+                              <span>Rp</span>
+                              <span className="font-mono">{formatRupiahNumber(item.subtotal || (Number(item.estimatedPrice) * Number(item.quantity)))}</span>
+                            </div>
+                          ) : null}
                         </td>
-                        <td className="whitespace-nowrap border border-slate-300 p-3 text-right font-bold text-slate-900">
-                          {rupiah(item.subtotal)}
-                        </td>
-                        <td className="max-w-64 whitespace-pre-wrap break-words border border-slate-300 p-3 text-slate-500">
-                          {item.notes || '—'}
+                        <td className="border-r border-black py-2 px-2 text-right"></td>
+                        <td className="py-2 px-2 text-left text-slate-800 break-words leading-tight">
+                          {item?.notes || ''}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="mx-4 mt-4 overflow-x-auto sm:mx-6">
-                <GoodsDocumentSignatures requesterName={request.requesterName} />
-              </div>
 
-              {/* Price Evidence Gallery */}
-              <div aria-label="Lampiran bukti harga" className="p-4 sm:p-6 space-y-4">
-                <h3 className="text-sm font-bold text-slate-900">
+              {/* Signatures Table */}
+              <div className="overflow-x-auto">
+                <GoodsDocumentSignatures requesterName={request.requesterName} approverName="Jef Budiharto" />
+              </div>
+            </article>
+
+            {/* Price Evidence Gallery */}
+            {allAttachments.length > 0 && (
+              <div aria-label="Lampiran bukti harga" className="ga-request-evidence-container mt-4 print:mt-3">
+                <h3 className="no-print text-sm font-bold text-slate-900 mb-2">
                   Lampiran Bukti Harga per Barang
                 </h3>
-                {imageLoading && <p role="status" className="text-xs text-slate-500">Memuat bukti gambar...</p>}
+                {imageLoading && <p role="status" className="no-print text-xs text-slate-500">Memuat bukti gambar...</p>}
                 {imageError && (
-                  <div role="alert" className="text-xs text-rose-700 bg-rose-50 p-3 rounded-lg">
+                  <div role="alert" className="no-print text-xs text-rose-700 bg-rose-50 p-3 rounded-lg mb-2">
                     <p>{imageError}</p>
                     <button onClick={reload} className="mt-1 underline">Muat kembali</button>
                   </div>
                 )}
-                {(request.items || []).map(item => (
-                  <section key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                    <h4 className="text-xs font-semibold text-slate-800">
-                      Item {item.position}: {item.name}
-                    </h4>
-                    <div className="mt-2 flex flex-wrap gap-4">
-                      {(item.attachments || []).map((file, idx) =>
-                        images[file.id] ? (
-                          <a
-                            key={file.id}
-                            href={images[file.id]}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label={`Buka bukti harga item ${item.position}, gambar ${idx + 1}`}
-                            className="group block rounded-xl border border-slate-200 p-1.5 hover:border-emerald-500"
-                          >
-                            <img
-                              src={images[file.id]}
-                              alt={`Bukti harga ${item.name}`}
-                              className="h-28 w-40 object-cover rounded-lg"
-                            />
-                            <span className="mt-1 block text-[11px] text-emerald-700 group-hover:underline">
-                              Buka ukuran penuh ({Math.ceil(file.size / 1024)} KB)
-                            </span>
-                          </a>
-                        ) : null
-                      )}
-                    </div>
-                  </section>
-                ))}
+                <div className="ga-request-evidence-list space-y-4 print:space-y-3">
+                  {allAttachments.map((att) =>
+                    images[att.id] ? (
+                      <div key={att.id} className="ga-evidence-item flex flex-col items-center justify-center">
+                        <img
+                          src={images[att.id]}
+                          alt={`Bukti harga ${att.itemName}`}
+                          className="ga-evidence-img max-h-[140mm] w-auto max-w-full object-contain print:max-h-[135mm]"
+                        />
+                        <span className="no-print mt-1 text-[11px] text-slate-500">
+                          Item {att.itemPosition}: {att.itemName} ({Math.ceil(att.size / 1024)} KB)
+                        </span>
+                      </div>
+                    ) : null
+                  )}
+                </div>
               </div>
-            </article>
-
+            )}
           </div>
         )}
 

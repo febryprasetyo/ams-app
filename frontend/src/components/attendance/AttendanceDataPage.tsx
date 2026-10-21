@@ -51,7 +51,7 @@ export default function AttendanceDataPage() {
   const lookup = new Map(records.map(r => [r.employeeId, r]));
 
   const metrics: { key: string; label: string; test: (r: AttendanceRecord) => boolean }[] = [
-    { key: 'ontime', label: 'Tepat waktu', test: r => !r.isDayOff && r.attendanceStatus === 'PRESENT' && r.lateMinutes === 0 },
+    { key: 'ontime', label: 'Tepat waktu', test: r => !r.isDayOff && ['PRESENT', 'DINAS_LUAR'].includes(r.attendanceStatus) && r.lateMinutes === 0 },
     { key: 'late', label: 'Terlambat', test: r => !r.isDayOff && r.lateMinutes > 0 },
     { key: 'early', label: 'Pulang awal', test: r => !r.isDayOff && r.earlyMinutes > 0 },
     { key: 'noout', label: 'Scan pulang kosong', test: r => !r.isDayOff && r.attendanceStatus === 'PRESENT' && !r.rawScanOut },
@@ -59,6 +59,7 @@ export default function AttendanceDataPage() {
     { key: 'normalized', label: 'Dinormalisasi', test: r => r.normalized },
     { key: 'absent', label: 'Tidak hadir', test: r => !r.isDayOff && r.attendanceStatus === 'ALPHA' },
     { key: 'off', label: 'Libur', test: r => r.isDayOff },
+    { key: 'field-duty', label: 'Dinas Luar', test: r => r.attendanceStatus === 'DINAS_LUAR' },
     { key: 'leave', label: 'Izin / sakit / cuti', test: r => ['IZIN', 'SAKIT', 'CUTI'].includes(r.attendanceStatus) },
   ];
 

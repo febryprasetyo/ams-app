@@ -157,3 +157,13 @@ test('personal export uses calendar rows even when there are no raw attendance r
   assert.equal(rows[0]['Status'], 'BELUM ADA CATATAN');
   assert.equal(rows[1]['Status'], 'DAYOFF');
 });
+
+test('daily export labels dinas luar in Indonesian', () => {
+  const wb = createAttendanceReportWorkbook(dummyRows, dummyFilter, { dailyRecords: [{
+    workDate: '2026-09-22', attendanceStatus: 'DINAS_LUAR', isDayOff: false,
+    scheduleIn: '08:00', scheduleOut: '17:00', scanIn: '08:00', scanOut: '17:00',
+    lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0,
+  }] });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets['Rincian Harian']);
+  assert.equal(rows[0].Status, 'DINAS LUAR');
+});

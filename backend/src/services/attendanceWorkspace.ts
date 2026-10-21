@@ -34,6 +34,27 @@ import type {
   AttendanceLock,
 } from "../domain/attendanceTypes";
 import type { ServerAttendanceCommand } from "../domain/attendanceCommands";
+import { getWorkingScheduleForDate, resolveEmployeeShift } from "../domain/attendanceSchedule";
+
+async function fieldDutyValues(tx: AuditTx, employeeId: number, workDate: string, shiftId?: number) {
+  const [employee] = await tx.select().from(employees).where(eq(employees.id, employeeId));
+  if (!employee) throw new ValidationError("Karyawan tidak ditemukan");
+  const shifts = await tx.select().from(attendanceShifts);
+  const assignments = await tx.select().from(attendanceShiftAssignments);
+  const shift = shifts.find(s => s.id === shiftId && s.isActive)
+    ?? resolveEmployeeShift(employee, shifts as WorkShift[], assignments);
+  const schedule = getWorkingScheduleForDate(workDate, shift as WorkShift);
+  return {
+    shift: shift.name,
+    ...schedule,
+    scanIn: schedule.scheduleIn,
+    scanOut: schedule.scheduleOut,
+    isDayOff: false,
+    lateMinutes: 0,
+    earlyMinutes: 0,
+    overtimeMinutes: 0,
+  };
+}
 
 export class ConflictError extends Error {
   statusCode: number;
@@ -355,7 +376,9 @@ export async function executeAttendanceCommand(
         updatedAt: new Date(),
       };
 
-      if (command.values.attendanceStatus !== "PRESENT") {
+      if (command.values.attendanceStatus === "DINAS_LUAR") {
+        Object.assign(updatedValues, await fieldDutyValues(tx, existing.employeeId, existing.workDate));
+      } else if (command.values.attendanceStatus !== "PRESENT") {
         updatedValues.scanIn = null;
         updatedValues.scanOut = null;
         updatedValues.lateMinutes = 0;
@@ -1041,6 +1064,9 @@ export async function executeAttendanceCommand(
           )
         );
 
+      const dutyValues = command.attendanceStatus === "DINAS_LUAR"
+        ? await fieldDutyValues(tx, command.employeeId, command.workDate, command.shiftId)
+        : {};
       let recordId: number;
       if (existing) {
         const [updated] = await tx
@@ -1050,6 +1076,7 @@ export async function executeAttendanceCommand(
             scanIn: command.scanIn,
             scanOut: command.scanOut,
             isDayOff: command.isDayOff ?? existing.isDayOff,
+            ...dutyValues,
             revision: existing.revision + 1,
             updatedAt: new Date(),
           })
@@ -1066,6 +1093,7 @@ export async function executeAttendanceCommand(
             scanIn: command.scanIn,
             scanOut: command.scanOut,
             isDayOff: command.isDayOff ?? false,
+            ...dutyValues,
             revision: 1,
           })
           .returning();

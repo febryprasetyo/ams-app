@@ -143,6 +143,20 @@ export function getScheduleForDate(dateStr: string, shift: WorkShift): {
   };
 }
 
+export function getWorkingScheduleForDate(dateStr: string, shift: WorkShift): {
+  scheduleIn: string;
+  scheduleOut: string;
+} {
+  const schedule = getScheduleForDate(dateStr, shift);
+  if (!schedule.isDayOff) {
+    return { scheduleIn: schedule.scheduleIn, scheduleOut: schedule.scheduleOut };
+  }
+  return {
+    scheduleIn: shift.scheduleIn || '08:00',
+    scheduleOut: shift.scheduleOut || '17:00',
+  };
+}
+
 export interface CalendarDayRow {
   date: string;
   dayName: string;

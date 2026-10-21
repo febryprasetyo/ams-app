@@ -6,6 +6,7 @@ import {
   resolveEmployeeShift,
   isWorkDayForShift,
   getScheduleForDate,
+  getWorkingScheduleForDate,
   generateFullCalendarGrid,
 } from './scheduleShift.ts';
 
@@ -137,6 +138,13 @@ test('getScheduleForDate returns 08:00-14:00 for Saturday on 6-day shift', () =>
   assert.equal(sunSchedule.scheduleIn, '00:00');
   assert.equal(sunSchedule.scheduleOut, '00:00');
   assert.equal(sunSchedule.isDayOff, true);
+});
+
+test('getWorkingScheduleForDate uses base shift hours for dinas luar on a normal day off', () => {
+  assert.deepEqual(getWorkingScheduleForDate('2026-08-23', DEFAULT_OFFICE_SHIFT), {
+    scheduleIn: '08:00',
+    scheduleOut: '17:00',
+  });
 });
 
 test('generateFullCalendarGrid builds all 31 dates matching Talenta sample', () => {

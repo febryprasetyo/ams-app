@@ -1,5 +1,5 @@
 import type { AttendanceCommand, AttendanceDataset, AttendanceRecord, ImportBatch, ImportRow } from './types';
-import { DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT, resolveEmployeeShift, getScheduleForDate } from './scheduleShift.ts';
+import { DEFAULT_OFFICE_SHIFT, DEFAULT_PRODUCTION_SHIFT, resolveEmployeeShift, getScheduleForDate, getWorkingScheduleForDate } from './scheduleShift.ts';
 
 const nextId = (rows: { id: number }[]) => Math.max(0, ...rows.map(r => r.id)) + 1;
 function requireReason(reason: string) { if (!reason.trim()) throw new Error('Alasan wajib diisi.'); }
@@ -68,7 +68,25 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
       for (const time of [command.values.scanIn, command.values.scanOut]) if (time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Jam harus dalam format HH:mm.');
       const before = structuredClone(r);
       Object.assign(r, command.values, { revision: r.revision + 1 });
-      if (r.attendanceStatus !== 'PRESENT') Object.assign(r, { scanIn: null, scanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0 });
+      if (r.attendanceStatus === 'DINAS_LUAR') {
+        const employee = data.employees.find(employee => employee.id === r.employeeId);
+        if (!employee) throw new Error('Karyawan tidak ditemukan.');
+        const shift = resolveEmployeeShift(employee, data.shifts, data.shiftAssignments);
+        const schedule = getWorkingScheduleForDate(r.workDate, shift);
+        Object.assign(r, {
+          shift: shift.name,
+          scheduleIn: schedule.scheduleIn,
+          scheduleOut: schedule.scheduleOut,
+          scanIn: schedule.scheduleIn,
+          scanOut: schedule.scheduleOut,
+          lateMinutes: 0,
+          earlyMinutes: 0,
+          overtimeMinutes: 0,
+          isDayOff: false,
+        });
+      } else if (r.attendanceStatus !== 'PRESENT') {
+        Object.assign(r, { scanIn: null, scanOut: null, lateMinutes: 0, earlyMinutes: 0, overtimeMinutes: 0 });
+      }
       data.revisions.push({ id: nextId(data.revisions), recordId: r.id, reason: reasonText, createdAt: now, actor: data.meta.actor, before, after: structuredClone(r) });
       action = 'Koreksi absensi'; detail = `${r.workDate} · ${reasonText}`; break;
     }
@@ -314,26 +332,29 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         : resolveEmployeeShift(emp, data.shifts, data.shiftAssignments);
 
       const schedule = getScheduleForDate(command.workDate, activeShift);
+      const workSchedule = getWorkingScheduleForDate(command.workDate, activeShift);
       const existing = data.records.find(rec => rec.employeeId === command.employeeId && rec.workDate === command.workDate);
-      const isDayOff = command.isDayOff ?? existing?.isDayOff ?? schedule.isDayOff;
-      const isNonPresent = command.attendanceStatus !== 'PRESENT';
-      const scanIn = isNonPresent ? null : (command.scanIn || null);
-      const scanOut = isNonPresent ? null : (command.scanOut || null);
+      const isFieldDuty = command.attendanceStatus === 'DINAS_LUAR';
+      const isDayOff = isFieldDuty ? false : (command.isDayOff ?? existing?.isDayOff ?? schedule.isDayOff);
+      const isNonPresent = command.attendanceStatus !== 'PRESENT' && !isFieldDuty;
+      const scanIn = isFieldDuty ? workSchedule.scheduleIn : (isNonPresent ? null : (command.scanIn || null));
+      const scanOut = isFieldDuty ? workSchedule.scheduleOut : (isNonPresent ? null : (command.scanOut || null));
+      const effectiveSchedule = isFieldDuty ? workSchedule : schedule;
 
       let lateMinutes = 0;
       let earlyMinutes = 0;
       let overtimeMinutes = 0;
 
-      if (!isDayOff && !isNonPresent && scanIn && schedule.scheduleIn) {
+      if (!isDayOff && !isNonPresent && !isFieldDuty && scanIn && effectiveSchedule.scheduleIn) {
         const [inH, inM] = scanIn.split(':').map(Number);
-        const [schedH, schedM] = schedule.scheduleIn.split(':').map(Number);
+        const [schedH, schedM] = effectiveSchedule.scheduleIn.split(':').map(Number);
         const diff = (inH * 60 + inM) - (schedH * 60 + schedM);
         if (diff > 0) lateMinutes = diff;
       }
 
-      if (!isDayOff && !isNonPresent && scanOut && schedule.scheduleOut) {
+      if (!isDayOff && !isNonPresent && !isFieldDuty && scanOut && effectiveSchedule.scheduleOut) {
         const [outH, outM] = scanOut.split(':').map(Number);
-        const [schedH, schedM] = schedule.scheduleOut.split(':').map(Number);
+        const [schedH, schedM] = effectiveSchedule.scheduleOut.split(':').map(Number);
         const diff = (schedH * 60 + schedM) - (outH * 60 + outM);
         if (diff > 0) earlyMinutes = diff;
         else if (diff < 0) overtimeMinutes = -diff;
@@ -347,14 +368,14 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
         r.attendanceStatus = command.attendanceStatus;
         r.scanIn = scanIn;
         r.scanOut = scanOut;
-        if (r.scanIn !== before.scanIn) r.rawScanIn = scanIn;
-        if (r.scanOut !== before.scanOut) r.rawScanOut = scanOut;
+        if (!isFieldDuty && r.scanIn !== before.scanIn) r.rawScanIn = scanIn;
+        if (!isFieldDuty && r.scanOut !== before.scanOut) r.rawScanOut = scanOut;
         r.lateMinutes = lateMinutes;
         r.earlyMinutes = earlyMinutes;
         r.overtimeMinutes = overtimeMinutes;
         r.shift = activeShift.name;
-        r.scheduleIn = schedule.scheduleIn;
-        r.scheduleOut = schedule.scheduleOut;
+        r.scheduleIn = effectiveSchedule.scheduleIn;
+        r.scheduleOut = effectiveSchedule.scheduleOut;
         r.isDayOff = isDayOff;
         r.revision = r.revision + 1;
         data.revisions.push({
@@ -372,12 +393,12 @@ export function applyCommand(input: AttendanceDataset, command: AttendanceComman
           employeeId: command.employeeId,
           workDate: command.workDate,
           shift: activeShift.name,
-          scheduleIn: schedule.scheduleIn,
-          scheduleOut: schedule.scheduleOut,
+          scheduleIn: effectiveSchedule.scheduleIn,
+          scheduleOut: effectiveSchedule.scheduleOut,
           scanIn,
           scanOut,
-          rawScanIn: scanIn,
-          rawScanOut: scanOut,
+          rawScanIn: isFieldDuty ? null : scanIn,
+          rawScanOut: isFieldDuty ? null : scanOut,
           lateMinutes,
           earlyMinutes,
           overtimeMinutes,

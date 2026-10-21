@@ -20,7 +20,8 @@ export interface ShiftAssignment {
   employeeId?: number | null;
 }
 export type AttendanceRole = 'HR_ADMIN' | 'HR_STAFF' | 'REPORT_VIEWER';
-export type AttendanceStatus = 'PRESENT' | 'IZIN' | 'SAKIT' | 'CUTI' | 'ALPHA' | 'UNSPECIFIED';
+export type AttendanceStatus = 'PRESENT' | 'DINAS_LUAR' | 'IZIN' | 'SAKIT' | 'CUTI' | 'ALPHA' | 'UNSPECIFIED';
+export type AttendanceDayType = 'WORK_DAY' | 'DAY_OFF' | 'DINAS_LUAR';
 export type ReviewStatus = 'READY' | 'NEEDS_REVIEW' | 'BLOCKED' | 'SKIPPED';
 export interface MasterItem { id: number; code: string; name: string; isActive: boolean }
 export interface Employee {

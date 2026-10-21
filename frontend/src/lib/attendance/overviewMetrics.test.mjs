@@ -57,6 +57,18 @@ test('calculateOverviewMetrics accurately computes real active workforce numbers
   assert.equal(metrics.leaveCount, 1, 'Ahmad is on CUTI');
 });
 
+test('dinas luar counts as present and on time', () => {
+  const data = createFixture();
+  data.records = [{ ...data.records[0], attendanceStatus: 'DINAS_LUAR', scanIn: '08:00', scanOut: '17:00', rawScanIn: null, rawScanOut: null, lateMinutes: 20, earlyMinutes: 20, overtimeMinutes: 20, normalized: true, isDayOff: false }];
+  const result = calculateOverviewMetrics(data, data.records[0].workDate);
+  assert.equal(result.presentCount, 1);
+  assert.equal(result.onTimeCount, 1);
+  assert.equal(result.lateCount, 0);
+  assert.equal(result.earlyCount, 0);
+  assert.equal(result.overtimeCount, 0);
+  assert.equal(result.missingScanCount, 0);
+});
+
 test('getActionablePriorities returns priority items for late and missing punch', () => {
   const data = createFixture();
   const priorities = getActionablePriorities(data, '2026-10-01', 5);

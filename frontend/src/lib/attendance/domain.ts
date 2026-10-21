@@ -1,6 +1,6 @@
 import type { AttendanceDataset, AttendanceRecord, EmployeeReport, ImportRow, RecordFilter } from './types';
 
-export const statusLabels = { PRESENT: 'Hadir', IZIN: 'Izin', SAKIT: 'Sakit', CUTI: 'Cuti', ALPHA: 'Tidak hadir', UNSPECIFIED: 'Belum ditentukan' };
+export const statusLabels = { PRESENT: 'Hadir', DINAS_LUAR: 'Dinas Luar', IZIN: 'Izin', SAKIT: 'Sakit', CUTI: 'Cuti', ALPHA: 'Tidak hadir', UNSPECIFIED: 'Belum ditentukan' };
 export const roleLabels = { HR_ADMIN: 'HR Admin', HR_STAFF: 'HR Staff', REPORT_VIEWER: 'Pembaca Laporan' };
 export function durationLabel(minutes: number): string {
   return minutes < 60 ? `${minutes} menit` : `${Math.floor(minutes / 60)} jam ${minutes % 60} menit`;

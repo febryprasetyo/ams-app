@@ -12,6 +12,8 @@ export const attendanceStatusSchema = z.enum([
   "UNSPECIFIED",
 ]);
 
+const manualAttendanceStatusSchema = z.enum([...attendanceStatusSchema.options, "DINAS_LUAR"]);
+
 export const reviewStatusSchema = z.enum([
   "READY",
   "NEEDS_REVIEW",
@@ -55,7 +57,7 @@ const correctCommandSchema = z.object({
     scanOut: timeFormatSchema,
     lateMinutes: z.coerce.number().int().nonnegative().optional().default(0),
     overtimeMinutes: z.coerce.number().int().nonnegative().optional().default(0),
-    attendanceStatus: attendanceStatusSchema,
+    attendanceStatus: manualAttendanceStatusSchema,
     isDayOff: z.boolean().optional(),
   }),
   reason: reasonSchema,
@@ -155,7 +157,7 @@ const recordAttendanceCommandSchema = z.object({
   type: z.literal("record_attendance"),
   employeeId: z.coerce.number().int().positive(),
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
-  attendanceStatus: attendanceStatusSchema,
+  attendanceStatus: manualAttendanceStatusSchema,
   shiftId: z.coerce.number().int().positive().optional(),
   isDayOff: z.boolean().optional(),
   scanIn: timeFormatSchema,

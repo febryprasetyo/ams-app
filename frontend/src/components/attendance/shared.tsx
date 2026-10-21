@@ -40,7 +40,7 @@ export function SearchInput({ value, onChange, placeholder = 'Cari nama atau ID 
 }
 
 export function Status({ status, dayOff = false }: { status: AttendanceStatus; dayOff?: boolean }) {
-  const color = dayOff ? 'bg-slate-100 text-slate-600' : status === 'PRESENT' ? 'bg-emerald-50 text-emerald-800' : status === 'ALPHA' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-900';
+  const color = dayOff ? 'bg-slate-100 text-slate-600' : status === 'PRESENT' || status === 'DINAS_LUAR' ? 'bg-emerald-50 text-emerald-800' : status === 'ALPHA' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-900';
   return <span className={`inline-flex rounded-md px-2.5 py-1 text-[11px] font-medium ${color}`}>{dayOff ? 'Libur' : statusLabels[status]}</span>;
 }
 

@@ -6,6 +6,25 @@ import {
   COMMAND_PERMISSIONS_MAP,
 } from "../domain/attendanceCommandInput";
 
+test("record and correction commands accept Dinas Luar without client-supplied schedules", () => {
+  for (const command of [
+    { type: "record_attendance", employeeId: 1, workDate: "2026-10-18", attendanceStatus: "DINAS_LUAR" },
+    { type: "correct", recordId: 1, expectedRevision: 1, values: { attendanceStatus: "DINAS_LUAR" } },
+  ]) {
+    const parsed = postAttendanceCommandBodySchema.safeParse({ operationId: "11111111-1111-1111-1111-111111111111", command });
+    assert.ok(parsed.success, JSON.stringify(parsed.error));
+    assert.equal(parsed.data.command.type, command.type);
+  }
+});
+
+test("import review rejects Dinas Luar until shift normalization is supported for imports", () => {
+  const result = postAttendanceCommandBodySchema.safeParse({
+    operationId: "11111111-1111-1111-1111-111111111111",
+    command: { type: "review", batchId: 1, rowId: 1, skipped: false, reason: "Review", attendanceStatus: "DINAS_LUAR" },
+  });
+  assert.equal(result.success, false);
+});
+
 test("attendance routes register /workspace and /commands", () => {
   const routes = (router.stack as any[])
     .filter((layer) => layer.route)

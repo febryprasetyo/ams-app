@@ -25,6 +25,14 @@ export const DEFAULT_PRODUCTION_SHIFT: WorkShift = {
   isActive: true,
 };
 
+export function getWorkingScheduleForDate(workDate: string, shift: WorkShift) {
+  const saturday = new Date(`${workDate}T12:00:00Z`).getUTCDay() === 6 && shift.workDays === 6;
+  return {
+    scheduleIn: saturday ? shift.saturdayScheduleIn || shift.scheduleIn : shift.scheduleIn,
+    scheduleOut: saturday ? shift.saturdayScheduleOut || '14:00' : shift.scheduleOut,
+  };
+}
+
 export function resolveEmployeeShift(
   employee: { id?: number; departmentId?: number | null; fullName?: string },
   shifts?: WorkShift[] | null,

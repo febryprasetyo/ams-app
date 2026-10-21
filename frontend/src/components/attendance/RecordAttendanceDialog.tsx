@@ -4,7 +4,7 @@ import { useState } from 'react';
 import ModalShell from '@/components/ui/ModalShell';
 import { useAttendance } from './AttendanceWorkspace';
 import { dateLabel } from '@/lib/attendance/domain';
-import type { AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
+import type { AttendanceDayType, AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
 import { getScheduleForDate, resolveEmployeeShift, type WorkShift } from '@/lib/attendance/scheduleShift';
 
 interface RecordAttendanceDialogProps {
@@ -25,10 +25,11 @@ export function RecordAttendanceDialog({
   const { data, execute } = useAttendance();
   const shift = propShift || resolveEmployeeShift(employee, data.shifts || [], data.shiftAssignments || []);
 
-  const [status, setStatus] = useState<AttendanceStatus>(existingRecord?.attendanceStatus || 'SAKIT');
+  const [status, setStatus] = useState<AttendanceStatus>(existingRecord?.attendanceStatus === 'DINAS_LUAR' ? 'PRESENT' : (existingRecord?.attendanceStatus || 'SAKIT'));
   const [scanIn, setScanIn] = useState(existingRecord ? (existingRecord.scanIn ?? '') : (shift.scheduleIn || '08:00'));
   const [scanOut, setScanOut] = useState(existingRecord ? (existingRecord.scanOut ?? '') : (shift.scheduleOut || '17:00'));
-  const [isDayOff, setIsDayOff] = useState(existingRecord?.isDayOff ?? getScheduleForDate(date, shift).isDayOff);
+  const scheduledDayOff = existingRecord?.isDayOff ?? getScheduleForDate(date, shift).isDayOff;
+  const [dayType, setDayType] = useState<AttendanceDayType>(existingRecord?.attendanceStatus === 'DINAS_LUAR' ? 'DINAS_LUAR' : scheduledDayOff ? 'DAY_OFF' : 'WORK_DAY');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -43,11 +44,11 @@ export function RecordAttendanceDialog({
         type: 'record_attendance',
         employeeId: employee.id,
         workDate: date,
-        attendanceStatus: status,
+        attendanceStatus: dayType === 'DINAS_LUAR' ? 'DINAS_LUAR' : status,
         shiftId: shift.id,
-        isDayOff,
-        scanIn: status === 'PRESENT' ? scanIn : null,
-        scanOut: status === 'PRESENT' ? scanOut : null,
+        isDayOff: dayType === 'DAY_OFF',
+        scanIn: dayType !== 'DINAS_LUAR' && status === 'PRESENT' ? scanIn : null,
+        scanOut: dayType !== 'DINAS_LUAR' && status === 'PRESENT' ? scanOut : null,
         reason: reason.trim() || undefined, // Catatan/alasan bersifat opsional
       });
       onClose();
@@ -60,6 +61,7 @@ export function RecordAttendanceDialog({
   return (
     <ModalShell
       isOpen
+      isLoading={submitting}
       onClose={onClose}
       title={existingRecord ? 'Koreksi Catatan Absensi' : 'Catat Kehadiran / Izin Karyawan'}
       subtitle={`${employee.fullName} (${employee.employeeCode || '-'}) · ${dateLabel(date)}`}
@@ -82,7 +84,7 @@ export function RecordAttendanceDialog({
           </div>
         )}
 
-        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-slate-700">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-wrap gap-2 items-center justify-between text-slate-700">
           <div>
             <span className="text-[11px] text-slate-500 block">Jadwal Shift yang Berlaku</span>
             <span className="font-bold text-slate-900">{shift.name}</span>
@@ -93,15 +95,16 @@ export function RecordAttendanceDialog({
         </div>
 
         <label className="space-y-1 block">
-          <span className="font-semibold text-slate-700">Jadwal hari ini</span>
-          <select className="hr-input w-full" value={String(isDayOff)} onChange={e => setIsDayOff(e.target.value === 'true')}>
-            <option value="false">Hari kerja</option>
-            <option value="true">Dayoff / Libur</option>
+          <span className="font-semibold text-slate-700">Kategori hari</span>
+          <select className="hr-input w-full" value={dayType} onChange={e => setDayType(e.target.value as AttendanceDayType)}>
+            <option value="WORK_DAY">Hari kerja</option>
+            <option value="DAY_OFF">Dayoff / Libur</option>
+            <option value="DINAS_LUAR">Dinas Luar</option>
           </select>
-          <span className="text-slate-500">Dayoff tetap menyimpan scan kehadiran dan tidak dihitung terlambat atau pulang awal.</span>
+          <span className="text-slate-600">Dinas Luar mengisi scan efektif sesuai jadwal shift; keterlambatan, pulang awal, dan lembur menjadi nol.</span>
         </label>
 
-        <div className="space-y-1.5">
+        {dayType !== 'DINAS_LUAR' && <div className="space-y-1.5">
           <label className="font-semibold text-slate-800 block text-xs">Status Kehadiran</label>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
@@ -129,9 +132,16 @@ export function RecordAttendanceDialog({
               );
             })}
           </div>
-        </div>
+        </div>}
 
-        {status === 'PRESENT' && (
+        {dayType === 'DINAS_LUAR' && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900">
+            <span className="font-semibold">Scan efektif Dinas Luar</span>
+            <p className="mt-1">Jam masuk dan pulang akan mengikuti jadwal shift karyawan.</p>
+          </div>
+        )}
+
+        {dayType !== 'DINAS_LUAR' && status === 'PRESENT' && (
           <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
             <span className="font-bold text-emerald-900 block text-xs">
               Waktu Scan Hadir Manual

@@ -26,3 +26,26 @@ test('normalizeAttendanceRecordPayload rejects missing employeeId or invalid dat
     normalizeAttendanceRecordPayload({ employeeId: 10, workDate: 'invalid-date' });
   }, /Invalid workDate format/);
 });
+
+test('normalizeAttendanceRecordPayload enforces schedule scans for dinas luar', () => {
+  const result = normalizeAttendanceRecordPayload({
+    employeeId: 10,
+    workDate: '2026-09-22',
+    scheduleIn: '07:30',
+    scheduleOut: '16:30',
+    scanIn: '09:00',
+    scanOut: '15:00',
+    lateMinutes: 90,
+    earlyMinutes: 90,
+    overtimeMinutes: 30,
+    attendanceStatus: 'DINAS_LUAR',
+    isDayOff: true,
+  });
+
+  assert.equal(result.scanIn, '07:30');
+  assert.equal(result.scanOut, '16:30');
+  assert.equal(result.lateMinutes, 0);
+  assert.equal(result.earlyMinutes, 0);
+  assert.equal(result.overtimeMinutes, 0);
+  assert.equal(result.isDayOff, false);
+});

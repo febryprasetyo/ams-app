@@ -98,6 +98,35 @@ test('formatTalentaRow correctly formats normal work day and dayoff rows', () =>
   assert.equal(formattedSick.timeOffCode, 'S');
 });
 
+test('formatTalentaRow displays dinas luar as a worked day with DL code', () => {
+  const formatted = formatTalentaRow({
+    date: '2026-09-23',
+    dayName: 'Rabu',
+    dayOfWeek: 3,
+    isDayOff: false,
+    shiftName: 'Office',
+    scheduleIn: '08:00',
+    scheduleOut: '17:00',
+    record: {
+      id: 201,
+      employeeId: 1,
+      workDate: '2026-09-23',
+      scanIn: '08:00',
+      scanOut: '17:00',
+      lateMinutes: 20,
+      earlyMinutes: 0,
+      overtimeMinutes: 20,
+      attendanceStatus: 'DINAS_LUAR',
+      revision: 1,
+    },
+  });
+  assert.equal(formatted.attendanceCode, 'DL');
+  assert.equal(formatted.clockIn, '08:00');
+  assert.equal(formatted.clockOut, '17:00');
+  assert.equal(formatted.late, '-');
+  assert.equal(formatted.overtime, '-');
+});
+
 test('calculateTalentaKpi calculates accurate 3-segment KPI stats', () => {
   const rows = [
     // Past dayoff (Sat, Sun) -> 2 days off

@@ -270,6 +270,49 @@ test("Attendance Workspace & Commands Integration Tests", async (t) => {
     assert.equal(resCorrect.data.revisions[0].recordId, rec.id);
   });
 
+  await t.test("Dinas Luar persists shift scans on days off and clears penalties on correction and overwrite", async () => {
+    const execute = (command: ServerAttendanceCommand) => db.transaction(tx =>
+      executeAttendanceCommand(tx, { ...context, operationId: randomUUID() }, command));
+    const shift = await adminDb.select().from(attendanceShifts);
+    const created = await execute({ type: "record_attendance", employeeId: emp.id, workDate: "2026-10-18", attendanceStatus: "DINAS_LUAR", shiftId: shift[0].id, isDayOff: true, scanIn: "11:00", scanOut: "12:00" });
+    const record = created.data.records.find(r => r.workDate === "2026-10-18")!;
+    assert.equal(record.scanIn, "08:30");
+    assert.equal(record.scanOut, "17:30");
+    assert.equal(record.scheduleIn, "08:30");
+    assert.equal(record.isDayOff, false);
+    assert.equal(record.rawScanIn, null);
+    assert.equal(record.rawScanOut, null);
+    assert.equal(record.lateMinutes, 0);
+    assert.ok(created.eventId);
+
+    const [existing] = await adminDb.insert(attendanceRecords).values({ employeeId: emp.id, workDate: "2026-10-19", attendanceStatus: "PRESENT", scanIn: "09:00", scanOut: "16:00", rawScanIn: "09:00", rawScanOut: "16:00", lateMinutes: 30, earlyMinutes: 90, overtimeMinutes: 60, revision: 1 }).returning();
+    const corrected = await execute({ type: "correct", recordId: existing.id, expectedRevision: 1, reason: "Kunjungan klien", values: { attendanceStatus: "DINAS_LUAR", isDayOff: true, scanIn: null, scanOut: null, lateMinutes: 99, overtimeMinutes: 99 } });
+    const result = corrected.data.records.find(r => r.id === existing.id)!;
+    assert.equal(result.scanIn, "08:30");
+    assert.equal(result.scanOut, "17:30");
+    assert.equal(result.rawScanIn, "09:00");
+    assert.equal(result.rawScanOut, "16:00");
+    assert.equal(result.isDayOff, false);
+    assert.equal(result.lateMinutes, 0);
+    assert.equal(result.earlyMinutes, 0);
+    assert.equal(result.overtimeMinutes, 0);
+    assert.equal(result.revision, 2);
+    assert.ok(corrected.data.revisions.some(r => r.recordId === existing.id));
+
+    await adminDb.update(attendanceRecords).set({ lateMinutes: 10, earlyMinutes: 20, overtimeMinutes: 30 }).where(eq(attendanceRecords.id, existing.id));
+    const overwritten = await execute({ type: "record_attendance", employeeId: emp.id, workDate: "2026-10-19", attendanceStatus: "DINAS_LUAR" });
+    const saved = overwritten.data.records.find(r => r.id === existing.id)!;
+    assert.equal(saved.rawScanIn, "09:00");
+    assert.equal(saved.lateMinutes, 0);
+    assert.equal(saved.earlyMinutes, 0);
+    assert.equal(saved.overtimeMinutes, 0);
+    assert.equal(saved.revision, 3);
+
+    await assert.rejects(() => execute({ type: "correct", recordId: existing.id, expectedRevision: 1, reason: "Stale", values: { attendanceStatus: "DINAS_LUAR", scanIn: null, scanOut: null, lateMinutes: 0, overtimeMinutes: 0 } }), /Data sudah berubah/);
+    await execute({ type: "lock", workDate: "2026-10-19", locked: true, reason: "Payroll" });
+    await assert.rejects(() => execute({ type: "record_attendance", employeeId: emp.id, workDate: "2026-10-19", attendanceStatus: "DINAS_LUAR" }), /dikunci/);
+  });
+
   await t.test("import draft, review row, stale batch revision, commit, and delete draft without losing audit", async () => {
     // 1. Import draft
     const resImport = await db.transaction(async (tx) => {

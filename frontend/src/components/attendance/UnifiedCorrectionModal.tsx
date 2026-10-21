@@ -4,7 +4,7 @@ import { useAttendance } from './AttendanceWorkspace';
 import { FormDialog } from './shared';
 import { getScheduleForDate, resolveEmployeeShift } from '@/lib/attendance/scheduleShift';
 import { dateLabel, statusLabels } from '@/lib/attendance/domain';
-import type { AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
+import type { AttendanceDayType, AttendanceRecord, AttendanceStatus, Employee } from '@/lib/attendance/types';
 
 interface UnifiedCorrectionModalProps {
   employee: Employee;
@@ -25,31 +25,34 @@ export function UnifiedCorrectionModal({
   const shift = data.shifts?.find(s => s.id === shiftId)
     ?? resolveEmployeeShift(employee, data.shifts || [], data.shiftAssignments || []);
   const isDayOff = existingRecord?.isDayOff ?? getScheduleForDate(date, shift).isDayOff;
+  const initialDayType: AttendanceDayType = existingRecord?.attendanceStatus === 'DINAS_LUAR'
+    ? 'DINAS_LUAR' : isDayOff ? 'DAY_OFF' : 'WORK_DAY';
 
   const isExisting = !!existingRecord;
 
   return (
     <FormDialog
       title="Koreksi absensi"
-      description={`${employee.fullName} · ${dateLabel(date)}. Dayoff tetap menyimpan scan kehadiran dan tidak dihitung terlambat atau pulang awal.`}
+      description={`${employee.fullName} · ${dateLabel(date)}. Dinas Luar otomatis memakai jam masuk dan pulang dari jadwal shift karyawan; durasi keterlambatan, pulang awal, dan lembur menjadi nol.`}
       onClose={onClose}
       fields={[
         {
-          name: 'isDayOff',
-          label: 'Jadwal hari ini',
+          name: 'dayType',
+          label: 'Kategori hari',
           type: 'select',
-          value: String(isDayOff),
+          value: initialDayType,
           options: [
-            { value: 'false', label: 'Hari kerja' },
-            { value: 'true', label: 'Dayoff / Libur' },
+            { value: 'WORK_DAY', label: 'Hari kerja' },
+            { value: 'DAY_OFF', label: 'Dayoff / Libur' },
+            { value: 'DINAS_LUAR', label: 'Dinas Luar' },
           ],
         },
         {
           name: 'attendanceStatus',
           label: 'Status kehadiran',
           type: 'select',
-          value: existingRecord?.attendanceStatus || 'PRESENT',
-          options: Object.entries(statusLabels).map(([value, label]) => ({ value, label })),
+          value: existingRecord?.attendanceStatus === 'DINAS_LUAR' ? 'PRESENT' : (existingRecord?.attendanceStatus || 'PRESENT'),
+          options: Object.entries(statusLabels).filter(([value]) => value !== 'DINAS_LUAR').map(([value, label]) => ({ value, label })),
         },
         {
           name: 'scanIn',
@@ -85,8 +88,9 @@ export function UnifiedCorrectionModal({
         },
       ]}
       onSubmit={async (form) => {
-        const dayOff = form.get('isDayOff') === 'true';
-        const status = String(form.get('attendanceStatus')) as AttendanceStatus;
+        const dayType = String(form.get('dayType')) as AttendanceDayType;
+        const dayOff = dayType === 'DAY_OFF';
+        const status = dayType === 'DINAS_LUAR' ? 'DINAS_LUAR' : String(form.get('attendanceStatus')) as AttendanceStatus;
         const cleanTime = (t: unknown) => {
           const s = String(t || '').trim();
           if (!s || s === '-') return null;

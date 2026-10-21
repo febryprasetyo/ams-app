@@ -49,7 +49,7 @@ export function calculateOverviewMetrics(
   );
 
   const presentRecords = records.filter(
-    r => r.attendanceStatus === 'PRESENT' && !r.isDayOff
+    r => ['PRESENT', 'DINAS_LUAR'].includes(r.attendanceStatus) && !r.isDayOff
   );
   const presentCount = presentRecords.length;
   const totalActiveEmployees = activeEmployees.length;
@@ -58,23 +58,23 @@ export function calculateOverviewMetrics(
     ? Math.round((presentCount / totalActiveEmployees) * 1000) / 10
     : 0;
 
-  const onTimeRecords = presentRecords.filter(r => (r.lateMinutes || 0) === 0);
+  const onTimeRecords = presentRecords.filter(r => r.attendanceStatus === 'DINAS_LUAR' || (r.lateMinutes || 0) === 0);
   const onTimeCount = onTimeRecords.length;
 
-  const lateRecords = records.filter(r => !r.isDayOff && (r.lateMinutes || 0) > 0);
+  const lateRecords = records.filter(r => !r.isDayOff && r.attendanceStatus !== 'DINAS_LUAR' && (r.lateMinutes || 0) > 0);
   const lateCount = lateRecords.length;
   const totalLateMinutes = lateRecords.reduce((sum, r) => sum + (r.lateMinutes || 0), 0);
 
-  const earlyRecords = records.filter(r => !r.isDayOff && (r.earlyMinutes || 0) > 0);
+  const earlyRecords = records.filter(r => !r.isDayOff && r.attendanceStatus !== 'DINAS_LUAR' && (r.earlyMinutes || 0) > 0);
   const earlyCount = earlyRecords.length;
   const totalEarlyMinutes = earlyRecords.reduce((sum, r) => sum + (r.earlyMinutes || 0), 0);
 
-  const overtimeRecords = records.filter(r => (r.overtimeMinutes || 0) > 0);
+  const overtimeRecords = records.filter(r => r.attendanceStatus !== 'DINAS_LUAR' && (r.overtimeMinutes || 0) > 0);
   const overtimeCount = overtimeRecords.length;
   const totalOvertimeMinutes = overtimeRecords.reduce((sum, r) => sum + (r.overtimeMinutes || 0), 0);
 
   const missingScanRecords = records.filter(
-    r => !r.isDayOff && (
+    r => !r.isDayOff && r.attendanceStatus !== 'DINAS_LUAR' && (
       (Boolean(r.scanIn) && !r.scanOut) ||
       (!r.scanIn && Boolean(r.scanOut)) ||
       (r.normalized && !r.rawScanIn)
@@ -126,7 +126,7 @@ export function getActionablePriorities(
 
   // 1. Keterlambatan (diurutkan dari durasi terlambat terbesar)
   const lateRecords = records
-    .filter(r => !r.isDayOff && (r.lateMinutes || 0) > 0)
+    .filter(r => !r.isDayOff && r.attendanceStatus !== 'DINAS_LUAR' && (r.lateMinutes || 0) > 0)
     .sort((a, b) => (b.lateMinutes || 0) - (a.lateMinutes || 0));
 
   for (const r of lateRecords) {
@@ -151,7 +151,7 @@ export function getActionablePriorities(
 
   // 2. Missing Scan (Scan Masuk ada tapi Scan Pulang belum ada)
   const missingScanRecords = records.filter(
-    r => !r.isDayOff && (
+    r => !r.isDayOff && r.attendanceStatus !== 'DINAS_LUAR' && (
       (Boolean(r.scanIn) && !r.scanOut) ||
       (r.normalized && !r.rawScanIn)
     )
@@ -201,7 +201,7 @@ export function getDepartmentPresenceSummary(
     let present = 0;
     for (const emp of deptEmployees) {
       const rec = recordMap.get(emp.id);
-      if (rec && rec.attendanceStatus === 'PRESENT' && !rec.isDayOff) {
+      if (rec && ['PRESENT', 'DINAS_LUAR'].includes(rec.attendanceStatus) && !rec.isDayOff) {
         present++;
       }
     }

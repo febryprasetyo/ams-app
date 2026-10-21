@@ -85,6 +85,8 @@ export function formatTalentaRow(row: CalendarDayRow): TalentaFormattedRow {
   if (r) {
     if (r.attendanceStatus === 'PRESENT') {
       attendanceCode = 'H';
+    } else if (r.attendanceStatus === 'DINAS_LUAR') {
+      attendanceCode = 'DL';
     } else if (r.attendanceStatus === 'SAKIT') {
       attendanceCode = 'S';
       timeOffCode = 'S';
@@ -109,8 +111,8 @@ export function formatTalentaRow(row: CalendarDayRow): TalentaFormattedRow {
     clockOut,
     attendanceCode,
     timeOffCode,
-    late: isDayOff ? '-' : formatOvertimeDuration(r?.lateMinutes),
-    overtime: formatOvertimeDuration(r?.overtimeMinutes),
+    late: isDayOff || r?.attendanceStatus === 'DINAS_LUAR' ? '-' : formatOvertimeDuration(r?.lateMinutes),
+    overtime: r?.attendanceStatus === 'DINAS_LUAR' ? '-' : formatOvertimeDuration(r?.overtimeMinutes),
     record: r,
   };
 }
@@ -162,6 +164,8 @@ export function calculateTalentaKpi(
         if (!r.scanIn && r.scanOut) {
           noClockIn++;
         }
+      } else if (r.attendanceStatus === 'DINAS_LUAR') {
+        // Dinas luar counts as a worked day without scan exceptions.
       } else if (['SAKIT', 'CUTI', 'IZIN'].includes(r.attendanceStatus)) {
         timeOff++;
       } else if (r.attendanceStatus === 'ALPHA') {

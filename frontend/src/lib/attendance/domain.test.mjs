@@ -378,3 +378,50 @@ test('marking one attendance day as dayoff reduces report attendance count', () 
   assert.equal(result.records.length, 2);
   assert.equal(result.records[0].scanIn, '08:00');
 });
+
+test('dinas luar correction uses employee schedule as effective scans and clears penalties', () => {
+  const data = fixture();
+  data.shifts = [{ id: 7, code: 'FIELD', name: 'Shift Lapangan', scheduleIn: '07:30', scheduleOut: '16:30', workDays: 5, isDefault: true, isActive: true }];
+  data.shiftAssignments = [];
+  data.records[0].lateMinutes = 75;
+  data.records[0].earlyMinutes = 30;
+  data.records[0].overtimeMinutes = 45;
+
+  const result = applyCommand(data, {
+    type: 'correct',
+    recordId: 1,
+    expectedRevision: 1,
+    reason: 'Dinas luar kantor',
+    values: { attendanceStatus: 'DINAS_LUAR', isDayOff: true, scanIn: null, scanOut: null, lateMinutes: 75, overtimeMinutes: 45 },
+  });
+
+  const record = result.records[0];
+  assert.equal(record.attendanceStatus, 'DINAS_LUAR');
+  assert.equal(record.isDayOff, false);
+  assert.equal(record.scheduleIn, '07:30');
+  assert.equal(record.scheduleOut, '16:30');
+  assert.equal(record.scanIn, '07:30');
+  assert.equal(record.scanOut, '16:30');
+  assert.equal(record.rawScanIn, '08:00');
+  assert.equal(record.rawScanOut, '17:00');
+  assert.equal(record.lateMinutes, 0);
+  assert.equal(record.earlyMinutes, 0);
+  assert.equal(record.overtimeMinutes, 0);
+  assert.equal(summarizeEmployees(result, range)[0].recordCount, 1);
+});
+
+test('new dinas luar on a scheduled day creates schedule-based effective scans without fake raw scans', () => {
+  const data = fixture();
+  data.shifts = [{ id: 8, code: 'OFFICE', name: 'Office', scheduleIn: '08:15', scheduleOut: '17:15', workDays: 5, isDefault: true, isActive: true }];
+  data.shiftAssignments = [];
+
+  const result = applyCommand(data, {
+    type: 'record_attendance', employeeId: 1, workDate: '2026-09-21', attendanceStatus: 'DINAS_LUAR', reason: 'Kunjungan klien',
+  });
+  const record = result.records.find(row => row.workDate === '2026-09-21');
+  assert.equal(record.scanIn, '08:15');
+  assert.equal(record.scanOut, '17:15');
+  assert.equal(record.rawScanIn, null);
+  assert.equal(record.rawScanOut, null);
+  assert.equal(record.isDayOff, false);
+});

@@ -32,7 +32,7 @@ export const attendanceRecords = pgTable('attendance_records', {
   lateMinutes: integer('late_minutes').default(0).notNull(),
   earlyMinutes: integer('early_minutes').default(0).notNull(),
   overtimeMinutes: integer('overtime_minutes').default(0).notNull(),
-  attendanceStatus: varchar('attendance_status', { length: 20 }).default('PRESENT').notNull(), // 'PRESENT' | 'IZIN' | 'SAKIT' | 'CUTI' | 'ALPHA'
+  attendanceStatus: varchar('attendance_status', { length: 20 }).default('PRESENT').notNull(), // 'PRESENT' | 'DINAS_LUAR' | 'IZIN' | 'SAKIT' | 'CUTI' | 'ALPHA'
   isDayOff: boolean('is_day_off').default(false).notNull(),
   normalized: boolean('normalized').default(false).notNull(),
   revision: integer('revision').default(1).notNull(),

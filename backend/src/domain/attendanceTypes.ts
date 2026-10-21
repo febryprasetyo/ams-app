@@ -2,6 +2,7 @@ export type AttendanceRole = 'HR_ADMIN' | 'HR_STAFF' | 'REPORT_VIEWER';
 
 export type AttendanceStatus =
   | 'PRESENT'
+  | 'DINAS_LUAR'
   | 'IZIN'
   | 'SAKIT'
   | 'CUTI'

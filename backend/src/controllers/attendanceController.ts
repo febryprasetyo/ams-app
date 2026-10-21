@@ -42,21 +42,29 @@ export function normalizeAttendanceRecordPayload(input: any): AttendanceRecordIn
     throw new Error('Invalid workDate format. Must be YYYY-MM-DD');
   }
 
+  const attendanceStatus = String(input.attendanceStatus || (input.scanIn ? 'PRESENT' : 'ALPHA')).toUpperCase();
+  const isFieldDuty = attendanceStatus === 'DINAS_LUAR';
+  const scheduleIn = input.scheduleIn ? String(input.scheduleIn) : null;
+  const scheduleOut = input.scheduleOut ? String(input.scheduleOut) : null;
+  if (isFieldDuty && (!scheduleIn || !scheduleOut)) {
+    throw new Error('Dinas luar requires scheduleIn and scheduleOut');
+  }
+
   return {
     employeeId,
     workDate,
     shift: input.shift ? String(input.shift) : null,
-    scheduleIn: input.scheduleIn ? String(input.scheduleIn) : null,
-    scheduleOut: input.scheduleOut ? String(input.scheduleOut) : null,
-    scanIn: input.scanIn ? String(input.scanIn) : null,
-    scanOut: input.scanOut ? String(input.scanOut) : null,
-    rawScanIn: input.rawScanIn ? String(input.rawScanIn) : input.scanIn ? String(input.scanIn) : null,
-    rawScanOut: input.rawScanOut ? String(input.rawScanOut) : input.scanOut ? String(input.scanOut) : null,
-    lateMinutes: Number(input.lateMinutes) || 0,
-    earlyMinutes: Number(input.earlyMinutes) || 0,
-    overtimeMinutes: Number(input.overtimeMinutes) || 0,
-    attendanceStatus: String(input.attendanceStatus || (input.scanIn ? 'PRESENT' : 'ALPHA')).toUpperCase(),
-    isDayOff: Boolean(input.isDayOff),
+    scheduleIn,
+    scheduleOut,
+    scanIn: isFieldDuty ? scheduleIn : (input.scanIn ? String(input.scanIn) : null),
+    scanOut: isFieldDuty ? scheduleOut : (input.scanOut ? String(input.scanOut) : null),
+    rawScanIn: input.rawScanIn !== undefined ? (input.rawScanIn ? String(input.rawScanIn) : null) : input.scanIn ? String(input.scanIn) : null,
+    rawScanOut: input.rawScanOut !== undefined ? (input.rawScanOut ? String(input.rawScanOut) : null) : input.scanOut ? String(input.scanOut) : null,
+    lateMinutes: isFieldDuty ? 0 : (Number(input.lateMinutes) || 0),
+    earlyMinutes: isFieldDuty ? 0 : (Number(input.earlyMinutes) || 0),
+    overtimeMinutes: isFieldDuty ? 0 : (Number(input.overtimeMinutes) || 0),
+    attendanceStatus,
+    isDayOff: isFieldDuty ? false : Boolean(input.isDayOff),
     normalized: Boolean(input.normalized),
   };
 }

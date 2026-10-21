@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Printer,
   CheckCircle2,
   Loader2,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -22,7 +25,8 @@ import {
   rupiah,
 } from '@/lib/goodsRequests';
 import StatusTransitionModal from './StatusTransitionModal';
-import { getStatusBadgeConfig, getStatusLabel } from '@/lib/ga/goodsRequestStatus';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
+import { getStatusBadgeConfig, getStatusLabel, isRequestEditable } from '@/lib/ga/goodsRequestStatus';
 import { GoodsDocumentHeading, GoodsDocumentSignatures } from './GoodsRequestDocument';
 import './goodsRequestPrint.css';
 
@@ -41,6 +45,39 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
   const [imageError, setImageError] = useState('');
   const [printError, setPrintError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoPrint = searchParams?.get('autoPrint') === 'true';
+  const autoPrintedRef = useRef(false);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const editable = request ? isRequestEditable(request.status) : false;
+
+  useEffect(() => {
+    if (autoPrint && request && !imageLoading && !imageError && !autoPrintedRef.current) {
+      autoPrintedRef.current = true;
+      const timer = setTimeout(() => {
+        void print();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint, request, imageLoading, imageError]);
+
+  async function handleDelete() {
+    if (!request || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`${GA_API_PATH}/${request.id}`);
+      router.push(GA_BASE_PATH);
+    } catch (err) {
+      setDeleteError((err as Error).message || 'Gagal menghapus pengajuan.');
+      setDeleting(false);
+    }
+  }
   const [retry, setRetry] = useState(0);
 
   const canManageStatus = hasPermission('ga:requests:update_status') || hasPermission('ga:requests:manage');
@@ -187,6 +224,25 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                       className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
                     >
                       <CheckCircle2 size={15} /> Perbarui Status
+                    </button>
+                  )}
+
+                  {editable && (
+                    <Link
+                      href={`${GA_BASE_PATH}/${request.id}/edit`}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-emerald-700 transition"
+                    >
+                      <Pencil size={14} /> Edit
+                    </Link>
+                  )}
+
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-xs hover:bg-rose-100 transition"
+                    >
+                      <Trash2 size={14} /> Hapus
                     </button>
                   )}
 
@@ -379,6 +435,27 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             requestId={request.id}
             currentStatus={request.status}
             onSuccess={reload}
+          />
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {request && (
+          <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => { if (!deleting) setIsDeleteModalOpen(false); }}
+            onConfirm={handleDelete}
+            title="Hapus Permintaan Barang?"
+            description="Pengajuan yang dihapus tidak dapat dipulihkan kembali. Seluruh data item dan bukti harga terkait akan dihapus secara permanen."
+            itemName={requestNumber(request)}
+            itemDetails={[
+              { label: 'Pemohon', value: capitalizeWords(request.requesterName) },
+              { label: 'Tanggal', value: formatFormDate(request.requestDate) },
+              { label: 'Status', value: getStatusLabel(request.status) },
+            ]}
+            confirmText="Hapus Pengajuan"
+            variant="danger"
+            isLoading={deleting}
+            error={deleteError}
           />
         )}
       </main>

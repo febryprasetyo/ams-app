@@ -100,3 +100,8 @@ export function getStatusSelectionClass(status: GoodsRequestStatus | 'all'): str
       return 'border-emerald-700 bg-emerald-50 ring-1 ring-inset ring-emerald-700';
   }
 }
+
+export function isRequestEditable(status?: string | null): boolean {
+  if (!status) return false;
+  return ['draft', 'ready_to_print', 'pending_signature'].includes(status);
+}

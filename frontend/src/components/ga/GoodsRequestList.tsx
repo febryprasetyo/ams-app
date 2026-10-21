@@ -8,6 +8,8 @@ import {
   Loader2,
   FileText,
   Search,
+  Pencil,
+  Trash2,
   RefreshCw,
   Clock,
   AlertCircle,
@@ -25,7 +27,8 @@ import {
   rupiah,
 } from '@/lib/goodsRequests';
 import StatusTransitionModal from './StatusTransitionModal';
-import { getAllowedTransitions, getStatusSelectionClass, getStatusBadgeConfig, getStatusLabel } from '@/lib/ga/goodsRequestStatus';
+import { getAllowedTransitions, getStatusSelectionClass, getStatusBadgeConfig, getStatusLabel, isRequestEditable } from '@/lib/ga/goodsRequestStatus';
+import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal';
 
 export default function GoodsRequestList() {
   const { hasPermission } = useAuth();
@@ -37,6 +40,24 @@ export default function GoodsRequestList() {
   const [data, setData] = useState<{ items: GoodsRequest[]; total: number; pageSize: number }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<GoodsRequest | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete(`${GA_API_PATH}/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      setRetry(v => v + 1);
+    } catch (err) {
+      setDeleteError((err as Error).message || 'Gagal menghapus pengajuan.');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -265,6 +286,27 @@ export default function GoodsRequestList() {
                             >
                               <FileText className="w-3.5 h-3.5" /> Detail
                             </Link>
+
+                            {isRequestEditable(request.status) && (
+                              <Link
+                                href={`${GA_BASE_PATH}/${request.id}/edit`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                title="Edit pengajuan"
+                              >
+                                <Pencil className="w-3.5 h-3.5" /> Edit
+                              </Link>
+                            )}
+
+                            {isRequestEditable(request.status) && (
+                              <button
+                                type="button"
+                                onClick={() => { setDeleteError(''); setDeleteTarget(request); }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer"
+                                title="Hapus pengajuan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Hapus
+                              </button>
+                            )}
                             </div>
                           </td>
                         </tr>
@@ -303,6 +345,27 @@ export default function GoodsRequestList() {
         </div>
       </div>
       {decision && <StatusTransitionModal key={`${decision.request.id}-${decision.target}`} isOpen onClose={() => setDecision(undefined)} requestId={decision.request.id} currentStatus={decision.request.status} initialStatus={decision.target} onSuccess={reload} />}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          isOpen={Boolean(deleteTarget)}
+          onClose={() => { if (!deleting) setDeleteTarget(null); }}
+          onConfirm={handleDeleteConfirm}
+          title="Hapus Permintaan Barang?"
+          description="Pengajuan yang dihapus tidak dapat dipulihkan kembali. Seluruh data item dan bukti harga terkait akan dihapus secara permanen."
+          itemName={requestNumber(deleteTarget)}
+          itemDetails={[
+            { label: 'Pemohon', value: deleteTarget.requesterName },
+            { label: 'Divisi', value: deleteTarget.division },
+            { label: 'Total Estimasi', value: rupiah(deleteTarget.totalEstimated || 0) },
+            { label: 'Status', value: getStatusLabel(deleteTarget.status) },
+          ]}
+          confirmText="Hapus Pengajuan"
+          variant="danger"
+          isLoading={deleting}
+          error={deleteError}
+        />
+      )}
     </DashboardLayout>
   );
 }

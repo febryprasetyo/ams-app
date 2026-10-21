@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { GoodsDocumentHeading } from './GoodsRequestDocument';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
@@ -15,14 +15,16 @@ import {
   GA_API_PATH,
   GA_BASE_PATH,
   rupiah,
+  GoodsRequest,
 } from '@/lib/goodsRequests';
 import { validateFormSubmission } from '@/lib/ga/goodsFormValidation';
 import { normalizePastedPrice } from '@/lib/ga/pricePaste';
 
 interface Evidence {
   key: string;
-  file: File;
+  file?: File;
   url: string;
+  isExisting?: boolean;
 }
 
 interface Row {
@@ -47,23 +49,44 @@ const inputClass = 'w-full min-h-11 rounded-xl border border-slate-200 bg-slate-
 const secondary =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50';
 
-export default function GoodsRequestForm() {
+export interface GoodsRequestFormProps {
+  initialData?: GoodsRequest;
+}
+
+export default function GoodsRequestForm({ initialData }: GoodsRequestFormProps = {}) {
+  const isEditMode = Boolean(initialData?.id);
   const { user } = useAuth();
   const router = useRouter();
 
   const [identity, setIdentity] = useState({
-    requestDate: new Intl.DateTimeFormat('en-CA', {
+    requestDate: initialData?.requestDate || new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Jakarta',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     }).format(new Date()),
-    requesterName: capitalizeWords(user?.fullName || ''),
-    jobTitle: 'GA',
-    division: 'HRGA',
+    requesterName: initialData?.requesterName ? capitalizeWords(initialData.requesterName) : capitalizeWords(user?.fullName || ''),
+    jobTitle: initialData?.jobTitle || 'GA',
+    division: initialData?.division || 'HRGA',
   });
 
-  const [rows, setRows] = useState<Row[]>(() => [newRow('initial-item')]);
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initialData?.items && initialData.items.length > 0) {
+      return initialData.items.map((item, index) => ({
+        key: `item-${index}-${item.id || Date.now()}`,
+        name: item.name,
+        quantity: String(item.quantity),
+        estimatedPrice: String(item.estimatedPrice),
+        notes: item.notes || '',
+        evidence: (item.attachments || []).map((att) => ({
+          key: att.id,
+          url: `/api/v1/ga/requests/${initialData.id}/evidence/${att.id}`,
+          isExisting: true,
+        })),
+      }));
+    }
+    return [newRow('initial-item')];
+  });
   const [busy, setBusy] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -95,8 +118,10 @@ export default function GoodsRequestForm() {
   }
 
   function revoke(evidence: Evidence) {
-    URL.revokeObjectURL(evidence.url);
-    urls.current.delete(evidence.url);
+    if (evidence.file) {
+      URL.revokeObjectURL(evidence.url);
+      urls.current.delete(evidence.url);
+    }
   }
 
   async function addEvidence(rowKey: string, files: File[]) {
@@ -130,7 +155,7 @@ export default function GoodsRequestForm() {
     }
   }
 
-  async function handleSubmit(isDraft: boolean) {
+  async function handleSubmit(isDraft: boolean, autoPrint: boolean = false) {
     if (locked.current || evidenceLock.current || busy || processing) return;
 
     setError('');
@@ -186,12 +211,23 @@ export default function GoodsRequestForm() {
       form.append('payload', JSON.stringify(payload));
       for (const row of rows) {
         for (const item of row.evidence) {
-          form.append('evidence', item.file, item.key);
+          if (item.file) {
+            form.append('evidence', item.file, item.key);
+          }
         }
       }
 
-      const result = await api.upload<{ id: string }>(GA_API_PATH, form);
-      router.push(`${GA_BASE_PATH}/${result.id}?saved=1`);
+      if (isEditMode) {
+        const result = await api.upload<{ id: string; version: number }>(
+          `${GA_API_PATH}/${initialData!.id}`,
+          form,
+          { method: 'PUT' }
+        );
+        router.push(`${GA_BASE_PATH}/${initialData!.id}${autoPrint ? '?autoPrint=true' : ''}`);
+      } else {
+        const result = await api.upload<{ id: string }>(GA_API_PATH, form);
+        router.push(`${GA_BASE_PATH}/${result.id}${autoPrint ? '?autoPrint=true' : ''}`);
+      }
     } catch (cause) {
       locked.current = false;
       setBusy(false);
@@ -204,10 +240,10 @@ export default function GoodsRequestForm() {
       <main className="mx-auto min-w-0 max-w-5xl space-y-4 pb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href={GA_BASE_PATH}
+            href={isEditMode ? `${GA_BASE_PATH}/${initialData!.id}` : GA_BASE_PATH}
             className="inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-slate-600 hover:text-emerald-700"
           >
-            <ArrowLeft size={16} /> Kembali ke daftar permintaan barang
+            <ArrowLeft size={16} /> {isEditMode ? 'Kembali ke detail permintaan' : 'Kembali ke daftar permintaan barang'}
           </Link>
         </div>
 
@@ -450,7 +486,7 @@ export default function GoodsRequestForm() {
                         />
                       </a>
                       <div className="text-xs text-slate-600">
-                        <p>{Math.ceil(file.file.size / 1024)} KB</p>
+                        <p>{file.file ? `${Math.ceil(file.file.size / 1024)} KB` : 'Lampiran tersimpan'}</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -481,16 +517,35 @@ export default function GoodsRequestForm() {
             </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <button type="button" onClick={() => router.push(GA_BASE_PATH)} className={secondary}>Batal</button>
-
             <button
-              type="submit"
-              disabled={busy || processing}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50 cursor-pointer"
+              type="button"
+              onClick={() => router.push(isEditMode ? `${GA_BASE_PATH}/${initialData!.id}` : GA_BASE_PATH)}
+              className={secondary}
             >
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              {busy ? 'Menyimpan...' : 'Simpan Pengajuan'}
+              Batal
             </button>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                disabled={busy || processing}
+                onClick={() => void handleSubmit(true, false)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+              >
+                <Save size={16} />
+                {isEditMode ? 'Simpan Perubahan Draft' : 'Simpan Draft'}
+              </button>
+
+              <button
+                type="button"
+                disabled={busy || processing}
+                onClick={() => void handleSubmit(false, true)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-700 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50 cursor-pointer"
+              >
+                {busy ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
+                {busy ? 'Menyimpan...' : (isEditMode ? 'Simpan & Cetak' : 'Simpan & Cetak Formulir')}
+              </button>
+            </div>
           </div>
         </fieldset>
         </form>

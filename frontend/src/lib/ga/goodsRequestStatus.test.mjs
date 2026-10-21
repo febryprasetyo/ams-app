@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getStatusBadgeConfig, getStatusLabel, getAllowedTransitions } from './goodsRequestStatus.js';
+import { getStatusBadgeConfig, getStatusLabel, getAllowedTransitions, isRequestEditable } from './goodsRequestStatus.js';
 
 test('getStatusLabel returns human friendly Indonesian label', () => {
   assert.equal(getStatusLabel('draft'), 'Draft');
@@ -34,4 +34,17 @@ test('getAllowedTransitions returns valid next steps in physical workflow', () =
   assert.deepEqual(getAllowedTransitions('processing'), ['approved_manually', 'rejected']);
   assert.deepEqual(getAllowedTransitions('completed'), []);
   assert.deepEqual(getAllowedTransitions('cancelled'), []);
+});
+
+test('isRequestEditable returns true only for unapproved requests (draft, ready_to_print, pending_signature)', () => {
+  assert.equal(isRequestEditable('draft'), true);
+  assert.equal(isRequestEditable('ready_to_print'), true);
+  assert.equal(isRequestEditable('pending_signature'), true);
+  assert.equal(isRequestEditable('approved_manually'), false);
+  assert.equal(isRequestEditable('processing'), false);
+  assert.equal(isRequestEditable('completed'), false);
+  assert.equal(isRequestEditable('rejected'), false);
+  assert.equal(isRequestEditable('cancelled'), false);
+  assert.equal(isRequestEditable(null), false);
+  assert.equal(isRequestEditable(''), false);
 });

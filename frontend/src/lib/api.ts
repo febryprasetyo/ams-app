@@ -98,8 +98,8 @@ export const api = {
 
   upload: <T = unknown>(endpoint: string, formData: FormData, options?: ApiOptions) =>
     apiFetch<T>(endpoint, {
-      ...options,
       method: 'POST',
+      ...options,
       body: formData,
     }),
 

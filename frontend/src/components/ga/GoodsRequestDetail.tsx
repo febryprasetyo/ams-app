@@ -334,11 +334,18 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
                             {item ? (
                               <div className="flex justify-between items-center w-full">
                                 <span>Rp</span>
+                                <span className="font-mono">{formatRupiahNumber(item.estimatedPrice)}</span>
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="border-r border-black py-2 px-2 sm:px-3 print:py-1 whitespace-nowrap">
+                            {item ? (
+                              <div className="flex justify-between items-center w-full">
+                                <span>Rp</span>
                                 <span className="font-mono">{formatRupiahNumber(item.subtotal || (Number(item.estimatedPrice) * Number(item.quantity)))}</span>
                               </div>
                             ) : null}
                           </td>
-                          <td className="border-r border-black py-2 px-2 sm:px-3 print:py-1 text-right"></td>
                           <td className="py-2 px-2 sm:px-3 print:py-1 text-left text-slate-800 break-words leading-tight">
                             {item?.notes || ''}
                           </td>

@@ -22,6 +22,7 @@ import {
   GA_API_PATH,
   GA_BASE_PATH,
   GoodsRequest,
+  capitalizeWords,
   formatFirstItemTitle,
   requestNumber,
   rupiah,
@@ -210,7 +211,6 @@ export default function GoodsRequestList() {
                       <th scope="col" className="p-4 font-semibold">Nomor & Barang</th>
                       <th scope="col" className="p-4 font-semibold">Tanggal</th>
                       <th scope="col" className="p-4 font-semibold">Pemohon</th>
-                      <th scope="col" className="p-4 font-semibold">Divisi</th>
                       <th scope="col" className="p-4 font-semibold text-right">Total Estimasi</th>
                       <th scope="col" className="p-4 font-semibold text-center">Status Administrasi</th>
                       <th scope="col" className="p-4 font-semibold text-center">Aksi</th>
@@ -253,15 +253,9 @@ export default function GoodsRequestList() {
                           </td>
                           <td className="p-4">
                             <div className="font-medium text-slate-900">
-                              {request.requesterName}
+                              {capitalizeWords(request.requesterName)}
                             </div>
-                            {request.creatorName && (
-                              <div aria-hidden="true" className="text-[11px] text-slate-400 font-mono">
-                                Petugas: {request.creatorName}
-                              </div>
-                            )}
                           </td>
-                          <td className="p-4 text-slate-600">{request.division}</td>
                           <td className="p-4 text-right font-semibold text-slate-900">
                             {rupiah(request.totalEstimated || 0)}
                           </td>

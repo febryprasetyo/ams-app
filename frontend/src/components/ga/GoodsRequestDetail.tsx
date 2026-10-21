@@ -203,11 +203,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
           </div>
         )}
 
-        {saved && !loading && !error && (
-          <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
-            Pengajuan dan seluruh lampiran berhasil disimpan. Dokumen siap dicetak untuk ditandatangani secara basah.
-          </p>
-        )}
+
 
         {printError && (
           <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700">
@@ -231,7 +227,7 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             <article
               role="group"
               aria-label="Lembar permintaan barang"
-              className="ga-request-document mx-auto max-w-4xl min-w-0 bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-xs sm:shadow-md p-4 sm:p-8 md:p-10 print:p-0 print:border-none print:shadow-none print:rounded-none print:max-w-none print:m-0"
+              className="ga-request-document w-full min-w-0 bg-white border border-slate-200/90 rounded-2xl shadow-xs p-5 sm:p-8 print:p-0 print:border-none print:shadow-none print:rounded-none print:max-w-none print:m-0"
             >
               {/* Boxed Formal Document Form */}
               <div className="ga-request-document-box border border-black bg-white text-black text-[11px]">
@@ -304,7 +300,10 @@ export default function GoodsRequestDetail({ id, saved = false }: GoodsRequestDe
             </article>
 
             {/* Price Evidence Gallery */}
-            <div aria-label="Lampiran bukti harga" className="ga-request-evidence-area mt-6 space-y-4 print:mt-2 print:space-y-2">
+            <div
+              aria-label="Lampiran"
+              className="ga-request-evidence-area w-full rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4 print:mt-2 print:p-0 print:border-none print:shadow-none print:bg-transparent print:rounded-none print:space-y-2"
+            >
               <h3 className="no-print text-sm font-bold text-slate-900">
                 Lampiran
               </h3>
